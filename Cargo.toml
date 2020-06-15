@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "yukino",
+    "yukino_derive"
+]
