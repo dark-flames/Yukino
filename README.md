@@ -1,5 +1,5 @@
 # Yukino
-Yukino is a ORM framework for Rust
+Yukino is an ORM framework for Rust
 
 ### Features
 * Define model by types and annotation
