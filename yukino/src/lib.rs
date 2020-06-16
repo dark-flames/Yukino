@@ -1,3 +1,5 @@
+mod mapping;
+
 #[cfg(test)]
 mod tests {
     #[test]
