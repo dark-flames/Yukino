@@ -19,3 +19,22 @@ pub enum IndexMethod {
     #[cfg(any(feature = "postgre-sql"))]
     Brin,
 }
+
+#[derive(YuiEnumValue, Clone, PartialEq)]
+pub enum ReferenceAction {
+    NoAction,
+    Restrict,
+    SetNull,
+    SetDefault,
+    Cascade
+}
+
+#[derive(YuiEnumValue, Clone, PartialEq)]
+pub enum FetchMode {
+    /// Column will be fetch on getting
+    Lazy,
+    /// Depend by yukino
+    Auto,
+    /// Column will be fetch on constructing
+    Eager
+}
