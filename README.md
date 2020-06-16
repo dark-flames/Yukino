@@ -7,5 +7,6 @@ Yukino is an ORM framework for Rust
 * Query builder
 * Association management
 * Delayed execute
+* Auto cache and reverse cache
 * Command-Line management tools
 
