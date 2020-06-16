@@ -6,4 +6,20 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[dependencies.yui]
+version = "0.1.4"
+
+[dependencies.proc-macro2]
+version = "1.0"
+
+[dependencies.syn]
+version = "1.0"
+
+[dependencies.quote]
+version = "1.0"
+
+[features]
+default = ["mysql"]
+mysql = []
+postgre-sql = []
+sqlite = []
