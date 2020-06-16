@@ -7,12 +7,7 @@ use super::enums::*;
 ///
 /// It can be used in attribute `Table`.
 /// ```
-/// #[derive(Entity)]
-/// #[Table(indexes(
-///     index_a(columns("a", "b")),
-///     index_b(columns("c", "d"))
-/// ))]
-/// struct Foo {}
+/// // todo: some test
 /// ```
 ///
 #[derive(YuiAttribute, Clone)]

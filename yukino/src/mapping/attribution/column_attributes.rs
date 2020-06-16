@@ -4,12 +4,7 @@ use yui::YuiAttribute;
 /// Announce column as primary key.
 /// It can be used on field of entity struct.
 /// ```
-/// #[derive(Entity)]
-/// struct Foo {
-///     #[Id]
-///     #[Column]
-///     id: i32
-/// }
+/// // todo: some test
 /// ```
 /// Yukino also support multi-primary-key, but a table must have one primary key at least.
 #[derive(YuiAttribute, Clone)]
