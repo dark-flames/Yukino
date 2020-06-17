@@ -1,2 +1,3 @@
 pub mod attribution;
-pub mod types;
+pub mod definition;
+pub mod r#type;
