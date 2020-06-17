@@ -14,9 +14,13 @@ version = "1.0"
 
 [dependencies.syn]
 version = "1.0"
+features = ["derive", "parsing", "printing", "clone-impls", "proc-macro", "extra-traits"]
 
 [dependencies.quote]
 version = "1.0"
+
+[dependencies.rust_decimal]
+version = "1.6.0"
 
 [features]
 default = ["mysql"]
