@@ -13,13 +13,15 @@ pub enum Column {
 pub struct ColumnDefinition {
     pub name: String,
     pub field_name: String,
-    pub column_type: DatabaseType
+    pub column_type: DatabaseType,
+    pub logic_type: String
 }
 
 #[allow(dead_code)]
 pub struct InternalColumnDefinition {
     pub name: String,
     pub column_type: DatabaseType,
+    pub logic_type: String,
     pub reference_table: String,
     pub reference_column: String
 }
