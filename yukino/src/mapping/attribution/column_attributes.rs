@@ -1,4 +1,5 @@
 use yui::YuiAttribute;
+use std::collections::HashMap;
 
 
 /// Announce column as primary key.
@@ -19,8 +20,9 @@ pub struct Column {
     /// Is column unique.
     #[attribute_field(default=false)]
     pub unique: Option<bool>,
-    /// Precision of numeric field
-    pub precision: Option<u8>,
-    /// Scale of numeric field, must less or equal than `precision`
-    pub scale: Option<u8>
+    /// Auto increase
+    #[attribute_field(default=false)]
+    pub auto_increase: bool,
+    /// Options
+    pub options: Option<HashMap<String, String>>
 }
