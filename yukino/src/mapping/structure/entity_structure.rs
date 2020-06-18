@@ -43,10 +43,10 @@ impl EntityStructure {
                 },
                 _  => Err(Error::new_spanned(
                     input_struct.fields,
-                    "Entity must be a struct"
+                    "Field of Entity must be named field."
                 ))
             },
-            _ => Err(Error::new_spanned(&input, "Entity must be a struct"))
+            _ => Err(Error::new_spanned(&input, "Entity must be a struct."))
         }?;
 
         let result = EntityStructure {
