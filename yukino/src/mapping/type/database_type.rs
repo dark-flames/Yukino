@@ -1,5 +1,3 @@
-use std::any::TypeId;
-
 #[allow(dead_code)]
 pub enum DatabaseType {
     SmallInteger,
@@ -26,7 +24,6 @@ pub enum DatabaseType {
     CLOB,
     BLOB,
 
-    Object(TypeId),
     Map,
     List
 }
