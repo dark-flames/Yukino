@@ -3,6 +3,7 @@ use super::enums::{ReferenceAction, FetchMode};
 
 /// DataStructure of AssociateColumn.
 /// Only used on the owner side.
+/// If field type is a List of associated Entity, Yukino will join a table to manage relationship.
 #[derive(YuiAttribute, Clone)]
 pub struct AssociateColumn {
     /// Referenced field name, default is primary key of referenced entity.
