@@ -15,31 +15,50 @@ pub enum Column {
 
 #[allow(dead_code)]
 pub struct ColumnDefinition {
+    /// Column name in database
     pub name: String,
+    /// field name in Entity
     pub field_name: String,
+    /// DatabaseType of column
     pub column_type: DatabaseType,
+    /// Logic type in type converter layer
     pub logic_type: String
 }
 
 /// InternalColumn was generated from Association mapped value.
 #[allow(dead_code)]
 pub struct InternalColumnDefinition {
+    /// Column name in database
     pub name: String,
+    /// DatabaseType of column
     pub column_type: DatabaseType,
+    /// Logic type in type converter layer
     pub logic_type: String,
+    /// Associated table name
     pub reference_table: String,
+    /// Mapping column name
     pub reference_column: String
 }
 
+
+/// Correspond to an InternalColumn
 #[allow(dead_code)]
 pub struct VirtualColumnDefinition {
+    /// field name in Entity
     pub field_name: String,
+    /// Table name of internal column
     pub reference_table: String,
+    /// Name of internal column
     pub reference_column: String,
+    /// table name of value Entity
     pub type_table_name: String,
+    /// is list
     pub is_list: bool,
+    /// Reference action
     pub on_delete: ReferenceAction,
+    /// Reference action
     pub on_update: ReferenceAction,
+    /// Fetch_mode
     pub fetch_mode: FetchMode
 }
 

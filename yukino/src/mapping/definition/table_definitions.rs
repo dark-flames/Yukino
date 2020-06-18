@@ -24,7 +24,7 @@ enum Table {
 /// Will be converted to construct token in macro
 #[allow(dead_code)]
 pub struct NormalTableDefinition {
-    /// Database name
+    /// Database table name
     pub name: String,
     /// TypeId of Entity
     pub entity_type_id: TypeId,
@@ -38,9 +38,14 @@ pub struct NormalTableDefinition {
     pub name_map: HashMap<String, String>
 }
 
+/// DataStructure of generated table
+/// Used to manage relationship in association
+/// Will be converted to construct token in macro
 #[allow(dead_code)]
 pub struct InternalTableDefinition {
+    /// Database table name
     pub name: String,
+    /// List of primary key field name
     pub primary_keys: Vec<String>,
     /// IndexDefinition mapped by index name
     pub indexes: HashMap<String, IndexDefinition>,
