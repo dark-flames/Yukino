@@ -1,6 +1,9 @@
 use crate::mapping::definition::table_definitions::IndexDefinition;
 use super::super::r#type::DatabaseType;
 use crate::mapping::attribution::{ReferenceAction, FetchMode};
+use crate::mapping::structure::FieldStructure;
+use crate::mapping::error::AttributeError;
+use heck::SnakeCase;
 
 /// Types of Column
 #[allow(dead_code)]
@@ -22,7 +25,22 @@ pub struct ColumnDefinition {
     /// DatabaseType of column
     pub column_type: DatabaseType,
     /// Logic type in type converter layer
-    pub logic_type: String
+    pub logic_type: &'static str
+}
+
+impl ColumnDefinition {
+    pub fn from_structure(structure: &FieldStructure) -> Result<Self, AttributeError> {
+        let column_attr = structure.column_attr.as_ref().unwrap();
+
+        let field_name = structure.ident.to_string();
+
+        Ok(ColumnDefinition {
+            name: column_attr.name.clone().unwrap_or(field_name.to_snake_case()),
+            field_name,
+            column_type: DatabaseType::String, // todo: fix me
+            logic_type: "todo"
+        })
+    }
 }
 
 /// InternalColumn was generated from Association mapped value.
@@ -33,7 +51,7 @@ pub struct InternalColumnDefinition {
     /// DatabaseType of column
     pub column_type: DatabaseType,
     /// Logic type in type converter layer
-    pub logic_type: String,
+    pub logic_type: &'static str,
     /// Associated table name
     pub reference_table: String,
     /// Mapping column name

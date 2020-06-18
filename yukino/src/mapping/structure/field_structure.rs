@@ -1,17 +1,18 @@
-use super::super::attribution::{Column, AssociateColumn, InverseAssociateColumn};
+use super::super::attribution::{Column, Association, InverseAssociation};
 use syn::{Type, Visibility, Field, Error};
 use proc_macro2::Ident;
 use crate::mapping::definition::column_definitions::{ColumnDefinition, InternalColumnDefinition, VirtualColumnDefinition};
 use crate::mapping::definition::table_definitions::InternalTableDefinition;
 use yui::AttributeStructure;
 use crate::mapping::attribution::Id;
+use crate::mapping::error::{AttributeError, CompileError};
 
 #[allow(dead_code)]
 pub struct FieldStructure {
     pub is_primary_key: bool,
     pub column_attr: Option<Column>,
-    pub association_column_attr: Option<AssociateColumn>,
-    pub inverse_association_column_attr: Option<InverseAssociateColumn>,
+    pub association_column_attr: Option<Association>,
+    pub inverse_association_column_attr: Option<InverseAssociation>,
     pub visibility: Visibility,
     pub ident: Ident,
     pub field_type: Type,
@@ -35,18 +36,18 @@ impl FieldStructure {
                 is_primary_key = true;
             } else if attr.path == Column::get_path() {
                 column_attr = Some(Column::from_meta(&attr.parse_meta()?)?);
-            } else if attr.path == AssociateColumn::get_path() {
+            } else if attr.path == Association::get_path() {
                 association_column_attr = Some(
-                    AssociateColumn::from_meta(&attr.parse_meta()?)?
+                    Association::from_meta(&attr.parse_meta()?)?
                 );
-            } else if attr.path == InverseAssociateColumn::get_path(){
+            } else if attr.path == InverseAssociation::get_path(){
                 inverse_association_column_attr = Some(
-                    InverseAssociateColumn::from_meta(&attr.parse_meta()?)?
+                    InverseAssociation::from_meta(&attr.parse_meta()?)?
                 );
             }
         }
 
-        let result = FieldStructure {
+        let mut result = FieldStructure {
             is_primary_key,
             column_attr,
             association_column_attr,
@@ -62,8 +63,43 @@ impl FieldStructure {
             internal_table_definition: None
         };
 
-        // todo: resolve column_definition
+        if let Some(error_message) = result.check() {
+            return Err(Error::new_spanned(&input_field, error_message))
+        }
+
+        result.resolve_independent_definition().map_err(|e| {
+            Error::new_spanned(&input_field, e.get_message())
+        })?;
 
         Ok(result)
+    }
+
+    fn check(&self) -> Option<&str> {
+        match [
+            self.column_attr.is_some() as u8,
+            self.association_column_attr.is_some() as u8,
+            self.inverse_association_column_attr.is_some() as u8
+        ].iter().sum() {
+            1 => (),
+            0 => return Some(
+                "A Field of Entity must have one column attribute (Column, Association or InverseAssociation) at least."
+            ),
+            _ => return Some(
+                "A Field of Entity can not have multiple column attribute Association or InverseAssociation)."
+            )
+        };
+
+        // more check
+
+        None
+    }
+
+    fn resolve_independent_definition(&mut self) -> Result<bool, AttributeError> {
+        if let Some(_) = &self.column_attr {
+            self.column_definition = Some(ColumnDefinition::from_structure(self)?);
+            self.resolved = true;
+        };
+
+        Ok(self.resolved)
     }
 }

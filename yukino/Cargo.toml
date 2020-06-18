@@ -22,6 +22,9 @@ version = "1.0"
 [dependencies.rust_decimal]
 version = "1.6.0"
 
+[dependencies.heck]
+version = "0.3.1"
+
 [features]
 default = ["mysql"]
 mysql = []
