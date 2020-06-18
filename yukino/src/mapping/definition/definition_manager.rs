@@ -16,14 +16,14 @@ pub struct DefinitionManager {
 
 #[allow(dead_code)]
 impl DefinitionManager {
-    pub fn new() -> DefinitionManager {
+    pub fn new() -> Self {
         DefinitionManager {
             definitions: HashMap::new(),
             type_id_map: HashMap::new()
         }
     }
 
-    pub fn register_table(&mut self, table: Rc<Table>) -> &mut DefinitionManager {
+    pub fn register_table(&mut self, table: Rc<Table>) -> &mut Self {
         if let Some(type_id) = table.get_entity_type_id() {
             self.type_id_map.insert(
                 type_id,

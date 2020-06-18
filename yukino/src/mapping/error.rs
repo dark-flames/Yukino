@@ -23,7 +23,7 @@ impl AttributeError {
     pub fn new<T: AttributeStructure, D: Display>(
         ident: &Ident,
         message: &D
-    ) -> AttributeError {
+    ) -> Self {
         AttributeError(format!(
             "Attribute Error: Error('{}') occurred in attribute '{}' on '{}'",
             message,
