@@ -11,7 +11,7 @@ use std::rc::Rc;
 pub trait LogicalType {
     fn weight(&self) -> usize;
 
-    fn logical_name(&self) -> &'static str;
+    fn logical_type(&self) -> &'static str;
 
     fn database_type(&self) -> DatabaseType;
 
@@ -40,8 +40,8 @@ pub struct ValueConverter {
 
 #[allow(dead_code)]
 impl ValueConverter {
-    pub fn get(&self, logical_name: &'static str) -> Option<Rc<dyn LogicalType>> {
-        self.types.get(logical_name).map(
+    pub fn get(&self, logical_type: &'static str) -> Option<Rc<dyn LogicalType>> {
+        self.types.get(logical_type).map(
             |type_ref| Rc::clone(type_ref)
         )
     }
@@ -58,6 +58,13 @@ impl ValueConverter {
                 None
             }
         })
+    }
+
+    pub fn register(&mut self, logical_type: Rc<dyn LogicalType>) {
+        self.types.insert(
+            logical_type.logical_type(),
+            logical_type
+        );
     }
 }
 

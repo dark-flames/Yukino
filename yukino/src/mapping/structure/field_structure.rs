@@ -5,7 +5,8 @@ use crate::mapping::definition::column_definitions::{ColumnDefinition, InternalC
 use crate::mapping::definition::table_definitions::InternalTableDefinition;
 use yui::AttributeStructure;
 use crate::mapping::attribution::Id;
-use crate::mapping::error::{AttributeError, CompileError};
+use crate::mapping::error::TypeError;
+use super::super::r#type::ValueConverter;
 
 #[allow(dead_code)]
 pub struct FieldStructure {
@@ -24,6 +25,7 @@ pub struct FieldStructure {
     pub internal_table_definition: Option<InternalTableDefinition>
 }
 
+#[allow(dead_code)]
 impl FieldStructure {
     pub fn from_ast(input_field: &Field) -> Result<Self, Error> {
         let mut is_primary_key = false;
@@ -47,7 +49,7 @@ impl FieldStructure {
             }
         }
 
-        let mut result = FieldStructure {
+        let result = FieldStructure {
             is_primary_key,
             column_attr,
             association_column_attr,
@@ -66,10 +68,6 @@ impl FieldStructure {
         if let Some(error_message) = result.check() {
             return Err(Error::new_spanned(&input_field, error_message))
         }
-
-        result.resolve_independent_definition().map_err(|e| {
-            Error::new_spanned(&input_field, e.get_message())
-        })?;
 
         Ok(result)
     }
@@ -94,9 +92,9 @@ impl FieldStructure {
         None
     }
 
-    fn resolve_independent_definition(&mut self) -> Result<bool, AttributeError> {
+    fn resolve_independent_definition(&mut self, converter: &ValueConverter) -> Result<bool, TypeError> {
         if let Some(_) = &self.column_attr {
-            self.column_definition = Some(ColumnDefinition::from_structure(self)?);
+            self.column_definition = Some(ColumnDefinition::from_structure(self, converter)?);
             self.resolved = true;
         };
 

@@ -1,8 +1,8 @@
 use crate::mapping::definition::table_definitions::IndexDefinition;
-use super::super::r#type::DatabaseType;
+use super::super::r#type::{DatabaseType, ValueConverter};
 use crate::mapping::attribution::{ReferenceAction, FetchMode};
 use crate::mapping::structure::FieldStructure;
-use crate::mapping::error::AttributeError;
+use crate::mapping::error::{TypeError};
 use heck::SnakeCase;
 
 /// Types of Column
@@ -29,16 +29,22 @@ pub struct ColumnDefinition {
 }
 
 impl ColumnDefinition {
-    pub fn from_structure(structure: &FieldStructure) -> Result<Self, AttributeError> {
+    pub fn from_structure(structure: &FieldStructure, converter: &ValueConverter) -> Result<Self, TypeError> {
         let column_attr = structure.column_attr.as_ref().unwrap();
 
         let field_name = structure.ident.to_string();
+        let logical_type = match converter.match_field_type(structure) {
+            Some(result) => result,
+            None => return Err(TypeError::new(
+                &structure.field_type, "Yukino can not resolve this type"
+            ))
+        };
 
         Ok(ColumnDefinition {
             name: column_attr.name.clone().unwrap_or(field_name.to_snake_case()),
             field_name,
-            column_type: DatabaseType::String, // todo: fix me
-            logic_type: "todo"
+            column_type: logical_type.database_type(),
+            logic_type: logical_type.logical_type()
         })
     }
 }
