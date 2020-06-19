@@ -1,4 +1,3 @@
-use std::any::{TypeId, Any};
 use std::collections::HashMap;
 use super::column_definitions::Column;
 use super::super::attribution::IndexMethod;
@@ -29,9 +28,9 @@ impl Table {
         }
     }
 
-    pub fn get_entity_type_id(&self) -> Option<TypeId> {
+    pub fn get_entity_type_name(&self) -> Option<&'static str> {
         match self {
-            Table::NormalTable(normal) => Some(normal.type_id().clone()),
+            Table::NormalTable(normal) => Some(normal.entity_type_name),
             Table::InternalTable(_) => None
         }
     }
@@ -49,8 +48,8 @@ pub trait TableDefinition {
 pub struct NormalTableDefinition {
     /// Database table name
     pub name: String,
-    /// TypeId of Entity
-    pub entity_type_id: TypeId,
+    /// Type name of Entity
+    pub entity_type_name: &'static str,
     /// List of primary key field name
     pub primary_keys: Vec<String>,
     /// IndexDefinition mapped by index name

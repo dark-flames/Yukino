@@ -2,6 +2,8 @@ use proc_macro2::{TokenStream, Ident};
 use yui::AttributeStructure;
 use std::error::Error;
 use syn::export::fmt::{Display, Formatter, Result};
+use syn::Type;
+use syn::export::ToTokens;
 
 pub trait CompileError: Error + Display {
     fn get_message(&self) -> String;
@@ -46,6 +48,41 @@ impl Error for AttributeError {
 }
 
 impl CompileError for AttributeError {
+    fn get_message(&self) -> String {
+        self.0.clone()
+    }
+}
+
+#[derive(Debug)]
+pub struct TypeError (String);
+
+impl TypeError {
+    #[allow(dead_code)]
+    pub fn new<D: Display + ?Sized>(
+        value_type: &Type,
+        message: &D
+    ) -> Self {
+        TypeError(format!(
+            "TypeError Error: Error('{}') occurred in type: {}",
+            message,
+            value_type.to_token_stream()
+        ))
+    }
+}
+
+impl Display for TypeError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.get_message())
+    }
+}
+
+impl Error for TypeError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+impl CompileError for TypeError {
     fn get_message(&self) -> String {
         self.0.clone()
     }
