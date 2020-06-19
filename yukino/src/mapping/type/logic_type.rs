@@ -1,4 +1,4 @@
-use super::database_type::DatabaseValue;
+use super::database_type::{DatabaseType, DatabaseValue};
 use crate::mapping::error::{CompileError};
 use super::helper::*;
 use syn::{Type, parse, Error};
@@ -14,6 +14,8 @@ pub trait LogicValue {
     fn new() -> Self;
 
     fn logical_name() -> &'static str;
+
+    fn database_type() -> DatabaseType;
 
     fn from_value(value: &Self::ValueType) -> Self;
 
