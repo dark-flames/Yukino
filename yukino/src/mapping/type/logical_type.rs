@@ -22,11 +22,8 @@ pub trait LogicalType {
     fn get_target_type(&self) -> Type;
 
     fn match_field(&self, field_structure: &FieldStructure) -> Result<bool, Error> {
-        self.match_type(&field_structure.field_type)
-    }
-
-    fn match_type(&self, field_type: &Type) -> Result<bool, Error> {
         let target_type: Type = self.get_target_type();
+        let field_type = &field_structure.field_type;
 
         cmp_type(&target_type, &field_type).map_err(
             |e| Error::new_spanned(&field_type, e.get_message())
