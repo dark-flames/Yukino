@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 #[allow(dead_code)]
 pub enum DatabaseType {
@@ -39,11 +38,8 @@ pub enum DatabaseType {
 
 pub type Binary = Vec<u8>;
 
-pub struct NoKey;
-pub struct NoValue;
-
 #[allow(dead_code)]
-pub enum DatabaseValue<K = NoKey, V = NoValue> {
+pub enum DatabaseValue {
     SmallInteger(i16),
     UnsignedSmallInteger(u16),
     Integer(i32),
@@ -74,6 +70,5 @@ pub enum DatabaseValue<K = NoKey, V = NoValue> {
 
     BLOB(Binary),
 
-    Map(Box<HashMap<K, V>>),
-    List(Box<Vec<V>>)
+    JSON(String)
 }

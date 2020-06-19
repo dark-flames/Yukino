@@ -59,8 +59,6 @@ impl EntityStructure {
             table_definition: None
         };
 
-        // todo: resolve
-
         Ok(result)
     }
 }
