@@ -1,4 +1,4 @@
-mod logic_type;
+mod logical_type;
 mod helper;
 mod database_type;
 
