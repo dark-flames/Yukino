@@ -5,8 +5,11 @@ use crate::mapping::definition::column_definitions::{ColumnDefinition, InternalC
 use crate::mapping::definition::table_definitions::InternalTableDefinition;
 use yui::AttributeStructure;
 use crate::mapping::attribution::Id;
-use crate::mapping::error::TypeError;
+use crate::mapping::error::{TypeError, ResolveError, CompileError};
 use super::super::r#type::ValueConverter;
+use crate::mapping::structure::structure_manager::StructureManager;
+use crate::mapping::structure::{unwrap_association_type, AssociationFieldType};
+use heck::SnakeCase;
 
 #[allow(dead_code)]
 pub struct FieldStructure {
@@ -17,10 +20,11 @@ pub struct FieldStructure {
     pub visibility: Visibility,
     pub ident: Ident,
     pub field_type: Type,
+    pub association_field_type: Option<AssociationFieldType>,
     pub resolved: bool,
-    pub waiting_for: Option<String>,
+    pub wait_for: Option<String>,
     pub column_definition: Option<ColumnDefinition>,
-    pub internal_column_definition: Option<InternalColumnDefinition>,
+    pub internal_column_definition: Option<Vec<InternalColumnDefinition>>,
     pub virtual_column_definition: Option<VirtualColumnDefinition>,
     pub internal_table_definition: Option<InternalTableDefinition>
 }
@@ -47,7 +51,17 @@ impl FieldStructure {
                     InverseAssociation::from_meta(&attr.parse_meta()?)?
                 );
             }
-        }
+        };
+
+        let association_field_type = if association_column_attr.is_some() || inverse_association_column_attr.is_some() {
+            Some(unwrap_association_type(
+                &input_field.ty
+            ).map_err(
+                |e| Error::new_spanned(&input_field, e.get_message())
+            )?)
+        } else {
+            None
+        };
 
         let result = FieldStructure {
             is_primary_key,
@@ -57,8 +71,9 @@ impl FieldStructure {
             visibility: input_field.vis.clone(),
             ident: input_field.ident.as_ref().unwrap().clone(),
             field_type: input_field.ty.clone(),
+            association_field_type,
             resolved: false,
-            waiting_for: None,
+            wait_for: None,
             column_definition: None,
             internal_column_definition: None,
             virtual_column_definition: None,
@@ -92,11 +107,87 @@ impl FieldStructure {
         None
     }
 
-    fn resolve_independent_definition(&mut self, converter: &ValueConverter) -> Result<bool, TypeError> {
+    pub fn resolve_independent_definition(&mut self, converter: &ValueConverter) -> Result<bool, TypeError> {
         if let Some(_) = &self.column_attr {
             self.column_definition = Some(ColumnDefinition::from_structure(self, converter)?);
             self.resolved = true;
         };
+
+        Ok(self.resolved)
+    }
+
+    pub fn resolve(&mut self, manager: &StructureManager) -> Result<bool, ResolveError> {
+        if self.column_attr.is_some() {
+            self.column_definition = Some(
+                ColumnDefinition::from_structure(self, &manager.converter)?);
+            self.resolved = true;
+        } else if let Some(attr) = &self.association_column_attr {
+            let target_entity = self.association_field_type.as_ref().unwrap().get_type();
+            let target = match manager.get(&target_entity) {
+                Some(s) => s,
+                None => {
+                    self.wait_for = Some(target_entity);
+                    return Ok(false)
+                }
+            };
+            let name = self.ident.to_string().to_snake_case();
+            let target_name = target.ident.to_string().to_snake_case();
+
+            let columns = match &attr.mapped_by {
+                Some(fields) if !fields.is_empty() => {
+                    Ok(fields)
+                },
+                None if !target.foreign_keys.is_empty() => {
+                    Ok(&target.foreign_keys)
+                },
+                _ => Err(ResolveError::new(
+                    &self.ident,
+                    "'mapped_by' fields must be determined if associated Entity is using auto primary key"
+                ))
+            }?.iter().map(
+                |field_name| {
+                    match target.fields.get(
+                        field_name
+                    ).ok_or(
+                        ResolveError::new(
+                            &name,
+                            &format!("Unknown field '{}' found in mapped_by", field_name)
+                        )
+                    ).map(|field_structure| {
+                        let reference_definition = match field_structure.column_definition.as_ref().ok_or(
+                            ResolveError::new(
+                                &name,
+                                "Associated column cannot be an association column"
+                            )
+                        ) {
+                            Ok(d) => d,
+                            Err(e) => return Err(e)
+                        };
+
+                        Ok(InternalColumnDefinition {
+                            name: format!(
+                                "{}_{}_{}",
+                                name,
+                                target_name,
+                                field_name.to_snake_case()
+                            ),
+                            column_type: reference_definition.column_type.clone(),
+                            logic_type: reference_definition.logic_type.clone(),
+                            reference_table: target.table_name.clone(),
+                            reference_column: field_name.clone()
+                        })
+                    }) {
+                        Ok(Ok(result)) => Ok(result),
+                        Ok(Err(e)) => Err(e),
+                        Err(e) => Err(e)
+                    }
+                }
+            ).collect::<Result<Vec<InternalColumnDefinition>, ResolveError>>()?;
+
+            self.internal_column_definition = Some(columns);
+        } else if self.inverse_association_column_attr.is_some() {
+
+        }
 
         Ok(self.resolved)
     }

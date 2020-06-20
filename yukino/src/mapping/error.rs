@@ -2,7 +2,6 @@ use proc_macro2::{TokenStream, Ident};
 use yui::AttributeStructure;
 use std::error::Error;
 use syn::export::fmt::{Display, Formatter, Result};
-use syn::Type;
 use syn::export::ToTokens;
 
 pub trait CompileError: Error + Display {
@@ -59,11 +58,11 @@ pub struct TypeError (String);
 impl TypeError {
     #[allow(dead_code)]
     pub fn new<D: Display + ?Sized>(
-        value_type: &Type,
+        value_type: &dyn ToTokens,
         message: &D
     ) -> Self {
         TypeError(format!(
-            "TypeError Error: Error('{}') occurred in type: {}",
+            "Type Error: Error('{}') occurred in type: {}",
             message,
             value_type.to_token_stream()
         ))
@@ -87,3 +86,45 @@ impl CompileError for TypeError {
         self.0.clone()
     }
 }
+
+#[derive(Debug)]
+pub struct ResolveError (String);
+
+impl ResolveError {
+    #[allow(dead_code)]
+    pub fn new<N: Display + ?Sized, D: Display + ?Sized>(
+        name: &N,
+        message: &D,
+    ) -> Self {
+        ResolveError(format!(
+            "Resolve Error: Error('{}') occurred while resolving {} field.",
+            message,
+            name,
+        ))
+    }
+}
+
+impl Display for ResolveError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.get_message())
+    }
+}
+
+impl Error for ResolveError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+impl CompileError for ResolveError {
+    fn get_message(&self) -> String {
+        self.0.clone()
+    }
+}
+
+impl From<TypeError> for ResolveError {
+    fn from(e: TypeError) -> Self {
+        ResolveError(e.get_message())
+    }
+}
+
