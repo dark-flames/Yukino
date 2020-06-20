@@ -1,4 +1,4 @@
-
+#[derive(Clone)]
 #[allow(dead_code)]
 pub enum DatabaseType {
     SmallInteger,

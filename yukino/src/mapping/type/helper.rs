@@ -96,7 +96,6 @@ pub fn cmp_generic_argument(param_a: &GenericArgument, param_b: &GenericArgument
     }
 }
 
-
 #[cfg(test)]
 mod tests{
     use super::cmp_type;
