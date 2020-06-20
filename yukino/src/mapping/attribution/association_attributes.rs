@@ -6,8 +6,8 @@ use super::enums::{ReferenceAction, FetchMode};
 /// If field type is a List of associated Entity, Yukino will join a table to manage relationship.
 #[derive(YuiAttribute, Clone)]
 pub struct Association {
-    /// Referenced field name, default is primary key of referenced entity.
-    pub mapped_by: Option<String>,
+    /// Referenced field names, default is primary key of referenced entity.
+    pub mapped_by: Option<Vec<String>>,
     /// On update action.
     #[attribute_field(enum_value=true, default="set_null")]
     pub on_update: ReferenceAction,

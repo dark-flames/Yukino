@@ -73,7 +73,7 @@ pub struct VirtualColumnDefinition {
     /// Table name of internal column
     pub reference_table: String,
     /// Name of internal column
-    pub reference_column: String,
+    pub reference_columns: Vec<String>,
     /// table name of value Entity
     pub type_table_name: String,
     /// is list
