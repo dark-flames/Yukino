@@ -3,6 +3,7 @@ use yui::AttributeStructure;
 use std::error::Error;
 use syn::export::fmt::{Display, Formatter, Result};
 use syn::export::ToTokens;
+use std::ops::Add;
 
 pub trait CompileError: Error + Display {
     fn get_message(&self) -> String;
@@ -87,7 +88,7 @@ impl CompileError for TypeError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResolveError (String);
 
 impl ResolveError {
@@ -125,6 +126,16 @@ impl CompileError for ResolveError {
 impl From<TypeError> for ResolveError {
     fn from(e: TypeError) -> Self {
         ResolveError(e.get_message())
+    }
+}
+
+impl Add for ResolveError {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        ResolveError(
+            format!("{}\n{}", self.get_message(), rhs.get_message())
+        )
     }
 }
 

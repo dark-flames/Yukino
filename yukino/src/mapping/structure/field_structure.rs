@@ -5,11 +5,11 @@ use crate::mapping::definition::column_definitions::{ColumnDefinition, InternalC
 use crate::mapping::definition::table_definitions::InternalTableDefinition;
 use yui::AttributeStructure;
 use crate::mapping::attribution::Id;
-use crate::mapping::error::{TypeError, ResolveError, CompileError};
+use crate::mapping::error::{ResolveError, CompileError};
 use super::super::r#type::ValueConverter;
-use crate::mapping::structure::structure_manager::StructureManager;
-use crate::mapping::structure::{unwrap_association_type, AssociationFieldType};
+use crate::mapping::structure::{unwrap_association_type, AssociationFieldType, EntityStructure};
 use heck::SnakeCase;
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 pub struct FieldStructure {
@@ -26,7 +26,8 @@ pub struct FieldStructure {
     pub column_definition: Option<ColumnDefinition>,
     pub internal_column_definition: Option<Vec<InternalColumnDefinition>>,
     pub virtual_column_definition: Option<VirtualColumnDefinition>,
-    pub internal_table_definition: Option<InternalTableDefinition>
+    pub internal_table_definition: Option<InternalTableDefinition>,
+    pub joined_table_definition: Option<InternalTableDefinition>
 }
 
 #[allow(dead_code)]
@@ -77,7 +78,8 @@ impl FieldStructure {
             column_definition: None,
             internal_column_definition: None,
             virtual_column_definition: None,
-            internal_table_definition: None
+            internal_table_definition: None,
+            joined_table_definition: None
         };
 
         if let Some(error_message) = result.check() {
@@ -107,7 +109,7 @@ impl FieldStructure {
         None
     }
 
-    pub fn resolve_independent_definition(&mut self, converter: &ValueConverter) -> Result<bool, TypeError> {
+    pub fn resolve_independent_definition(&mut self, converter: &ValueConverter) -> Result<bool, ResolveError> {
         if let Some(_) = &self.column_attr {
             self.column_definition = Some(ColumnDefinition::from_structure(self, converter)?);
             self.resolved = true;
@@ -116,14 +118,28 @@ impl FieldStructure {
         Ok(self.resolved)
     }
 
-    pub fn resolve(&mut self, manager: &StructureManager) -> Result<bool, ResolveError> {
+    pub fn resolve_internal_reference(
+        &mut self,
+        converter: &ValueConverter,
+        fields: &HashMap<String, FieldStructure>
+    ) -> Result<bool, ResolveError>  {
+        &converter;
+        &fields;
+        // todo: fix me
+        Ok(false)
+    }
+
+    pub fn resolve(
+        &mut self, converter: &ValueConverter,
+        structures: &HashMap<String, EntityStructure>
+    ) -> Result<bool, ResolveError> {
         if self.column_attr.is_some() {
             self.column_definition = Some(
-                ColumnDefinition::from_structure(self, &manager.converter)?);
+                ColumnDefinition::from_structure(self, &converter)?);
             self.resolved = true;
         } else if let Some(attr) = &self.association_column_attr {
             let target_entity = self.association_field_type.as_ref().unwrap().get_type();
-            let target = match manager.get(&target_entity) {
+            let target = match structures.get(&target_entity) {
                 Some(s) => s,
                 None => {
                     self.wait_for = Some(target_entity);

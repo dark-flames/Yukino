@@ -8,15 +8,14 @@ use crate::mapping::r#type::ValueConverter;
 use yui::AttributeStructures;
 use syn::parse::{Parse, ParseBuffer};
 use heck::SnakeCase;
-use crate::mapping::error::{TypeError, ResolveError};
-use crate::mapping::structure::structure_manager::StructureManager;
+use crate::mapping::error::{ResolveError};
 
 pub struct EntityStructure {
     pub table_attr: Table,
     pub visibility: Visibility,
     pub ident: Ident,
     pub table_name: String,
-    pub fields: HashMap<String, Box<FieldStructure>>,
+    pub fields: HashMap<String, FieldStructure>,
     pub foreign_keys: Vec<String>,
     pub resolved: bool,
     pub wait_for: Vec<String>,
@@ -33,7 +32,7 @@ impl EntityStructure {
             indexes: None
         });
 
-        let fields: HashMap<String, Box<FieldStructure>> = match input.data {
+        let fields: HashMap<String, FieldStructure> = match input.data {
             Data::Struct(input_struct) => match &input_struct.fields {
                 Fields::Named(named_fields) => {
                     named_fields.named.iter().map(
@@ -42,7 +41,7 @@ impl EntityStructure {
                                 field
                             ).map(|field_structure| {
                                 let name = field_structure.ident.to_string();
-                                (name, Box::new(field_structure))
+                                (name, field_structure)
                             })
                         }
                     ).collect()
@@ -82,34 +81,66 @@ impl EntityStructure {
         Ok(result)
     }
 
-    pub fn resolve_independent_column(&mut self, converter: &ValueConverter ) -> Result<bool, TypeError> {
-        let result = self.fields.iter_mut().map(
+    pub fn resolve_internal(&mut self, converter: &ValueConverter) -> Result<bool, ResolveError> {
+        let mut result = self.fields.iter_mut().map(
             |(_, field)| {
                 field.resolve_independent_definition(converter)
             }
         ).fold(Ok(true), |carry, item | {
-            match carry {
-                Ok(carry_result) => match item {
-                    Ok(item_result) => Ok(item_result && carry_result),
-                    Err(e) => Err(e)
-                },
-                Err(e) => Err(e)
+            if let Ok(true) = carry {
+                item
+            } else {
+                carry
             }
         });
 
-        match result {
-            Ok(true) => self.resolved = true,
-            _ => ()
+        self.resolved = result.clone().unwrap_or(false);
+
+        if !self.resolved {
+            let self_dependent_fields: Vec<String> = self.fields.iter().filter_map(
+                |(name, column)| {
+                    match &column.wait_for {
+                        Some(wait_for) if wait_for.clone() == self.ident.to_string() => Some(name.clone()),
+                        _ => None
+                    }
+                }
+            ).collect();
+            let mut resolve_result = true;
+
+            for self_dependent_field in self_dependent_fields {
+                let mut column = self.fields.remove(&self_dependent_field).unwrap();
+                resolve_result = column.resolve_internal_reference(converter, &self.fields)? && resolve_result;
+
+                self.fields.insert(self_dependent_field.clone(), column);
+            }
+
+            result = Ok(resolve_result)
         }
 
         result
     }
 
-    pub fn resolve(&mut self, manager: &StructureManager, new_entity_name: Option<&String>) -> Result<bool, ResolveError> {
-        &manager;
-        &new_entity_name;
-        // todo: fix me
-        Ok(false)
+    pub fn resolve(
+        &mut self,
+        structures: &HashMap<String, EntityStructure>,
+        converter: &ValueConverter,
+        new_entity_name: String
+    ) -> Result<bool, ResolveError> {
+        let result = self.fields.iter_mut().filter(|(_, field)| {
+            field.wait_for.is_some() && field.wait_for.clone().unwrap() == new_entity_name
+        }).map(|(_, field)| {
+            field.resolve(converter, structures)
+        }).fold(Ok(true), |result, item| {
+            if let Ok(true) = item {
+                result
+            } else {
+                item
+            }
+        });
+
+        self.resolved = result.clone().unwrap_or(false);
+
+        result
     }
 }
 
