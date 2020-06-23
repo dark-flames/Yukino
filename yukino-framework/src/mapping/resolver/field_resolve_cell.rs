@@ -7,14 +7,8 @@ use crate::mapping::definition::definitions::{ColumnDefinition, TableDefinition,
 use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use syn::export::fmt::{Display, Formatter, Result as FMTResult};
 
-#[derive(Clone, Hash, Eq)]
+#[derive(Clone, Hash, Eq, PartialEq)]
 pub struct FieldPath (pub String, pub String);
-
-impl PartialEq for FieldPath {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0 && self.1 == other.1
-    }
-}
 
 impl Display for FieldPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> FMTResult {
