@@ -87,13 +87,3 @@ impl CompileError for TypeError {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ResolveError (String);
-
-
-impl From<TypeError> for ResolveError {
-    fn from(e: TypeError) -> Self {
-        ResolveError(e.get_message())
-    }
-}
-

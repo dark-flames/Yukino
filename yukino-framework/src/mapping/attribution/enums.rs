@@ -33,7 +33,7 @@ pub enum ReferenceAction {
 pub enum FetchMode {
     /// Column will be fetch on getting
     Lazy,
-    /// Depend by yukino
+    /// Depend by yukino-framework
     Auto,
     /// Column will be fetch on constructing
     Eager

@@ -1,18 +1,17 @@
 use crate::mapping::r#type::DatabaseType;
-use crate::mapping::attribution::{IndexMethod, ReferenceAction};
-use std::collections::HashMap;
+use crate::mapping::attribution::{IndexMethod, ReferenceAction, Index};
 
 #[allow(dead_code)]
 pub struct ColumnDefinition {
     pub name: String,
     pub column_type: DatabaseType,
-    pub logical_type: String,
     pub unique: bool,
     pub auto_increase: bool,
     pub is_primary_key: bool
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct IndexDefinition {
     pub name: String,
     pub method: IndexMethod,
@@ -20,8 +19,19 @@ pub struct IndexDefinition {
     pub unique: bool
 }
 
+impl IndexDefinition {
+    pub fn from_attr(name: &String, attr: &Index) -> Self {
+        IndexDefinition {
+            name: name.clone(),
+            method: attr.method.clone(),
+            columns: attr.columns.clone(),
+            unique: attr.unique.clone()
+        }
+    }
+}
+
 #[allow(dead_code)]
-pub struct ForeignKey {
+pub struct ForeignKeyDefinition {
     pub name: String,
     pub columns: Vec<String>,
     pub reference_table: String,
@@ -33,8 +43,7 @@ pub struct ForeignKey {
 #[allow(dead_code)]
 pub struct TableDefinition {
     pub name: String,
-    pub table_type: String,
-    pub indexes: HashMap<String, ColumnDefinition>,
+    pub indexes: Vec<IndexDefinition>,
     pub columns: Vec<ColumnDefinition>,
-    pub foreign_keys: Vec<ForeignKey>
+    pub foreign_keys: Vec<ForeignKeyDefinition>
 }

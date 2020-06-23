@@ -17,10 +17,21 @@ impl DefinitionManager {
     pub fn use_provider<T: DefinitionProvider>(&mut self) -> Result<&mut Self, DefinitionError> {
         let definitions = T::get_definitions()?;
 
+        Ok(self.add_definitions(definitions))
+    }
+
+    pub fn add_definitions(&mut self, definitions: Vec<TableDefinition>) -> &mut Self {
         for definition in definitions {
             self.definitions.insert(definition.name.clone(), definition);
-        }
+        };
+        self
+    }
 
-        Ok(self)
+    pub fn get(&self, name: &String) -> Option<&TableDefinition> {
+        self.definitions.get(name)
+    }
+
+    pub fn get_mut(&mut self, name: &String) -> Option<&mut TableDefinition> {
+        self.definitions.get_mut(name)
     }
 }
