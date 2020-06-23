@@ -1,4 +1,5 @@
 mod mapping;
+mod event;
 
 #[cfg(test)]
 mod tests {

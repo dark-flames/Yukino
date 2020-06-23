@@ -1,55 +1,26 @@
+use crate::mapping::definition::definitions::TableDefinition;
 use std::collections::HashMap;
-use crate::mapping::definition::table_definitions::{Table};
-use std::any::type_name;
-use crate::entity::entities::Entity;
-use std::rc::Rc;
+use crate::mapping::definition::error::DefinitionError;
 
-/// Manager of definitions
-/// Manage definitions in runtime
+#[allow(dead_code)]
+pub trait DefinitionProvider {
+    fn get_definitions() -> Result<Vec<TableDefinition>, DefinitionError>;
+}
+
 #[allow(dead_code)]
 pub struct DefinitionManager {
-    /// TableDefinition mapped by table name
-    definitions: HashMap<String, Rc<Table>>,
-    /// Table name mapped by type_table_name
-    type_name_map: HashMap<&'static str, String>
+    definitions: HashMap<String, TableDefinition>
 }
 
 #[allow(dead_code)]
 impl DefinitionManager {
-    pub fn new() -> Self {
-        DefinitionManager {
-            definitions: HashMap::new(),
-            type_name_map: HashMap::new()
-        }
-    }
+    pub fn use_provider<T: DefinitionProvider>(&mut self) -> Result<&mut Self, DefinitionError> {
+        let definitions = T::get_definitions()?;
 
-    pub fn register_table(&mut self, table: Rc<Table>) -> &mut Self {
-        if let Some(type_name) = table.get_entity_type_name() {
-            self.type_name_map.insert(
-                type_name,
-                table.get_name()
-            );
+        for definition in definitions {
+            self.definitions.insert(definition.name.clone(), definition);
         }
 
-        self.definitions.insert(
-            table.get_name(),
-            table
-        );
-
-        self
-    }
-
-    pub fn get_definition_by_name(&self, name: &String) -> Option<Rc<Table>> {
-        self.definitions.get(name).map(
-            |table| Rc::clone(table)
-        )
-    }
-
-    pub fn get_definition<T: 'static + Entity>(&self) -> Option<Rc<Table>> {
-        let type_name = type_name::<T>();
-        match self.type_name_map.get(&type_name) {
-            Some(name) => self.get_definition_by_name(name),
-            None => None
-        }
+        Ok(self)
     }
 }

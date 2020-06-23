@@ -3,6 +3,7 @@ use crate::mapping::error::TypeError;
 use syn::punctuated::Iter;
 use std::iter::Rev;
 
+#[allow(dead_code)]
 pub fn assert_type_path(value: &Type) -> Result<&TypePath, TypeError> {
     match value {
         Type::Path(path) => Ok(path),
@@ -11,7 +12,7 @@ pub fn assert_type_path(value: &Type) -> Result<&TypePath, TypeError> {
 }
 
 type Pair<T> = (T, T);
-
+#[allow(dead_code)]
 pub fn match_type_enum<'a>(
     type_a: &'a Type,
     type_b: &'a Type
@@ -21,7 +22,7 @@ pub fn match_type_enum<'a>(
 
     Ok((type_path_a.path.segments.iter().rev(), type_path_b.path.segments.iter().rev()))
 }
-
+#[allow(dead_code)]
 pub fn cmp_type(type_a: &Type, type_b: &Type) -> Result<bool, TypeError> {
     let (mut a_iter, mut b_iter) = match_type_enum(type_a, type_b)?;
 
@@ -80,7 +81,7 @@ pub fn cmp_type(type_a: &Type, type_b: &Type) -> Result<bool, TypeError> {
         }
     }
 }
-
+#[allow(dead_code)]
 pub fn cmp_generic_argument(param_a: &GenericArgument, param_b: &GenericArgument) -> Result<bool, TypeError> {
     match param_a {
         GenericArgument::Type(type_a) => if let GenericArgument::Type(type_b) = param_b {
