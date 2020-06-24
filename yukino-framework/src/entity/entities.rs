@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use crate::mapping::r#type::DatabaseValue;
-use crate::mapping::resolver::error::ResolveError;
+use crate::entity::error::ParseError;
 
 /// Trait of entity
 /// Entity struct will implement it auto
 /// Body of functions will be generated in compile time
-pub trait Entity {
-    fn from_raw_result(result: &HashMap<String, DatabaseValue>) -> Result<Box<Self>, ResolveError>;
+pub trait Entity: Default {
+    fn from_raw_result(result: &HashMap<String, DatabaseValue>) -> Result<Box<Self>, ParseError>;
 
-    fn to_raw_value(&self) -> HashMap<String, DatabaseValue>;
+    fn to_raw_value(&self) -> Result<HashMap<String, DatabaseValue>, ParseError>;
 }

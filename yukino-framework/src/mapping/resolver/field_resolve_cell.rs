@@ -84,9 +84,9 @@ pub trait FieldResolveCell: {
 
     fn get_joined_table_definitions(&self) -> Result<Vec<TableDefinition>, UnresolvedError>;
 
-    fn convert_to_database_value_token_stream(&self) -> Result<TokenStream, UnresolvedError>;
+    fn convert_to_database_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
 
-    fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError>;
+    fn convert_to_value_token_stream(&self, object_ident: &Ident, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
 
     fn breed(&self, entity_name: &Ident, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
 

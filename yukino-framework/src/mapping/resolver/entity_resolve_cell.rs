@@ -1,4 +1,4 @@
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use crate::mapping::attribution::{Table};
 use crate::mapping::definition::definitions::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
 use std::collections::HashMap;
@@ -6,6 +6,7 @@ use crate::mapping::resolver::field_resolve_cell::FieldResolveCell;
 use crate::mapping::r#type::DatabaseType;
 use heck::SnakeCase;
 use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
+use quote::{quote, format_ident};
 
 #[allow(dead_code)]
 #[derive(Clone, Eq, PartialEq)]
@@ -133,5 +134,45 @@ impl<'a> EntityResolveCell {
         self.status = EntityResolveStatus::Finished;
 
         Ok(tables)
+    }
+
+    pub fn convert_to_database_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
+        let value_ident = format_ident!("database_value");
+        let fields = self.fields.iter().map(
+            |(_, cell)| cell.convert_to_database_value_token_stream(&value_ident)
+        ).collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
+
+        Ok(quote! {
+            fn to_raw_value(&self) -> Result<HashMap<String, yukino::DatabaseValue>, yukino::ParseError> {
+                let #value_ident = HashMap::new();
+
+                #(#fields);*
+
+                Ok(#value_ident)
+            }
+        })
+    }
+
+    pub fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
+        let value_ident = format_ident!("result");
+        let object_ident = format_ident!("object");
+        let fields = self.fields.iter().map(
+            |(_, cell)| cell.convert_to_value_token_stream(
+                &object_ident,
+                &value_ident
+            )
+        ).collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
+
+        Ok(quote! {
+            fn from_raw_result(
+                result: &HashMap<String, yukino::DatabaseValue>
+            ) -> Result<Box<Self>, yukino::ParseError> {
+                let #object_ident: Self = Default::default();
+
+                #(#fields);*
+
+                Ok(#value_ident)
+            }
+        })
     }
 }
