@@ -20,12 +20,12 @@ pub struct IndexDefinition {
 }
 
 impl IndexDefinition {
-    pub fn from_attr(name: &String, attr: &Index) -> Self {
+    pub fn from_attr(name: &str, attr: &Index) -> Self {
         IndexDefinition {
-            name: name.clone(),
+            name: name.to_string(),
             method: attr.method.clone(),
             columns: attr.columns.clone(),
-            unique: attr.unique.clone()
+            unique: attr.unique
         }
     }
 }

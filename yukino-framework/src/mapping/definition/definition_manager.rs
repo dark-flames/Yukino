@@ -27,11 +27,11 @@ impl DefinitionManager {
         self
     }
 
-    pub fn get(&self, name: &String) -> Option<&TableDefinition> {
+    pub fn get(&self, name: &str) -> Option<&TableDefinition> {
         self.definitions.get(name)
     }
 
-    pub fn get_mut(&mut self, name: &String) -> Option<&mut TableDefinition> {
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut TableDefinition> {
         self.definitions.get_mut(name)
     }
 }

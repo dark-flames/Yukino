@@ -60,7 +60,7 @@ pub trait FieldResolveCell: {
 
     fn get_status(&self) -> FieldResolveStatus;
 
-    fn resolve_fields(&mut self, fields: HashMap<FieldPath, &Box<dyn FieldResolveCell>>) -> Result<FieldResolveStatus, ResolveError>;
+    fn resolve_fields(&mut self, fields: HashMap<FieldPath, &dyn FieldResolveCell>) -> Result<FieldResolveStatus, ResolveError>;
 
     fn resolve_entity(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
 
@@ -88,7 +88,7 @@ pub trait FieldResolveCell: {
 
     fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError>;
 
-    fn breed(&self, entity_name: &Ident, ident: &Ident, attributes: &Vec<FieldAttribute>, field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
+    fn breed(&self, entity_name: &Ident, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
 
-    fn match_field(&self, attributes: &Vec<FieldAttribute>, field_type: &Type) -> bool;
+    fn match_field(&self, attributes: &[FieldAttribute], field_type: &Type) -> bool;
 }

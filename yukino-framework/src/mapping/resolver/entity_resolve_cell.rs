@@ -1,4 +1,4 @@
-use proc_macro2::{Ident};
+use proc_macro2::Ident;
 use crate::mapping::attribution::{Table};
 use crate::mapping::definition::definitions::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
 use std::collections::HashMap;
@@ -40,13 +40,12 @@ impl<'a> EntityResolveCell {
         } else {
             Vec::new()
         };
-
+        let ident_name = ident.to_string().to_snake_case();
         let name = if let Some(table_attr) = attr {
-            table_attr.name.as_ref()
-                .map(|s| s.clone())
-                .unwrap_or(ident.to_string().to_snake_case())
+            table_attr.name.clone()
+                .unwrap_or(ident_name)
         } else {
-            ident.to_string().to_snake_case()
+            ident_name
         };
 
 
@@ -65,8 +64,10 @@ impl<'a> EntityResolveCell {
         self.ident.to_string()
     }
 
-    pub fn get_field(&self, name: &String) -> Option<&Box<dyn FieldResolveCell>> {
-        self.fields.get(name)
+    pub fn get_field(&self, name: &str) -> Option<&dyn FieldResolveCell> {
+        self.fields.get(name).map(
+            |field| field.as_ref()
+        )
     }
 
     pub fn assemble_column(&mut self, cell: Box<dyn FieldResolveCell>) -> EntityResolveStatus {
@@ -94,7 +95,7 @@ impl<'a> EntityResolveCell {
     }
 
     pub fn achieve(&mut self) -> Result<Vec<TableDefinition>, UnresolvedError> {
-        if self.fields.len() < self.field_count {
+        if self.status != EntityResolveStatus::Finished {
             return Err(UnresolvedError::new(&self.ident.to_string()))
         };
 
