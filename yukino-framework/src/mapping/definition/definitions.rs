@@ -1,6 +1,7 @@
 use crate::mapping::r#type::DatabaseType;
 use crate::mapping::attribution::{IndexMethod, ReferenceAction, Index};
 
+
 #[allow(dead_code)]
 pub struct ColumnDefinition {
     pub name: String,

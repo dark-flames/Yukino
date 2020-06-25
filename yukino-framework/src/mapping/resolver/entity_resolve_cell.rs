@@ -136,7 +136,7 @@ impl<'a> EntityResolveCell {
         Ok(tables)
     }
 
-    pub fn convert_to_database_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
+    fn convert_to_database_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
         let value_ident = format_ident!("database_value");
         let fields = self.fields.iter().map(
             |(_, cell)| cell.convert_to_database_value_token_stream(&value_ident)
@@ -153,7 +153,7 @@ impl<'a> EntityResolveCell {
         })
     }
 
-    pub fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
+    fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
         let value_ident = format_ident!("result");
         let object_ident = format_ident!("object");
         let fields = self.fields.iter().map(
@@ -172,6 +172,23 @@ impl<'a> EntityResolveCell {
                 #(#fields);*
 
                 Ok(#value_ident)
+            }
+        })
+    }
+
+    pub fn get_implement_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
+        let to_raw_value = self.convert_to_value_token_stream()?;
+        let from_raw_result = self.convert_to_value_token_stream()?;
+
+        let ident = &self.ident;
+
+        Ok(quote! {
+            impl yuikino::Entity for #ident {
+                #to_raw_value
+
+                #from_raw_result
+
+                // todo: definitions
             }
         })
     }
