@@ -8,7 +8,7 @@ use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
 use syn::export::ToTokens;
 use yui::AttributeStructure;
 use crate::mapping::resolver::helper::compare_path_vector;
-use crate::mapping::definition::definitions::TableDefinition;
+use crate::mapping::definition::TableDefinition;
 
 pub struct CellResolver {
     entity_cells: HashMap<String, EntityResolveCell>,

@@ -3,7 +3,7 @@ use syn::Type;
 use proc_macro2::{Ident, TokenStream};
 use std::collections::HashMap;
 use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
-use crate::mapping::definition::definitions::{ColumnDefinition, TableDefinition, ForeignKeyDefinition};
+use crate::mapping::definition::{ColumnDefinition, TableDefinition, ForeignKeyDefinition};
 use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use syn::export::fmt::{Display, Formatter, Result as FMTResult};
 

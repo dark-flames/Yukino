@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use crate::mapping::attribution::{Table};
-use crate::mapping::definition::definitions::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
+use crate::mapping::definition::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
 use std::collections::HashMap;
 use crate::mapping::resolver::field_resolve_cell::FieldResolveCell;
 use crate::mapping::r#type::DatabaseType;
