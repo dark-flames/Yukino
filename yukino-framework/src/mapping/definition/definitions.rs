@@ -1,8 +1,9 @@
 use crate::mapping::r#type::DatabaseType;
 use crate::mapping::attribution::{IndexMethod, ReferenceAction, Index};
-
+use iroha::ToTokens;
 
 #[allow(dead_code)]
+#[derive(ToTokens)]
 pub struct ColumnDefinition {
     pub name: String,
     pub column_type: DatabaseType,
@@ -12,7 +13,7 @@ pub struct ColumnDefinition {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, ToTokens)]
 pub struct IndexDefinition {
     pub name: String,
     pub method: IndexMethod,
@@ -32,6 +33,7 @@ impl IndexDefinition {
 }
 
 #[allow(dead_code)]
+#[derive(ToTokens)]
 pub struct ForeignKeyDefinition {
     pub name: String,
     pub columns: Vec<String>,
@@ -42,6 +44,7 @@ pub struct ForeignKeyDefinition {
 }
 
 #[allow(dead_code)]
+#[derive(ToTokens)]
 pub struct TableDefinition {
     pub name: String,
     pub indexes: Vec<IndexDefinition>,
