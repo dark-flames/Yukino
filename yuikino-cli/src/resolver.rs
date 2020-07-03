@@ -1,11 +1,12 @@
 use yukino::mapping::{CellResolver, FieldResolveCell};
 use std::fs::File;
 use crate::error::FileError;
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 pub struct Resolver {
     cell_resolvers: CellResolver,
-    model_files: Vec<File>,
+    model_files: HashMap<&'static str, File>,
     output_file: File
 }
 
@@ -13,14 +14,16 @@ pub struct Resolver {
 impl Resolver {
     pub fn new(
         seeds: Vec<Box<dyn FieldResolveCell>>,
-        model_files_path: Vec<&'static str>,
+        model_files_path: HashMap<&'static str, &'static str>,
         output_file_path: &'static str
     ) -> Result<Self, FileError> {
         let model_files = model_files_path.into_iter().map(
-            |path| File::open(path).map_err(
+            |(mod_path, path)| File::open(path).map(
+                |file| (mod_path, file)
+            ).map_err(
                 |e| FileError::new(path, e)
             )
-        ).collect::<Result<Vec<File>, FileError>>()?;
+        ).collect::<Result<HashMap<&'static str, File>, FileError>>()?;
 
         let output_file  = File::open(output_file_path).map_err(
             |e| FileError::new(output_file_path, e)
