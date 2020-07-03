@@ -5,7 +5,7 @@ use iroha::ToTokens;
 
 #[derive(ToTokens)]
 #[allow(dead_code)]
-#[Iroha(mod_path="yukino_framework::mapping::definition")]
+#[Iroha(mod_path="yukino::mapping::definition")]
 pub struct ColumnDefinition {
     pub name: String,
     pub column_type: DatabaseType,
@@ -16,7 +16,7 @@ pub struct ColumnDefinition {
 
 #[allow(dead_code)]
 #[derive(Clone, ToTokens)]
-#[Iroha(mod_path="yukino_framework::mapping::definition")]
+#[Iroha(mod_path="yukino::mapping::definition")]
 pub struct IndexDefinition {
     pub name: String,
     pub method: IndexMethod,
@@ -37,7 +37,7 @@ impl IndexDefinition {
 
 #[allow(dead_code)]
 #[derive(ToTokens)]
-#[Iroha(mod_path="yukino_framework::mapping::definition")]
+#[Iroha(mod_path="yukino::mapping::definition")]
 pub struct ForeignKeyDefinition {
     pub name: String,
     pub columns: Vec<String>,

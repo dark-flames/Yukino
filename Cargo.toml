@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "yukino-framework",
+    "yukino",
     "yuikino-cli",
     "yukino_derive",
     "yukino_internal"
