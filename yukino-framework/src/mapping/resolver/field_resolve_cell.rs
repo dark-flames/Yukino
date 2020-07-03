@@ -53,7 +53,11 @@ impl FieldResolveStatus {
     }
 }
 
-pub trait FieldResolveCell: {
+pub trait ConstructableCell {
+    fn get_seed() -> Self where Self: Sized;
+}
+
+pub trait FieldResolveCell: ConstructableCell {
     fn weight(&self) -> usize;
 
     fn logical_type(&self) -> String;
