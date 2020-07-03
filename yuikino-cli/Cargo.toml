@@ -5,5 +5,6 @@ authors = ["dark-flames <dark_flames@outlook.com>"]
 edition = "2018"
 
 [dependencies]
+yukino = {version = "0.1.0", path="../yukino"}
 
 [lib]

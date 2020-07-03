@@ -1,6 +1,6 @@
 mod error;
 mod entity;
-mod mapping;
+pub mod mapping;
 mod event;
 
 #[cfg(test)]
