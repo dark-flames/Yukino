@@ -5,3 +5,4 @@ pub mod r#type;
 pub mod resolver;
 
 pub use resolver::*;
+pub use r#type::*;

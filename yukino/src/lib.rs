@@ -1,4 +1,4 @@
-mod collection;
+mod association;
 mod error;
 mod entity;
 pub mod mapping;
