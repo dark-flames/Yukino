@@ -313,7 +313,7 @@ impl CellResolver {
         Ok(self)
     }
 
-    pub fn parse(&mut self, input: DeriveInput) -> Result<&mut Self, syn::Error> {
+    pub fn parse(&mut self, input: DeriveInput, mod_path: &'static str) -> Result<&mut Self, syn::Error> {
         let mut table_attr= None;
         for attr in input.attrs.iter() {
             if attr.path == Table::get_path() {
@@ -327,6 +327,7 @@ impl CellResolver {
             if let Fields::Named(fields_named) = &data_struct.fields {
                 let entity_cell = EntityResolveCell::new(
                     &input.ident,
+                    mod_path,
                     &table_attr,
                     data_struct.fields.len()
                 ).map_err(|e| Error::new_spanned(&input, e.get_message()))?;

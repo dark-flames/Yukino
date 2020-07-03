@@ -1,5 +1,4 @@
 use yui::YuiAttribute;
-use super::enums::{ReferenceAction, FetchMode};
 
 /// DataStructure of AssociateColumn.
 /// Only used on the owner side.
@@ -8,15 +7,6 @@ use super::enums::{ReferenceAction, FetchMode};
 pub struct Association {
     /// Referenced field names, default is primary key of referenced entity.
     pub mapped_by: Option<Vec<String>>,
-    /// On update action.
-    #[attribute_field(enum_value=true, default="set_null")]
-    pub on_update: ReferenceAction,
-    /// On delete action.
-    #[attribute_field(enum_value=true, default="set_null")]
-    pub on_delete: ReferenceAction,
-    /// Fetch mode.
-    #[attribute_field(enum_value=true, default="auto")]
-    pub fetch: FetchMode,
 }
 
 /// DataStructure of InverseAssociateColumn
@@ -25,13 +15,4 @@ pub struct Association {
 pub struct InverseAssociation {
     /// Owner side field name.
     pub inversed_by: String,
-    /// On update action.
-    #[attribute_field(enum_value=true, default="set_null")]
-    pub on_update: ReferenceAction,
-    /// On delete action.
-    #[attribute_field(enum_value=true, default="set_null")]
-    pub on_delete: ReferenceAction,
-    /// Fetch mode.
-    #[attribute_field(enum_value=true, default="auto")]
-    pub fetch: FetchMode
 }

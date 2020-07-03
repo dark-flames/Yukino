@@ -7,6 +7,7 @@ use crate::mapping::r#type::DatabaseType;
 use heck::SnakeCase;
 use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
 use quote::{quote, format_ident};
+use std::str::FromStr;
 
 #[allow(dead_code)]
 #[derive(Clone, Eq, PartialEq)]
@@ -18,6 +19,7 @@ pub enum EntityResolveStatus {
 
 pub struct EntityResolveCell {
     status: EntityResolveStatus,
+    mod_path: &'static str,
     ident: Ident,
     field_count: usize,
     name: String,
@@ -32,7 +34,12 @@ impl<'a> EntityResolveCell {
         self.status.clone()
     }
 
-    pub fn new(ident: &Ident, attr: &Option<Table>, field_count: usize) -> Result<Self, ResolveError> {
+    pub fn new(
+        ident: &Ident,
+        mod_path: &'static str,
+        attr: &Option<Table>,
+        field_count: usize
+    ) -> Result<Self, ResolveError> {
         let indexes = if let Some(table_attr) = attr {
             let default = HashMap::new();
             table_attr.indexes.as_ref().unwrap_or(&default).iter().map(
@@ -53,6 +60,7 @@ impl<'a> EntityResolveCell {
         Ok(EntityResolveCell {
             status: EntityResolveStatus::Assembly,
             ident: ident.clone(),
+            mod_path,
             field_count,
             name,
             indexes,
@@ -62,7 +70,7 @@ impl<'a> EntityResolveCell {
     }
 
     pub fn entity_name(&self) -> String {
-        self.ident.to_string()
+        format!("{}::{}", &self.mod_path, &self.ident)
     }
 
     pub fn get_field(&self, name: &str) -> Option<&dyn FieldResolveCell> {
@@ -171,7 +179,7 @@ impl<'a> EntityResolveCell {
 
                 #(#fields);*
 
-                Ok(#value_ident)
+                Ok(Box::new(#value_ident))
             }
         })
     }
@@ -180,7 +188,11 @@ impl<'a> EntityResolveCell {
         let to_raw_value = self.convert_to_value_token_stream()?;
         let from_raw_result = self.convert_to_value_token_stream()?;
 
-        let ident = &self.ident;
+        let ident = TokenStream::from_str(
+            self.entity_name().as_str()
+        ).map_err(
+            |_| UnresolvedError::new(&self.ident)
+        )?;
 
         Ok(quote! {
             impl yuikino::Entity for #ident {

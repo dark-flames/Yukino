@@ -1,7 +1,7 @@
+mod collection;
 mod error;
 mod entity;
 pub mod mapping;
-mod event;
 
 #[cfg(test)]
 mod tests {

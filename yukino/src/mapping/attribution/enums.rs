@@ -28,13 +28,3 @@ pub enum ReferenceAction {
     SetDefault,
     Cascade
 }
-
-#[derive(YuiEnumValue, Clone, PartialEq)]
-pub enum FetchMode {
-    /// Column will be fetch on getting
-    Lazy,
-    /// Depend by yukino
-    Auto,
-    /// Column will be fetch on constructing
-    Eager
-}
