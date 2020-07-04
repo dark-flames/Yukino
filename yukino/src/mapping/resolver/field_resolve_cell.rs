@@ -17,6 +17,7 @@ impl Display for FieldPath {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub enum FieldResolveStatus {
     /// finished
     Finished,
@@ -27,7 +28,7 @@ pub enum FieldResolveStatus {
     /// Wait for fields(entity_name, Vec<field_name>)
     WaitFields(Vec<FieldPath>),
 
-    Unresolved
+    Seed
 }
 
 impl FieldResolveStatus {
@@ -60,8 +61,6 @@ pub trait ConstructableCell {
 pub trait FieldResolveCell: ConstructableCell {
     fn weight(&self) -> usize;
 
-    fn logical_type(&self) -> String;
-
     fn get_status(&self) -> FieldResolveStatus;
 
     fn resolve_fields(&mut self, fields: HashMap<FieldPath, &dyn FieldResolveCell>) -> Result<FieldResolveStatus, ResolveError>;
@@ -70,14 +69,22 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn assembly(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
 
-    fn field_name(&self) -> String;
+    fn field_name(&self) -> Result<String, UnresolvedError>;
 
-    fn column_names(&self) -> Vec<String>;
+    fn column_names(&self) -> Result<Vec<String>, UnresolvedError>;
 
-    fn entity_name(&self) -> String;
+    fn entity_name(&self) -> Result<String, UnresolvedError>;
 
-    fn field_path(&self) -> FieldPath {
-        FieldPath(self.entity_name() , self.field_name())
+    fn field_path(&self) -> Result<FieldPath, UnresolvedError> {
+        match self.entity_name() {
+            Ok(entity_name) => {
+                match self.field_name() {
+                    Ok(field_name) => Ok(FieldPath(entity_name, field_name)),
+                    Err(e) => Err(e)
+                }
+            },
+            Err(e) => Err(e)
+        }
     }
 
     fn is_primary_key(&self) -> Result<bool, UnresolvedError>;
@@ -90,7 +97,7 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn convert_to_database_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
 
-    fn convert_to_value_token_stream(&self, object_ident: &Ident, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
+    fn convert_to_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
 
     fn breed(&self, entity_name: &Ident, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
 

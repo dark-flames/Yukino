@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, TokenStream};
-use crate::mapping::attribution::{Table};
+use crate::mapping::attribution::Table;
 use crate::mapping::definition::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
 use std::collections::HashMap;
 use crate::mapping::resolver::field_resolve_cell::FieldResolveCell;
@@ -81,11 +81,11 @@ impl<'a> EntityResolveCell {
 
     pub fn assemble_column(&mut self, cell: Box<dyn FieldResolveCell>) -> EntityResolveStatus {
         if cell.is_primary_key().unwrap() {
-            let mut names = cell.column_names();
+            let mut names = cell.column_names().unwrap();
             self.primary_keys.append(&mut names)
         }
 
-        self.fields.insert(cell.field_name(), cell);
+        self.fields.insert(cell.field_name().unwrap(), cell);
 
         self.status = if self.fields.len() == self.field_count {
             EntityResolveStatus::Finished
@@ -163,23 +163,35 @@ impl<'a> EntityResolveCell {
 
     fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
         let value_ident = format_ident!("result");
-        let object_ident = format_ident!("object");
+        let ident = &self.ident;
         let fields = self.fields.iter().map(
-            |(_, cell)| cell.convert_to_value_token_stream(
-                &object_ident,
-                &value_ident
-            )
+            |(field_name, cell)| {
+                cell.convert_to_value_token_stream(
+                    &value_ident
+                ).map(|value| {
+                    let field_ident = format_ident!("{}", field_name);
+                    quote::quote! {
+                        let #field_ident = #value
+                    }
+                })
+            }
         ).collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
+
+        let construct_params: Vec<Ident> = self.fields.iter().map(
+            |(field_name, _)| {
+                format_ident!("{}", field_name)
+            }
+        ).collect();
 
         Ok(quote! {
             fn from_raw_result(
                 result: &HashMap<String, yukino::DatabaseValue>
             ) -> Result<Box<Self>, yukino::ParseError> {
-                let #object_ident: Self = Default::default();
+                #(#fields;)*
 
-                #(#fields);*
-
-                Ok(Box::new(#value_ident))
+                Ok(Box::new(#ident {
+                    #(#construct_params),*
+                }))
             }
         })
     }

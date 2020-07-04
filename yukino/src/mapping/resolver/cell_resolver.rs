@@ -31,7 +31,7 @@ impl CellResolver {
     }
 
     fn add_field_cell(&mut self, cell: Box<dyn FieldResolveCell>) -> Result<&mut CellResolver, ResolveError> {
-        let field_path = cell.field_path();
+        let field_path = cell.field_path().unwrap();
         let status = cell.get_status();
         if let Some(map) =  self.field_cells.get_mut(&field_path.0) {
             map.insert(field_path.1.clone(), cell);
@@ -221,13 +221,13 @@ impl CellResolver {
                 let cell = self.remove_field_cell(&field_path).unwrap();
 
                 let entity = self.entity_cells.get_mut(
-                    &entity_name
+                    entity_name.as_ref().unwrap()
                 ).ok_or_else(
-                    || ResolveError::new(&entity_name, "Unknown entity name")
+                    || ResolveError::new(entity_name.as_ref().unwrap(), "Unknown entity name")
                 )?;
 
                 let entity_resolve_status = entity.assemble_column(cell);
-                self.process_entity_resolve_status(entity_name.clone(), &entity_resolve_status)?;
+                self.process_entity_resolve_status(entity_name.unwrap(), &entity_resolve_status)?;
             },
             FieldResolveStatus::WaitAssembly => {
                 let fields_cells = &mut self.field_cells;
@@ -243,9 +243,9 @@ impl CellResolver {
                 )?;
 
                 let entity = entity_cells.get(
-                    &cell.entity_name()
+                    &cell.entity_name().unwrap()
                 ).ok_or_else(
-                    || ResolveError::new(&cell.entity_name(), "Unknown entity name")
+                    || ResolveError::new(&cell.entity_name().unwrap(), "Unknown entity name")
                 )?;
 
                 match cell.assembly(entity)? {

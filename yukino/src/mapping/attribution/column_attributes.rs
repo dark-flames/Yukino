@@ -19,7 +19,7 @@ pub struct Column {
     pub name: Option<String>,
     /// Is column unique.
     #[attribute_field(default=false)]
-    pub unique: Option<bool>,
+    pub unique: bool,
     /// Auto increase
     #[attribute_field(default=false)]
     pub auto_increase: bool,

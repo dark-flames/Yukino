@@ -35,11 +35,21 @@ pub struct Association<'a, M, UPDATE = Cascade, DELETE = Cascade, FETCH= Auto>
         FETCH: FetchStrategy
 {
     mapped_by: Vec<&'static str>,
-    column_values: HashMap<&'static str, DatabaseValue>,
+    column_values: HashMap<&'a str, DatabaseValue>,
     fetched_value: Option<Box<M>>,
-    fetch_strategy: &'a FETCH,
-    on_delete: &'a DELETE,
-    on_update: &'a UPDATE
+    fetch_strategy: FETCH,
+    on_delete: DELETE,
+    on_update: UPDATE
+}
+
+impl<'a, M, UPDATE, DELETE, FETCH> Association<'a, M, UPDATE, DELETE, FETCH>
+    where
+        M: Entity,
+        UPDATE: Maintainer,
+        DELETE: Maintainer,
+        FETCH: FetchStrategy
+{
+
 }
 
 #[allow(dead_code)]
