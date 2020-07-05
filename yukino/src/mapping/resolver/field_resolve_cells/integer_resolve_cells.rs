@@ -264,7 +264,7 @@ impl FieldResolveCell for IntegerResolveCell {
 
         let is_primary_key = attributes.iter().any(
             |attr| {
-                if let FieldAttribute::Column(_) = attr {
+                if let FieldAttribute::Id(_) = attr {
                     true
                 } else {
                     false

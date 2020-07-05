@@ -15,8 +15,7 @@ fn test_integer() {
     let input: DeriveInput = parse_quote!{
         #[Table(name="test_table")]
         pub struct Test {
-            #[Column()]
-            #[Id]
+            #[Column(unique=true)]
             integer: u32
         }
     };
