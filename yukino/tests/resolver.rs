@@ -26,7 +26,34 @@ fn test_integer() {
 
     let definitions = resolver.get_definitions().unwrap();
 
-    for definition in definitions {
-        println!("{:?}", definition)
-    }
+    let expect_definition = TableDefinition {
+        name: "test_table".to_string(),
+        indexes: vec![
+            IndexDefinition {
+                name: "integer".to_string(),
+                method: IndexMethod::BTree,
+                columns: vec!["integer".to_string()],
+                unique: true
+            }
+        ],
+        columns: vec![
+            ColumnDefinition {
+                name: "__test_id".to_string(),
+                column_type: DatabaseType::String,
+                unique: true,
+                auto_increase: false,
+                is_primary_key: true
+            },
+            ColumnDefinition {
+                name: "integer".to_string(),
+                column_type: DatabaseType::UnsignedInteger,
+                unique: false,
+                auto_increase: false,
+                is_primary_key: false
+            }
+        ],
+        foreign_keys: vec![]
+    };
+
+    assert_eq!(definitions[0], expect_definition);
 }

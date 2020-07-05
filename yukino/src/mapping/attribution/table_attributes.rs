@@ -15,7 +15,7 @@ pub struct Index {
     /// Column names(field name in Rust) of index.
     pub columns: Vec<String>,
     /// Index method, enum `IndexMethod` will be different in different platform. Default use b-tree
-    #[attribute_field(enum_value=true, default="b-tree")]
+    #[attribute_field(enum_value=true, default="b_tree")]
     pub method: IndexMethod,
     /// Is unique index. Default false.
     #[attribute_field(default=false)]

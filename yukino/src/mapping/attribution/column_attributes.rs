@@ -26,3 +26,6 @@ pub struct Column {
     /// Options
     pub options: Option<HashMap<String, String>>
 }
+
+#[derive(YuiAttribute, Clone)]
+pub struct Ignore;

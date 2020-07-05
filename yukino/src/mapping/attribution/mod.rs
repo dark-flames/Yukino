@@ -13,6 +13,7 @@ use yui::AttributeStructure;
 
 pub enum FieldAttribute {
     Id(Id),
+    Ignore(Ignore),
     Column(Column),
     Association(Association),
     InverseAssociation(InverseAssociation)

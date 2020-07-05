@@ -2,7 +2,7 @@ use iroha::ToTokens;
 #[cfg(any(feature="data-time"))]
 use time::{Time, Date, PrimitiveDateTime};
 
-#[derive(Clone, ToTokens, Debug)]
+#[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum DatabaseType {
     SmallInteger,

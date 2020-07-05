@@ -3,7 +3,7 @@ use crate::mapping::attribution::{IndexMethod, ReferenceAction, Index};
 use iroha::ToTokens;
 
 
-#[derive(ToTokens, Debug)]
+#[derive(ToTokens, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 #[Iroha(mod_path="yukino::mapping::definition")]
 pub struct ColumnDefinition {
@@ -15,7 +15,7 @@ pub struct ColumnDefinition {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, ToTokens, Debug)]
+#[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path="yukino::mapping::definition")]
 pub struct IndexDefinition {
     pub name: String,
@@ -36,7 +36,7 @@ impl IndexDefinition {
 }
 
 #[allow(dead_code)]
-#[derive(ToTokens, Debug)]
+#[derive(ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path="yukino::mapping::definition")]
 pub struct ForeignKeyDefinition {
     pub name: String,
@@ -48,7 +48,7 @@ pub struct ForeignKeyDefinition {
 }
 
 #[allow(dead_code)]
-#[derive(ToTokens, Debug)]
+#[derive(ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path="yukino_framework::mapping::definition")]
 pub struct TableDefinition {
     pub name: String,
