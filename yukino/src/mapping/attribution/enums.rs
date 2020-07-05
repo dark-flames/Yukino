@@ -4,7 +4,7 @@ use yui::YuiEnumValue;
 /// Variants will be different in different platform:
 /// * "hash" is not support on `sqlite`
 /// * "gin", "sp_gin", "gist", "brin" is only available on `postgre-sql`
-#[derive(YuiEnumValue, Clone, PartialEq)]
+#[derive(YuiEnumValue, Clone, PartialEq, Debug)]
 pub enum IndexMethod {
     BTree,
     #[cfg(any(feature = "mysql", feature = "postgre-sql"))]
@@ -20,7 +20,7 @@ pub enum IndexMethod {
     Brin,
 }
 
-#[derive(YuiEnumValue, Clone, PartialEq)]
+#[derive(YuiEnumValue, Clone, PartialEq, Debug)]
 pub enum ReferenceAction {
     NoAction,
     Restrict,

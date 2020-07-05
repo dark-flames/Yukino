@@ -119,7 +119,7 @@ impl IntegerType {
 
 pub struct IntegerResolveCell {
     status: FieldResolveStatus,
-    entity_ident: Option<Ident>,
+    entity_name: Option<String>,
     field_ident: Option<Ident>,
     is_primary_key: Option<bool>,
     column: Option<Column>,
@@ -130,7 +130,7 @@ impl ConstructableCell for IntegerResolveCell {
     fn get_seed() -> Self where Self: Sized {
         IntegerResolveCell {
             status: FieldResolveStatus::Seed,
-            entity_ident: None,
+            entity_name: None,
             field_ident: None,
             is_primary_key: None,
             column: None,
@@ -177,9 +177,7 @@ impl FieldResolveCell for IntegerResolveCell {
     }
 
     fn entity_name(&self) -> Result<String, UnresolvedError> {
-        self.entity_ident.as_ref().map(
-            |name| name.to_string()
-        ).ok_or_else(
+        self.entity_name.as_ref().cloned().ok_or_else(
             || UnresolvedError::new("Integer Resolve cell")
         )
     }
@@ -245,7 +243,7 @@ impl FieldResolveCell for IntegerResolveCell {
         )
     }
 
-    fn breed(&self, entity_name: &Ident, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError> {
+    fn breed(&self, entity_name: String, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError> {
         let ty = match field_type {
             Type::Path(type_path) => {
                 match type_path.path.segments.first() {
@@ -259,7 +257,7 @@ impl FieldResolveCell for IntegerResolveCell {
         }.ok_or_else(|| {
             let message = format!("{} is not supported by integer resolve cell", field_type.to_token_stream().to_string());
             ResolveError::new(
-                entity_name,
+                &entity_name,
                 &message
             )
         })?;
@@ -284,7 +282,7 @@ impl FieldResolveCell for IntegerResolveCell {
         Ok(Box::new(
             IntegerResolveCell {
                 status: FieldResolveStatus::Finished,
-                entity_ident: Some(entity_name.clone()),
+                entity_name: Some(entity_name),
                 field_ident: Some(ident.clone()),
                 is_primary_key: Some(is_primary_key),
                 column,

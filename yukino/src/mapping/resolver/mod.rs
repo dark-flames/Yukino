@@ -7,3 +7,4 @@ mod field_resolve_cells;
 
 pub use cell_resolver::CellResolver;
 pub use field_resolve_cell::*;
+pub use field_resolve_cells::*;

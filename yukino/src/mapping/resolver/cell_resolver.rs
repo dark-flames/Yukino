@@ -223,7 +223,10 @@ impl CellResolver {
                 let entity = self.entity_cells.get_mut(
                     entity_name.as_ref().unwrap()
                 ).ok_or_else(
-                    || ResolveError::new(entity_name.as_ref().unwrap(), "Unknown entity name")
+                    || ResolveError::new(
+                        entity_name.as_ref().unwrap(),
+                        format!("Unknown entity name: {}", entity_name.as_ref().unwrap()).as_str()
+                    )
                 )?;
 
                 let entity_resolve_status = entity.assemble_column(cell);
@@ -332,6 +335,12 @@ impl CellResolver {
                     data_struct.fields.len()
                 ).map_err(|e| Error::new_spanned(&input, e.get_message()))?;
 
+                let entity_name = entity_cell.entity_name();
+
+                self.add_entity_cell(entity_cell).map_err(
+                    |e| Error::new_spanned(&input, e.get_message())
+                )?;
+
                 for field in fields_named.named.iter() {
                     let field_attrs = field.attrs.iter().map(
                         |attr| FieldAttribute::from_attr(attr)
@@ -345,7 +354,7 @@ impl CellResolver {
                         |result, cell| {
                             if result.is_err() && cell.match_field(&field_attrs, &field.ty) {
                                 cell.breed(
-                                    &input.ident,
+                                    entity_name.clone(),
                                     field.ident.as_ref().unwrap(),
                                     &field_attrs,
                                     &field.ty
@@ -360,9 +369,6 @@ impl CellResolver {
                         |e| Error::new_spanned(&field, e.get_message())
                     )?;
                 }
-                self.add_entity_cell(entity_cell).map_err(
-                    |e| Error::new_spanned(&input, e.get_message())
-                )?;
                 Ok(())
             } else {
                 Err(Error::new_spanned(

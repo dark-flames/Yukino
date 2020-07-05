@@ -2,7 +2,7 @@ use iroha::ToTokens;
 #[cfg(any(feature="data-time"))]
 use time::{Time, Date, PrimitiveDateTime};
 
-#[derive(Clone, ToTokens)]
+#[derive(Clone, ToTokens, Debug)]
 #[allow(dead_code)]
 pub enum DatabaseType {
     SmallInteger,
@@ -40,6 +40,7 @@ pub enum DatabaseType {
 pub type Binary = Vec<u8>;
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum DatabaseValue {
     SmallInteger(i16),
     UnsignedSmallInteger(u16),

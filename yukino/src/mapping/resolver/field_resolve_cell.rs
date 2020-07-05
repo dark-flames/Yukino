@@ -99,7 +99,7 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn convert_to_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
 
-    fn breed(&self, entity_name: &Ident, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
+    fn breed(&self, entity_name: String, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
 
     fn match_field(&self, attributes: &[FieldAttribute], field_type: &Type) -> bool;
 }
