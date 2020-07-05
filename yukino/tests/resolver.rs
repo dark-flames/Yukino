@@ -1,7 +1,9 @@
 use yukino::mapping::resolver::IntegerResolveCell;
-use yukino::mapping::{ConstructableCell, CellResolver};
+use yukino::mapping::{ConstructableCell, CellResolver, DatabaseType};
 use yukino::mapping::FieldResolveCell;
 use syn::{parse_quote, DeriveInput};
+use yukino::mapping::definition::{TableDefinition, IndexDefinition, ColumnDefinition};
+use yukino::mapping::attribution::IndexMethod;
 
 
 #[test]
@@ -13,9 +15,10 @@ fn test_integer() {
     let mut resolver = CellResolver::new(seeds);
 
     let input: DeriveInput = parse_quote!{
-        #[Table(name="test_table")]
+        #[Table(name="test_table", indexes(
+            integer(columns("integer"), unique=true)
+        ))]
         pub struct Test {
-            #[Column(unique=true)]
             integer: u32
         }
     };
