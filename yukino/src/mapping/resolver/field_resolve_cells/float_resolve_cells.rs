@@ -52,10 +52,10 @@ impl FloatType {
     pub fn to_database_value_tokens(&self, value_ident: &Ident) -> TokenStream {
         let param = match self {
             FloatType::Float(32) => quote::quote! {
-                (#value_ident as f32)
+                (#value_ident)
             },
             FloatType::Float(64) => quote::quote! {
-                (#value_ident as f64)
+                (#value_ident)
             },
             _ => quote::quote! {
                 (#value_ident)
@@ -69,19 +69,10 @@ impl FloatType {
 
     pub fn to_value_tokens(&self, value: &TokenStream, field_name: String) -> TokenStream {
         let variant = self.database_value_variant();
-        let convert = match self {
-            FloatType::Float(32) => quote::quote! {
-                as f32
-            },
-            FloatType::Float(64) => quote::quote! {
-                as f64
-            },
-            _ => quote::quote! {},
-        };
         let error_message = format!("Unexpected DatabaseValue on field {}", field_name);
         quote::quote! {
             match #value {
-                Some(#variant(float)) => Ok(float #convert),
+                Some(#variant(float)) => Ok(float),
                 _ => Err(yukino::entity::ParseError::new(#error_message))
             }?
         }
