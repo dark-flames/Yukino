@@ -2,7 +2,6 @@ use crate::mapping::attribution::{Column, FieldAttribute};
 use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
-use crate::mapping::FloatType::Float;
 use crate::mapping::{
     ConstructableCell, DatabaseType, FieldPath, FieldResolveCell, FieldResolveStatus,
 };
@@ -12,24 +11,22 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use syn::Type;
 
-pub enum FloatType {
-    Float(usize),
-}
+struct FloatType(usize);
 
 impl FloatType {
     pub fn from_ident(ident: &Ident) -> Option<Self> {
         let ident_string = ident.to_string();
 
         match ident_string.as_str() {
-            "f32" => Some(FloatType::Float(32)),
-            "f64" => Some(FloatType::Float(64)),
+            "f32" => Some(FloatType(32)),
+            "f64" => Some(FloatType(64)),
             _ => None,
         }
     }
 
     pub fn get_database_type(&self) -> DatabaseType {
         match self {
-            FloatType::Float(length) => match length {
+            FloatType(length) => match length {
                 32 => DatabaseType::Float,
                 64 => DatabaseType::Double,
                 _ => unreachable!(),
@@ -39,10 +36,10 @@ impl FloatType {
 
     fn database_value_variant(&self) -> TokenStream {
         match self {
-            FloatType::Float(32) => quote::quote! {
+            FloatType(32) => quote::quote! {
                 yukino::DatabaseValue::Float
             },
-            FloatType::Float(64) => quote::quote! {
+            FloatType(64) => quote::quote! {
                 yukino::DatabaseValue::Double
             },
             _ => unreachable!(),
@@ -51,10 +48,10 @@ impl FloatType {
 
     pub fn to_database_value_tokens(&self, value_ident: &Ident) -> TokenStream {
         let param = match self {
-            FloatType::Float(32) => quote::quote! {
+            FloatType(32) => quote::quote! {
                 (#value_ident)
             },
-            FloatType::Float(64) => quote::quote! {
+            FloatType(64) => quote::quote! {
                 (#value_ident)
             },
             _ => quote::quote! {
