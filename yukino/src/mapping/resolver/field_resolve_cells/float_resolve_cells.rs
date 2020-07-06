@@ -128,7 +128,7 @@ impl FieldResolveCell for FloatResolveCell {
         &mut self,
         _entity: &EntityResolveCell,
     ) -> Result<FieldResolveStatus, ResolveError> {
-        unimplemented!()
+        unreachable!()
     }
 
     fn field_name(&self) -> Result<String, UnresolvedError> {
