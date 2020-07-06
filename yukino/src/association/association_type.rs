@@ -20,36 +20,39 @@ pub struct ViaMembershipTableAssociation {
     column_map: HashMap<&'static str, &'static str>
 }
 
+/// Type of inverse association
 #[allow(dead_code)]
 pub enum InverseAssociationType {
+    /// Many to One or One to One
     Directly(DirectlyAssociation),
+    /// One to Many or Many to Many
     ViaMembershipTable(ViaMembershipTableAssociation)
 }
 
+
+/// Create a associated field
+/// Associated to entity M
+/// If you want to specific mapped by field (default is primary keys), use Association attribute.
 #[allow(dead_code)]
-pub struct Association<'a, M, UPDATE = Cascade, DELETE = Cascade, FETCH= Auto>
+pub struct Association<M, UPDATE = Cascade, DELETE = Cascade, FETCH= Auto>
     where
         M: Entity,
         UPDATE: Maintainer,
         DELETE: Maintainer,
         FETCH: FetchStrategy
 {
+    /// Attachment side fields
     mapped_by: Vec<&'static str>,
-    column_values: HashMap<&'a str, DatabaseValue>,
+    /// Query result of columns
+    column_values: HashMap<&'static str, DatabaseValue>,
+    /// Fetched entity
     fetched_value: Option<Box<M>>,
+    /// Fetch strategy
     fetch_strategy: FETCH,
+    /// On delete maintainer
     on_delete: DELETE,
+    /// On update maintainer
     on_update: UPDATE
-}
-
-impl<'a, M, UPDATE, DELETE, FETCH> Association<'a, M, UPDATE, DELETE, FETCH>
-    where
-        M: Entity,
-        UPDATE: Maintainer,
-        DELETE: Maintainer,
-        FETCH: FetchStrategy
-{
-
 }
 
 #[allow(dead_code)]

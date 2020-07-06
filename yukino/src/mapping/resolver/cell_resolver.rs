@@ -190,7 +190,7 @@ impl CellResolver {
                     self.process_resolve_entity(path)?;
                 }
             },
-            EntityResolveStatus::Assembly => {},
+            EntityResolveStatus::Assemble => {}
             _ => return Err(ResolveError::new(&entity_name, "Unexpected resolve status"))
         };
 
@@ -233,7 +233,7 @@ impl CellResolver {
                 let entity_resolve_status = entity.assemble_column(cell);
                 self.process_entity_resolve_status(entity_name.unwrap(), &entity_resolve_status)?;
             },
-            FieldResolveStatus::WaitAssembly => {
+            FieldResolveStatus::WaitAssemble => {
                 let fields_cells = &mut self.field_cells;
                 let entity_cells = &self.entity_cells;
                 let cell = Self::get_mut_field_cell_from_hash_map(
@@ -252,7 +252,7 @@ impl CellResolver {
                     || ResolveError::new(&cell.entity_name().unwrap(), "Unknown entity name")
                 )?;
 
-                match cell.assembly(entity)? {
+                match cell.assemble(entity)? {
                     FieldResolveStatus::Finished => self.process_field_resolve_status(
                         field_path, &FieldResolveStatus::Finished
                     )?,
@@ -263,7 +263,7 @@ impl CellResolver {
                         )
                     )
                 };
-            },
+            }
             FieldResolveStatus::WaitEntity(entity) => {
                 let result = self.process_resolve_entity(field_path)?;
 

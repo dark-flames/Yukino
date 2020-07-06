@@ -14,7 +14,7 @@ use std::str::FromStr;
 pub enum EntityResolveStatus {
     Achieved,
     Finished,
-    Assembly,
+    Assemble,
     Unresolved
 }
 
@@ -60,7 +60,7 @@ impl<'a> EntityResolveCell {
 
 
         Ok(EntityResolveCell {
-            status: EntityResolveStatus::Assembly,
+            status: EntityResolveStatus::Assemble,
             ident: ident.clone(),
             mod_path,
             field_count,
@@ -93,7 +93,7 @@ impl<'a> EntityResolveCell {
         self.status = if self.fields.len() == self.field_count {
             EntityResolveStatus::Finished
         } else {
-            EntityResolveStatus::Assembly
+            EntityResolveStatus::Assemble
         };
 
         self.status.clone()

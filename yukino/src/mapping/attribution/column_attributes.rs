@@ -4,15 +4,13 @@ use std::collections::HashMap;
 
 /// Announce column as primary key.
 /// It can be used on field of entity struct.
-/// ```
-/// // todo: some test
-/// ```
 /// Yukino also support multi-primary-key, but a table must have one primary key at least.
 #[derive(YuiAttribute, Clone)]
 pub struct Id;
 
 
-/// Announce field as a column of table.
+/// Options of column
+/// If a field doesn't have Column attribute, the column will be generate automatically
 #[derive(YuiAttribute, Clone)]
 pub struct Column {
     /// Name of column, default is field ident(will be converted to `snake_case`) in Rust.
@@ -23,9 +21,11 @@ pub struct Column {
     /// Auto increase
     #[attribute_field(default=false)]
     pub auto_increase: bool,
-    /// Options
+    /// Options required by field resolve cells
     pub options: Option<HashMap<String, String>>
 }
 
+
+/// Ignore field
 #[derive(YuiAttribute, Clone)]
 pub struct Ignore;

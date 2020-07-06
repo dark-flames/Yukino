@@ -19,15 +19,15 @@ impl Display for FieldPath {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub enum FieldResolveStatus {
-    /// finished
+    /// Finished
     Finished,
-
-    WaitAssembly,
-    /// Wait for entity(entity_name)
+    /// Waiting for Assembling to entity resolve cell
+    WaitAssemble,
+    /// Waiting for entity(entity_name)
     WaitEntity(String),
     /// Wait for fields(entity_name, Vec<field_name>)
     WaitFields(Vec<FieldPath>),
-
+    /// Seed
     Seed
 }
 
@@ -63,11 +63,14 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn get_status(&self) -> FieldResolveStatus;
 
+    /// Will be called at WaitFields status
     fn resolve_fields(&mut self, fields: HashMap<FieldPath, &dyn FieldResolveCell>) -> Result<FieldResolveStatus, ResolveError>;
 
+    /// Will be called at WaitEntity status
     fn resolve_entity(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
 
-    fn assembly(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
+    /// Will be called at WaitAssemble status
+    fn assemble(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
 
     fn field_name(&self) -> Result<String, UnresolvedError>;
 
@@ -99,7 +102,9 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn convert_to_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
 
+    /// breed from seed
     fn breed(&self, entity_name: String, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
 
+    /// Return true if cell matched the field
     fn match_field(&self, attributes: &[FieldAttribute], field_type: &Type) -> bool;
 }

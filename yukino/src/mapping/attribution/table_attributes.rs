@@ -6,10 +6,6 @@ use super::enums::*;
 /// DataStructure of index.
 ///
 /// It can be used in attribute `Table`.
-/// ```
-/// // todo: some test
-/// ```
-///
 #[derive(YuiAttribute, Clone)]
 pub struct Index {
     /// Column names(field name in Rust) of index.

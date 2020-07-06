@@ -154,7 +154,7 @@ impl FieldResolveCell for IntegerResolveCell {
         unreachable!()
     }
 
-    fn assembly(&mut self, _entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError> {
+    fn assemble(&mut self, _entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError> {
         unimplemented!()
     }
 

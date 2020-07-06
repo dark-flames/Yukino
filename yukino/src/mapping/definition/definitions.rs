@@ -2,7 +2,7 @@ use crate::mapping::r#type::DatabaseType;
 use crate::mapping::attribution::{IndexMethod, ReferenceAction, Index};
 use iroha::ToTokens;
 
-
+/// DataStructure of Column in table
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 #[Iroha(mod_path="yukino::mapping::definition")]
@@ -14,6 +14,7 @@ pub struct ColumnDefinition {
     pub is_primary_key: bool
 }
 
+/// DataStructure of Index in table
 #[allow(dead_code)]
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path="yukino::mapping::definition")]
@@ -35,6 +36,7 @@ impl IndexDefinition {
     }
 }
 
+/// DataStructure of ForeignKey in table
 #[allow(dead_code)]
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path="yukino::mapping::definition")]
@@ -47,6 +49,7 @@ pub struct ForeignKeyDefinition {
     pub on_delete: ReferenceAction
 }
 
+/// DataStructure of table
 #[allow(dead_code)]
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path="yukino::mapping::definition")]
