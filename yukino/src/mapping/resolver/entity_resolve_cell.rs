@@ -12,6 +12,7 @@ use std::str::FromStr;
 #[allow(dead_code)]
 #[derive(Clone, Eq, PartialEq)]
 pub enum EntityResolveStatus {
+    Achieved,
     Finished,
     Assembly,
     Unresolved
@@ -25,7 +26,8 @@ pub struct EntityResolveCell {
     name: String,
     indexes: Vec<IndexDefinition>,
     primary_keys: Vec<String>,
-    fields: HashMap<String, Box<dyn FieldResolveCell>>
+    fields: HashMap<String, Box<dyn FieldResolveCell>>,
+    table_definitions: Option<Vec<TableDefinition>>
 }
 
 #[allow(dead_code)]
@@ -65,7 +67,8 @@ impl<'a> EntityResolveCell {
             name,
             indexes,
             primary_keys: Vec::new(),
-            fields: HashMap::new()
+            fields: HashMap::new(),
+            table_definitions: None
         })
     }
 
@@ -103,7 +106,7 @@ impl<'a> EntityResolveCell {
         }
     }
 
-    pub fn achieve(&mut self) -> Result<Vec<TableDefinition>, UnresolvedError> {
+    pub fn achieve(&mut self) -> Result<(), UnresolvedError> {
         if self.status != EntityResolveStatus::Finished {
             return Err(UnresolvedError::new(&self.ident.to_string()))
         };
@@ -139,9 +142,17 @@ impl<'a> EntityResolveCell {
             foreign_keys
         });
 
-        self.status = EntityResolveStatus::Finished;
+        self.status = EntityResolveStatus::Achieved;
 
-        Ok(tables)
+        self.table_definitions = Some(tables);
+
+        Ok(())
+    }
+
+    pub fn get_definitions(&self) -> Result<Vec<TableDefinition>, UnresolvedError> {
+        self.table_definitions.as_ref().cloned().ok_or_else(
+            || UnresolvedError::new(&self.ident)
+        )
     }
 
     fn convert_to_database_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
@@ -206,13 +217,19 @@ impl<'a> EntityResolveCell {
             |_| UnresolvedError::new(&self.ident)
         )?;
 
+        let definitions = self.get_definitions()?;
+
         Ok(quote! {
             impl yuikino::Entity for #ident {
                 #to_raw_value
 
                 #from_raw_result
 
-                // todo: definitions
+                fn get_definitions(&self) -> Vec<TableDefinition> {
+                    vec![
+                        #(#definitions),*
+                    ]
+                }
             }
         })
     }

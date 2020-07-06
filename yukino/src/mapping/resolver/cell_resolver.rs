@@ -9,6 +9,7 @@ use syn::export::ToTokens;
 use yui::AttributeStructure;
 use crate::mapping::resolver::helper::compare_path_vector;
 use crate::mapping::definition::TableDefinition;
+use proc_macro2::TokenStream;
 
 pub struct CellResolver {
     entity_cells: HashMap<String, EntityResolveCell>,
@@ -390,10 +391,38 @@ impl CellResolver {
         let mut definitions = Vec::new();
 
         for (_, cell) in self.entity_cells.iter_mut() {
-            let mut result = cell.achieve()?;
+            let mut result = match cell.get_status() {
+                EntityResolveStatus::Achieved => cell.get_definitions().unwrap(),
+                _ => {
+                    cell.achieve()?;
+                    cell.get_definitions().unwrap()
+                }
+            };
             definitions.append(&mut result);
         }
 
         Ok(definitions)
+    }
+
+    pub fn get_implements(&self) -> Result<TokenStream, UnresolvedError> {
+        self.entity_cells.iter().map(
+            |(_, cell)| cell.get_implement_token_stream()
+        ).fold(
+            Ok(TokenStream::new()),
+            |previous, current| {
+                match previous {
+                    Ok(mut previous_token_stream) => {
+                        match current {
+                            Ok(current_token_stream) => {
+                                current_token_stream.to_tokens(&mut previous_token_stream);
+                                Ok(previous_token_stream)
+                            },
+                            Err(e) => Err(e)
+                        }
+                    },
+                    Err(e) => Err(e)
+                }
+            }
+        )
     }
 }

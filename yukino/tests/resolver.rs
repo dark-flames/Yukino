@@ -59,4 +59,5 @@ fn test_integer() {
     };
 
     assert_eq!(definitions[0], expect_definition);
+    print!("{}", resolver.get_implements().unwrap().to_string())
 }
