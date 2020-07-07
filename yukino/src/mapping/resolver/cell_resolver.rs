@@ -72,18 +72,18 @@ impl CellResolver {
     fn get_mut_field_cell_from_hash_map<'a>(
         field_cells: &'a mut HashMap<String, HashMap<String, Box<dyn FieldResolveCell>>>,
         field_path: &FieldPath
-    ) -> Option<&'a mut Box<dyn FieldResolveCell>>{
+    ) -> Option<&'a mut dyn FieldResolveCell>{
         match field_cells.get_mut (&field_path.0).map(
             |entity_map| {
                 entity_map.get_mut(&field_path.1)
             }
         ) {
-            Some(Some(v)) => Some(v),
+            Some(Some(v)) => Some(v.as_mut()),
             _ => None
         }
     }
 
-    fn get_mut_field_cell(&mut self, field_path: &FieldPath) -> Option<&mut Box<dyn FieldResolveCell>> {
+    fn get_mut_field_cell(&mut self, field_path: &FieldPath) -> Option<&mut dyn FieldResolveCell> {
         Self::get_mut_field_cell_from_hash_map(&mut self.field_cells, field_path)
     }
 
@@ -267,16 +267,16 @@ impl CellResolver {
             FieldResolveStatus::WaitEntity(entity) => {
                 let result = self.process_resolve_entity(field_path)?;
 
-                match result {
-                    FieldResolveStatus::WaitEntity(other) if other == *entity => {
-                        let list_option = self.wait_for_entity.get_mut(&other);
+                match &result {
+                    FieldResolveStatus::WaitEntity(other) if other == entity => {
+                        let list_option = self.wait_for_entity.get_mut(other);
 
                         if let Some(list) = list_option {
                             list.push(field_path.clone())
                         } else {
                             let list = vec![field_path.clone()];
 
-                            self.wait_for_entity.insert(other, list);
+                            self.wait_for_entity.insert(other.clone(), list);
                         }
                     },
                     _ => {
@@ -287,8 +287,8 @@ impl CellResolver {
             FieldResolveStatus::WaitFields(fields) => {
                 let result = self.process_resolve_fields(field_path)?;
 
-                match result {
-                    FieldResolveStatus::WaitFields(other) if compare_path_vector(fields, &other) => {
+                match &result {
+                    FieldResolveStatus::WaitFields(other) if compare_path_vector(fields, other) => {
                         for field in fields {
                             let list_option = self.wait_for_field.get_mut(field);
 
