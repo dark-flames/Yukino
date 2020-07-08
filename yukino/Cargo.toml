@@ -4,39 +4,24 @@ version = "0.1.0"
 authors = ["dark-flames <dark_flames@outlook.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies.yukino-core]
+version = "0.1.0"
+path = "../yukino-core"
 
-[dependencies.yui]
-version = "0.1.6"
+[dependencies.yukino-cli]
+version = "0.1.0"
+path = "../yukino-cli"
 
-[dependencies.proc-macro2]
-version = "1.0"
+[dependencies.yukino-derive]
+version = "0.1.0"
+path = "../yukino-derive"
 
-[dependencies.syn]
-version = "1.0"
-features = ["derive", "parsing", "printing", "clone-impls", "proc-macro", "extra-traits"]
-
-[dependencies.quote]
-version = "1.0"
-
-[dependencies.heck]
-version = "0.3.1"
-
-[dependencies.rust_decimal]
-version = "1.6.0"
-optional = true
-
-[dependencies.time]
-version = "0.2.16"
-optional = true
-
-[dependencies.iroha]
-version = "0.1.1"
+[lib]
 
 [features]
 default = ["mysql", "decimal"]
-mysql = []
-postgre-sql = []
-sqlite = []
-decimal = ["rust_decimal"]
-data-time = ["time"]
+mysql = ["yukino-core/mysql"]
+postgre-sql = ["yukino-core/postgre-sql"]
+sqlite = ["yukino-core/sqlite"]
+decimal = ["yukino-core/decimal"]
+data-time = ["yukino-core/data-time"]

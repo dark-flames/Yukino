@@ -2,7 +2,8 @@
 
 members = [
     "yukino",
-    "yuikino-cli",
-    "yukino_derive",
-    "yukino_internal"
+    "yukino-core",
+    "yukino-cli",
+    "yukino-derive",
+    "yukino-test"
 ]

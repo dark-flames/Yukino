@@ -1,0 +1,28 @@
+[package]
+name = "yukino-cli"
+version = "0.1.0"
+description = "Yukino command-line tools"
+authors = ["dark-flames <dark_flames@outlook.com>"]
+edition = "2018"
+
+[dependencies.clap]
+version = "2.33.1"
+default-features = false
+features = [ "suggestions", "color" ]
+
+
+[dependencies.yukino-core]
+version = "0.1.0"
+path = "../yukino-core"
+
+[dependencies.syn]
+version = "1.0"
+features = ["derive", "parsing", "printing", "clone-impls", "proc-macro", "extra-traits", "full"]
+
+[dependencies.quote]
+version = "1.0"
+
+[dependencies.proc-macro2]
+version = "1.0"
+
+[lib]
