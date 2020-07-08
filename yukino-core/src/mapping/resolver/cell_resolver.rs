@@ -394,7 +394,9 @@ impl CellResolver {
             let mut result = match cell.get_status() {
                 EntityResolveStatus::Achieved => cell.get_definitions().unwrap(),
                 _ => {
-                    cell.achieve()?;
+                    if let EntityResolveStatus::Finished = cell.get_status() {
+                        cell.achieve()?
+                    }
                     cell.get_definitions().unwrap()
                 }
             };
@@ -407,7 +409,9 @@ impl CellResolver {
     pub fn get_implements(&mut self) -> Result<TokenStream, UnresolvedError> {
         self.entity_cells.iter_mut().map(
             |(_, cell)| {
-                cell.achieve()?;
+                if let EntityResolveStatus::Finished = cell.get_status() {
+                    cell.achieve()?
+                }
                 cell.get_implement_token_stream()
             }
         ).fold(
