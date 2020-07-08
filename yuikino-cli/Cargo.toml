@@ -4,7 +4,15 @@ version = "0.1.0"
 authors = ["dark-flames <dark_flames@outlook.com>"]
 edition = "2018"
 
-[dependencies]
-yukino = {version = "0.1.0", path="../yukino"}
+[dependencies.yukino]
+version = "0.1.0"
+path = "../yukino"
+
+[dependencies.syn]
+version = "1.0"
+features = ["derive", "parsing", "printing", "clone-impls", "proc-macro", "extra-traits", "full"]
+
+[dependencies.proc-macro2]
+version = "1.0"
 
 [lib]

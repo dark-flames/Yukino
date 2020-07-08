@@ -1,11 +1,17 @@
 use yukino::mapping::{CellResolver, FieldResolveCell};
 use std::fs::File;
-use crate::error::FileError;
+use crate::error::{FileError, ResolveError, OutputError};
 use std::collections::HashMap;
+use std::io::{Read, Write};
+use proc_macro2::TokenStream;
+use std::str::FromStr;
+use syn::{Item, DeriveInput};
+use std::convert::From;
+
 
 #[allow(dead_code)]
 pub struct Resolver {
-    cell_resolvers: CellResolver,
+    pub cell_resolver: CellResolver,
     model_files: HashMap<&'static str, File>,
     output_file: File
 }
@@ -31,9 +37,44 @@ impl Resolver {
 
 
         Ok(Resolver {
-            cell_resolvers: CellResolver::new(seeds),
+            cell_resolver: CellResolver::new(seeds),
             model_files,
             output_file
         })
+    }
+
+    pub fn resolve(&mut self) -> Result<(), ResolveError> {
+        for (mod_path, file) in self.model_files.iter_mut() {
+            let mut content = String::new();
+            file.read_to_string(&mut content).map_err(
+                |e| ResolveError::new(mod_path, e.to_string().as_str())
+            )?;
+
+            TokenStream::from_str(content.as_str());
+
+            let syntax = syn::parse_file(&content).map_err(
+                |e| ResolveError::new(mod_path, e.to_string().as_str())
+            )?;
+
+            for item in syntax.items {
+                if let Item::Struct(item_struct) = item {
+                    self.cell_resolver.parse(DeriveInput::from(item_struct), mod_path).map_err(
+                        |e| ResolveError::new(mod_path, e.to_string().as_str())
+                    )?;
+                };
+            }
+        }
+        Ok(())
+    }
+
+    pub fn write_implements(&mut self) -> Result<(), OutputError> {
+        let result = self.cell_resolver.get_implements().map_err(
+            |e| OutputError::new(e.to_string().as_str())
+        )?;
+
+        let result_string = result.to_string();
+        self.output_file.write_all(result_string.as_bytes()).map_err(
+            |e| OutputError::new(e.to_string().as_str())
+        )
     }
 }
