@@ -4,7 +4,6 @@ use yukino::mapping::definition::{ColumnDefinition, IndexDefinition, TableDefini
 use yukino::mapping::resolver::IntegerResolveCell;
 use yukino::mapping::{CellResolver, ConstructableCell, DatabaseType};
 use yukino::mapping::{FieldResolveCell, FloatResolveCell};
-use std::result::Result;
 
 #[test]
 fn test_integer() {
