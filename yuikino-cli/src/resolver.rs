@@ -50,7 +50,11 @@ impl Resolver {
                 |e| ResolveError::new(mod_path, e.to_string().as_str())
             )?;
 
-            TokenStream::from_str(content.as_str());
+            TokenStream::from_str(content.as_str()).map_err(
+                |_| {
+                    ResolveError::new(mod_path, "Error occur while generate token stream")
+                }
+            )?;
 
             let syntax = syn::parse_file(&content).map_err(
                 |e| ResolveError::new(mod_path, e.to_string().as_str())

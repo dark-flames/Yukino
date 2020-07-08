@@ -75,3 +75,44 @@ impl Error for  OutputError  {
     }
 }
 
+#[derive(Debug)]
+pub struct YukinoCLIError {
+    message: String
+}
+
+impl Display for YukinoCLIError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "Invalid command line arguments: {}", self.message)
+    }
+}
+
+impl Error for YukinoCLIError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+impl From<ResolveError> for YukinoCLIError {
+    fn from(e: ResolveError) -> Self {
+        YukinoCLIError {
+            message: e.to_string()
+        }
+    }
+}
+
+impl From<OutputError> for YukinoCLIError {
+    fn from(e: OutputError) -> Self {
+        YukinoCLIError {
+            message: e.to_string()
+        }
+    }
+}
+
+impl From<FileError> for YukinoCLIError {
+    fn from(e: FileError) -> Self {
+        YukinoCLIError {
+            message: e.to_string()
+        }
+    }
+}
+

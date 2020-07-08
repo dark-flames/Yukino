@@ -1,8 +1,15 @@
 [package]
 name = "yuikino-cli"
 version = "0.1.0"
+description = "Yukino command-line tools"
 authors = ["dark-flames <dark_flames@outlook.com>"]
 edition = "2018"
+
+[dependencies.clap]
+version = "2.33.1"
+default-features = false
+features = [ "suggestions", "color" ]
+
 
 [dependencies.yukino]
 version = "0.1.0"
