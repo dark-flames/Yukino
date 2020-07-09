@@ -1,11 +1,12 @@
-use crate::mapping::attribution::{FieldAttribute};
+use std::collections::HashMap;
 use syn::Type;
 use proc_macro2::{Ident, TokenStream};
-use std::collections::HashMap;
-use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
-use crate::mapping::definition::{ColumnDefinition, TableDefinition, ForeignKeyDefinition};
-use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use syn::export::fmt::{Display, Formatter, Result as FMTResult};
+use crate::mapping::{FieldAttribute};
+use crate::mapping::definition::{ColumnDefinition, TableDefinition, ForeignKeyDefinition};
+use super::error::{UnresolvedError, ResolveError};
+use super::entity_resolve_cell::EntityResolveCell;
+
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct FieldPath (pub String, pub String);

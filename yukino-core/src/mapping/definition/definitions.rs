@@ -1,6 +1,5 @@
-use crate::mapping::r#type::DatabaseType;
-use crate::mapping::attribution::{IndexMethod, ReferenceAction, Index};
 use iroha::ToTokens;
+use crate::mapping::{IndexMethod, ReferenceAction, Index, DatabaseType};
 
 /// DataStructure of Column in table
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]

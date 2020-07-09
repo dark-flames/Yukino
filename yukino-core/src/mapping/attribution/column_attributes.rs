@@ -1,5 +1,5 @@
-use yui::YuiAttribute;
 use std::collections::HashMap;
+use yui::YuiAttribute;
 
 
 /// Announce column as primary key.

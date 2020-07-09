@@ -7,8 +7,9 @@ pub use enums::*;
 pub use table_attributes::*;
 pub use column_attributes::*;
 pub use association_attributes::*;
-use syn::{Attribute, Error};
+
 use syn::export::ToTokens;
+use syn::{Attribute, Error};
 use yui::AttributeStructure;
 
 pub enum FieldAttribute {

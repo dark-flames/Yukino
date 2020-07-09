@@ -1,14 +1,14 @@
-use yukino_core::mapping::{CellResolver, FieldResolveCell};
-use std::fs::{File, remove_file};
-use crate::error::{FileError, ResolveError, OutputError};
-use std::collections::HashMap;
-use std::io::{Read, Write};
-use proc_macro2::TokenStream;
-use std::str::FromStr;
-use syn::{Item, DeriveInput};
-use std::convert::From;
 use std::path::Path;
+use std::str::FromStr;
+use std::convert::From;
+use std::io::{Read, Write};
+use std::collections::HashMap;
+use std::fs::{File, remove_file};
 use quote::ToTokens;
+use syn::{Item, DeriveInput};
+use proc_macro2::TokenStream;
+use yukino_core::mapping::resolver::{CellResolver, FieldResolveCell};
+use crate::error::{FileError, ResolveError, OutputError};
 
 
 #[allow(dead_code)]
@@ -84,7 +84,7 @@ impl Resolver {
         let mut result: TokenStream = quote::quote! {
             // This file is generate by Yukino CommandLine-Tools
             #[allow(unused_imports)]
-            use yukino::{IndexMethod, ReferenceAction};
+            use yukino::mapping::{IndexMethod, ReferenceAction};
         }; // hack, need update yui
 
         self.cell_resolver.get_implements().map_err(

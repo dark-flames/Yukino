@@ -1,9 +1,10 @@
-use crate::resolver::Resolver;
-use yukino_core::mapping::FieldResolveCell;
-use std::collections::HashMap;
-use crate::error::{YukinoCLIError};
-use clap::{App, crate_version, crate_authors, crate_description, SubCommand};
 use std::process::exit;
+use std::collections::HashMap;
+use yukino_core::mapping::resolver::FieldResolveCell;
+use clap::{App, crate_version, crate_authors, crate_description, SubCommand};
+use crate::resolver::Resolver;
+use crate::error::{YukinoCLIError};
+
 
 #[allow(dead_code)]
 pub struct CommandLineEntry {

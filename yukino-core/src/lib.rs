@@ -1,18 +1,7 @@
-mod association;
-mod error;
 mod entity;
+
+pub mod error;
 pub mod mapping;
+pub mod association;
 
-pub use association::*;
-pub use entity::*;
-pub use mapping::definition::*;
-pub use mapping::r#type::*;
-pub use mapping::attribution::*;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub use entity::{Entity, ParseError};

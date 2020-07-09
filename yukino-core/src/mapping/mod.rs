@@ -4,5 +4,5 @@ pub mod definition;
 pub mod r#type;
 pub mod resolver;
 
-pub use resolver::*;
 pub use r#type::*;
+pub use attribution::*;

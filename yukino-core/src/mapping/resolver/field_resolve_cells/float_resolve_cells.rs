@@ -1,15 +1,13 @@
-use crate::mapping::attribution::{Column, FieldAttribute};
-use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
-use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
-use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
-use crate::mapping::{
-    ConstructableCell, DatabaseType, FieldPath, FieldResolveCell, FieldResolveStatus,
-};
-use proc_macro2::{Ident, TokenStream};
-use quote::ToTokens;
-use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use syn::Type;
+use quote::ToTokens;
+use proc_macro2::{Ident, TokenStream};
+use crate::mapping::{Column, FieldAttribute, DatabaseType};
+use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
+use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
+use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
+use crate::mapping::resolver::{ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus};
+
 
 struct FloatType(usize);
 
@@ -37,10 +35,10 @@ impl FloatType {
     fn database_value_variant(&self) -> TokenStream {
         match self {
             FloatType(32) => quote::quote! {
-                yukino::DatabaseValue::Float
+                yukino::mapping::DatabaseValue::Float
             },
             FloatType(64) => quote::quote! {
-                yukino::DatabaseValue::Double
+                yukino::mapping::DatabaseValue::Double
             },
             _ => unreachable!(),
         }
@@ -112,7 +110,7 @@ impl FieldResolveCell for FloatResolveCell {
 
     fn resolve_fields(
         &mut self,
-        _fields: HashMap<FieldPath, &dyn FieldResolveCell, RandomState>,
+        _fields: HashMap<FieldPath, &dyn FieldResolveCell>,
     ) -> Result<FieldResolveStatus, ResolveError> {
         unreachable!()
     }

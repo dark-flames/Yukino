@@ -1,8 +1,8 @@
+use std::collections::HashMap;
+use crate::entity::Entity;
+use crate::mapping::DatabaseValue;
 use crate::association::maintainer::{Cascade, Maintainer};
 use crate::association::fetch_strategy::{Auto, FetchStrategy};
-use crate::entity::Entity;
-use std::collections::HashMap;
-use crate::mapping::DatabaseValue;
 
 #[allow(dead_code)]
 pub struct DirectlyAssociation {

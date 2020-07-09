@@ -1,6 +1,7 @@
 use std::error::Error;
-use std::fmt::{Formatter, Display, Result};
 use std::io::Error as IOError;
+use std::fmt::{Formatter, Display, Result};
+
 
 #[derive(Debug)]
 pub struct FileError {

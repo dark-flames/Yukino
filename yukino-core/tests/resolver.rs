@@ -1,9 +1,8 @@
 use syn::{parse_quote, DeriveInput};
-use yukino_core::mapping::attribution::IndexMethod;
+use yukino_core::mapping::IndexMethod;
+use yukino_core::mapping::{DatabaseType};
 use yukino_core::mapping::definition::{ColumnDefinition, IndexDefinition, TableDefinition};
-use yukino_core::mapping::resolver::IntegerResolveCell;
-use yukino_core::mapping::{CellResolver, ConstructableCell, DatabaseType};
-use yukino_core::mapping::{FieldResolveCell, FloatResolveCell};
+use yukino_core::mapping::resolver::{IntegerResolveCell, CellResolver, ConstructableCell, FieldResolveCell, FloatResolveCell};
 
 #[test]
 fn test_integer() {

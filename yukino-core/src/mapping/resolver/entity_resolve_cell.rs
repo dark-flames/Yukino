@@ -1,13 +1,14 @@
-use proc_macro2::{Ident, TokenStream};
-use crate::mapping::attribution::Table;
-use crate::mapping::definition::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
-use std::collections::HashMap;
-use crate::mapping::resolver::field_resolve_cell::FieldResolveCell;
-use crate::mapping::r#type::DatabaseType;
-use heck::SnakeCase;
-use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
-use quote::{quote, format_ident};
 use std::str::FromStr;
+use std::collections::HashMap;
+use heck::SnakeCase;
+use quote::{quote, format_ident};
+use proc_macro2::{Ident, TokenStream};
+use crate::mapping::{Table, DatabaseType};
+use crate::mapping::definition::{ColumnDefinition, IndexDefinition, TableDefinition, ForeignKeyDefinition};
+use super::field_resolve_cell::FieldResolveCell;
+use super::error::{UnresolvedError, ResolveError};
+
+
 
 #[allow(dead_code)]
 #[derive(Clone, Eq, PartialEq)]
@@ -162,7 +163,7 @@ impl<'a> EntityResolveCell {
         ).collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
 
         Ok(quote! {
-            fn to_raw_value(&self) -> Result<std::collections::HashMap<String, yukino::DatabaseValue>, yukino::ParseError> {
+            fn to_raw_value(&self) -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError> {
                 let mut #value_ident = std::collections::HashMap::new();
 
                 #(#fields;)*
@@ -201,7 +202,7 @@ impl<'a> EntityResolveCell {
 
         Ok(quote! {
             fn from_raw_result(
-                result: &std::collections::HashMap<String, yukino::DatabaseValue>
+                result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>
             ) -> Result<Box<Self>, yukino::ParseError> {
                 #(#fields;)*
 
@@ -230,7 +231,7 @@ impl<'a> EntityResolveCell {
 
                 #to_raw_value
 
-                fn get_definitions(&self) -> Vec<yukino::TableDefinition> {
+                fn get_definitions(&self) -> Vec<yukino::mapping::definition::TableDefinition> {
                     vec![
                         #(#definitions),*
                     ]

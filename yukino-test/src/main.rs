@@ -1,5 +1,5 @@
 use yukino::cli_entry;
-use yukino::mapping::{IntegerResolveCell, FloatResolveCell};
+use yukino::mapping::resolver::{IntegerResolveCell, FloatResolveCell};
 
 
 cli_entry!(

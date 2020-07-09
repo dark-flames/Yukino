@@ -1,8 +1,9 @@
-use proc_macro2::{TokenStream, Ident};
-use yui::AttributeStructure;
 use std::error::Error;
-use syn::export::fmt::{Display, Formatter, Result};
 use syn::export::ToTokens;
+use yui::AttributeStructure;
+use proc_macro2::{TokenStream, Ident};
+use syn::export::fmt::{Display, Formatter, Result};
+
 
 pub trait CompileError: Error + Display {
     fn get_message(&self) -> String;

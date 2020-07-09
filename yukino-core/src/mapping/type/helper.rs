@@ -1,7 +1,7 @@
+use std::iter::Rev;
+use syn::punctuated::Iter;
 use syn::{Type, TypePath, PathSegment, GenericArgument, PathArguments};
 use crate::mapping::error::TypeError;
-use syn::punctuated::Iter;
-use std::iter::Rev;
 
 #[allow(dead_code)]
 pub fn assert_type_path(value: &Type) -> Result<&TypePath, TypeError> {

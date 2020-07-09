@@ -1,13 +1,13 @@
-use crate::mapping::{FieldResolveCell, FieldResolveStatus, FieldPath, ConstructableCell, DatabaseType};
-use std::collections::hash_map::RandomState;
-use proc_macro2::{TokenStream, Ident};
 use std::collections::HashMap;
-use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use syn::Type;
-use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
-use crate::mapping::attribution::{FieldAttribute, Column};
-use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use quote::ToTokens;
+use proc_macro2::{TokenStream, Ident};
+use crate::mapping::{DatabaseType, FieldAttribute, Column};
+use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
+use crate::mapping::resolver::error::{UnresolvedError, ResolveError};
+use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
+use crate::mapping::resolver::{FieldResolveCell, FieldResolveStatus, FieldPath, ConstructableCell};
+
 
 pub enum IntegerType {
     Integer(usize),
@@ -49,22 +49,22 @@ impl IntegerType {
     fn database_value_variant(&self) -> TokenStream {
         match self {
             IntegerType::Integer(16) => quote::quote! {
-                yukino::DatabaseValue::SmallInteger
+                yukino::mapping::DatabaseValue::SmallInteger
             },
             IntegerType::Integer(32) => quote::quote! {
-                yukino::DatabaseValue::Integer
+                yukino::mapping::DatabaseValue::Integer
             },
             IntegerType::Integer(64) => quote::quote! {
-                yukino::DatabaseValue::BigInteger
+                yukino::mapping::DatabaseValue::BigInteger
             },
             IntegerType::UnsignedInteger(16) => quote::quote! {
-                yukino::DatabaseValue::UnsignedSmallInteger
+                yukino::mapping::DatabaseValue::UnsignedSmallInteger
             },
             IntegerType::UnsignedInteger(32) => quote::quote! {
-                yukino::DatabaseValue::UnsignedInteger
+                yukino::mapping::DatabaseValue::UnsignedInteger
             },
             IntegerType::UnsignedInteger(64) => quote::quote! {
-                yukino::DatabaseValue::UnsignedBigInteger
+                yukino::mapping::DatabaseValue::UnsignedBigInteger
             },
             _ => unreachable!()
         }
@@ -127,7 +127,7 @@ impl FieldResolveCell for IntegerResolveCell {
         self.status.clone()
     }
 
-    fn resolve_fields(&mut self, _fields: HashMap<FieldPath, &dyn FieldResolveCell, RandomState>) -> Result<FieldResolveStatus, ResolveError> {
+    fn resolve_fields(&mut self, _fields: HashMap<FieldPath, &dyn FieldResolveCell>) -> Result<FieldResolveStatus, ResolveError> {
         unreachable!()
     }
 

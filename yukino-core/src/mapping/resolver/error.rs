@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter, Result};
 use std::error::Error;
+use std::fmt::{Display, Formatter, Result};
 use crate::mapping::error::{CompileError};
 
 #[derive(Debug, Clone)]

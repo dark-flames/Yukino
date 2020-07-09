@@ -14,7 +14,7 @@ macro_rules! cli_entry{
         output_file = $output_path: literal
     ) => {
         pub fn main() {
-            use yukino::mapping::ConstructableCell;
+            use yukino::mapping::resolver::ConstructableCell;
             let crate_path = env!("CARGO_MANIFEST_DIR");
             yukino::CommandLineEntry::new(
                 vec![$(Box::new($resolver::get_seed())),*],

@@ -1,15 +1,15 @@
 use std::collections::{HashMap};
-use crate::mapping::resolver::entity_resolve_cell::{EntityResolveCell, EntityResolveStatus};
-use crate::mapping::resolver::field_resolve_cell::{FieldPath, FieldResolveCell, FieldResolveStatus};
-use syn::{DeriveInput, Error, Data, Fields};
-use crate::mapping::error::{ CompileError};
-use crate::mapping::attribution::{Table, FieldAttribute};
-use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
 use syn::export::ToTokens;
 use yui::AttributeStructure;
-use crate::mapping::resolver::helper::compare_path_vector;
-use crate::mapping::definition::TableDefinition;
 use proc_macro2::TokenStream;
+use syn::{DeriveInput, Error, Data, Fields};
+use crate::mapping::error::{ CompileError};
+use crate::mapping::{Table, FieldAttribute};
+use crate::mapping::definition::TableDefinition;
+use super::helper::compare_path_vector;
+use super::error::{ResolveError, UnresolvedError};
+use super::entity_resolve_cell::{EntityResolveCell, EntityResolveStatus};
+use super::field_resolve_cell::{FieldPath, FieldResolveCell, FieldResolveStatus};
 
 pub struct CellResolver {
     entity_cells: HashMap<String, EntityResolveCell>,

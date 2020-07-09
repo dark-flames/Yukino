@@ -4,7 +4,7 @@ use time::{Time, Date, PrimitiveDateTime};
 
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
-#[Iroha(mod_path="yukino")]
+#[Iroha(mod_path="yukino::mapping")]
 pub enum DatabaseType {
     SmallInteger,
     UnsignedSmallInteger,

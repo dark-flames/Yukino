@@ -1,7 +1,7 @@
-use yukino_test::entities::Foo;
-use yukino::DatabaseValue;
 use std::collections::HashMap;
 use yukino::Entity;
+use yukino_test::entities::Foo;
+use yukino::mapping::DatabaseValue;
 
 #[test]
 fn tes_foo() {

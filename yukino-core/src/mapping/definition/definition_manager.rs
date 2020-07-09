@@ -1,6 +1,6 @@
-use crate::mapping::definition::definitions::TableDefinition;
 use std::collections::HashMap;
-use crate::mapping::definition::error::DefinitionError;
+use super::definitions::TableDefinition;
+use super::error::DefinitionError;
 
 #[allow(dead_code)]
 pub trait DefinitionProvider {
