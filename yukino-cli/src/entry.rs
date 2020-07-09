@@ -3,7 +3,7 @@ use crate::resolver::Resolver;
 use clap::{crate_authors, crate_description, crate_version, App, SubCommand};
 use cmd_lib::run_cmd;
 use std::collections::HashMap;
-use std::process::{exit};
+use std::process::exit;
 use yukino_core::mapping::resolver::FieldResolveCell;
 
 #[allow(dead_code)]

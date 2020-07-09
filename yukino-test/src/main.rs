@@ -1,8 +1,8 @@
 use yukino::cli_entry;
-use yukino::mapping::resolver::{FloatResolveCell, IntegerResolveCell};
+use yukino::mapping::resolver::NumericResolveCell;
 
 cli_entry!(
-    resolver = [IntegerResolveCell, FloatResolveCell],
+    resolver = [NumericResolveCell],
     entity_files = {
         "crate::entities" -> "src/entities.rs"
     },

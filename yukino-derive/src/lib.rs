@@ -1,3 +1,5 @@
+mod cli;
+
 extern crate proc_macro;
 use proc_macro::TokenStream;
 
@@ -5,6 +7,6 @@ use proc_macro::TokenStream;
     Yukino,
     attributes(Table, Index, Column, Id, Ignore, Association, InverseAssociation)
 )]
-pub fn yukino_entity_derive(_input: TokenStream) -> TokenStream {
+pub fn yukino_entity_derive(_: TokenStream) -> TokenStream {
     TokenStream::new()
 }

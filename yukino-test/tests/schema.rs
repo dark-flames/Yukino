@@ -4,7 +4,7 @@ use yukino::Entity;
 use yukino_test::entities::Foo;
 
 #[test]
-fn tes_foo() {
+fn test_foo() {
     let key_1 = "integer".to_string();
     let key_2 = "int16".to_string();
     let mut raw_data = HashMap::new();

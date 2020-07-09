@@ -10,62 +10,79 @@ use quote::ToTokens;
 use std::collections::HashMap;
 use syn::Type;
 
-pub enum IntegerType {
+pub enum NumericType {
     Integer(usize),
     UnsignedInteger(usize),
+    Float(usize),
 }
 
-impl IntegerType {
+impl NumericType {
     pub fn from_ident(ident: &Ident) -> Option<Self> {
         let ident_string = ident.to_string();
 
         match ident_string.as_str() {
-            "i16" => Some(IntegerType::Integer(16)),
-            "i32" => Some(IntegerType::Integer(32)),
-            "i64" => Some(IntegerType::Integer(64)),
-            "u16" => Some(IntegerType::UnsignedInteger(16)),
-            "u32" => Some(IntegerType::UnsignedInteger(32)),
-            "u64" => Some(IntegerType::UnsignedInteger(64)),
+            "i16" => Some(NumericType::Integer(16)),
+            "i32" => Some(NumericType::Integer(32)),
+            "i64" => Some(NumericType::Integer(64)),
+            "u16" => Some(NumericType::UnsignedInteger(16)),
+            "u32" => Some(NumericType::UnsignedInteger(32)),
+            "u64" => Some(NumericType::UnsignedInteger(64)),
+            "f32" => Some(NumericType::Float(32)),
+            "f64" => Some(NumericType::Float(64)),
             _ => None,
         }
     }
 
     pub fn get_database_type(&self) -> DatabaseType {
         match self {
-            IntegerType::Integer(length) => match length {
+            NumericType::Integer(length) => match length {
                 8 => DatabaseType::SmallInteger,
                 16 | 32 => DatabaseType::Integer,
                 64 => DatabaseType::BigInteger,
                 _ => unreachable!(),
             },
-            IntegerType::UnsignedInteger(length) => match length {
+            NumericType::UnsignedInteger(length) => match length {
                 8 => DatabaseType::UnsignedSmallInteger,
                 16 | 32 => DatabaseType::UnsignedInteger,
                 64 => DatabaseType::UnsignedBigInteger,
+                _ => unreachable!(),
+            },
+            NumericType::Float(length) => match length {
+                32 => DatabaseType::Float,
+                64 => DatabaseType::Double,
                 _ => unreachable!(),
             },
         }
     }
 
     fn database_value_variant(&self) -> TokenStream {
+        let prefix = quote::quote! {
+            yukino::mapping::DatabaseValue
+        };
         match self {
-            IntegerType::Integer(16) => quote::quote! {
-                yukino::mapping::DatabaseValue::SmallInteger
+            NumericType::Integer(16) => quote::quote! {
+                #prefix::SmallInteger
             },
-            IntegerType::Integer(32) => quote::quote! {
-                yukino::mapping::DatabaseValue::Integer
+            NumericType::Integer(32) => quote::quote! {
+                #prefix::Integer
             },
-            IntegerType::Integer(64) => quote::quote! {
-                yukino::mapping::DatabaseValue::BigInteger
+            NumericType::Integer(64) => quote::quote! {
+                #prefix::BigInteger
             },
-            IntegerType::UnsignedInteger(16) => quote::quote! {
-                yukino::mapping::DatabaseValue::UnsignedSmallInteger
+            NumericType::UnsignedInteger(16) => quote::quote! {
+                #prefix::UnsignedSmallInteger
             },
-            IntegerType::UnsignedInteger(32) => quote::quote! {
-                yukino::mapping::DatabaseValue::UnsignedInteger
+            NumericType::UnsignedInteger(32) => quote::quote! {
+                #prefix::UnsignedInteger
             },
-            IntegerType::UnsignedInteger(64) => quote::quote! {
-                yukino::mapping::DatabaseValue::UnsignedBigInteger
+            NumericType::UnsignedInteger(64) => quote::quote! {
+                #prefix::UnsignedBigInteger
+            },
+            NumericType::Float(32) => quote::quote! {
+                #prefix::Float
+            },
+            NumericType::Float(64) => quote::quote! {
+                #prefix::Double
             },
             _ => unreachable!(),
         }
@@ -80,40 +97,31 @@ impl IntegerType {
 
     pub fn to_value_tokens(&self, value: &TokenStream, field_name: String) -> TokenStream {
         let variant = self.database_value_variant();
-        let convert = match self {
-            IntegerType::Integer(16) => quote::quote! {
-                as i16
-            },
-            IntegerType::UnsignedInteger(16) => quote::quote! {
-                as u16
-            },
-            _ => quote::quote! {},
-        };
         let error_message = format!("Unexpected DatabaseValue on field {}", field_name);
         quote::quote! {
             match #value {
-                Some(#variant(integer)) => Ok(*integer #convert),
+                Some(#variant(integer)) => Ok(*integer),
                 _ => Err(yukino::ParseError::new(#error_message))
             }?
         }
     }
 }
 
-pub struct IntegerResolveCell {
+pub struct NumericResolveCell {
     status: FieldResolveStatus,
     entity_name: Option<String>,
     field_ident: Option<Ident>,
     is_primary_key: Option<bool>,
     column: Option<Column>,
-    ty: Option<IntegerType>,
+    ty: Option<NumericType>,
 }
 
-impl ConstructableCell for IntegerResolveCell {
+impl ConstructableCell for NumericResolveCell {
     fn get_seed() -> Self
     where
         Self: Sized,
     {
-        IntegerResolveCell {
+        NumericResolveCell {
             status: FieldResolveStatus::Seed,
             entity_name: None,
             field_ident: None,
@@ -124,7 +132,7 @@ impl ConstructableCell for IntegerResolveCell {
     }
 }
 
-impl FieldResolveCell for IntegerResolveCell {
+impl FieldResolveCell for NumericResolveCell {
     fn weight(&self) -> usize {
         1
     }
@@ -267,7 +275,7 @@ impl FieldResolveCell for IntegerResolveCell {
     ) -> Result<Box<dyn FieldResolveCell>, ResolveError> {
         let ty = match field_type {
             Type::Path(type_path) => match type_path.path.segments.first() {
-                Some(first_segment) => IntegerType::from_ident(&first_segment.ident),
+                Some(first_segment) => NumericType::from_ident(&first_segment.ident),
                 None => None,
             },
             _ => None,
@@ -296,7 +304,7 @@ impl FieldResolveCell for IntegerResolveCell {
             })
             .next();
 
-        Ok(Box::new(IntegerResolveCell {
+        Ok(Box::new(NumericResolveCell {
             status: FieldResolveStatus::Finished,
             entity_name: Some(entity_name),
             field_ident: Some(ident.clone()),
@@ -309,7 +317,7 @@ impl FieldResolveCell for IntegerResolveCell {
     fn match_field(&self, _attributes: &[FieldAttribute], field_type: &Type) -> bool {
         match field_type {
             Type::Path(type_path) => match type_path.path.segments.first() {
-                Some(first_segment) => IntegerType::from_ident(&first_segment.ident).is_some(),
+                Some(first_segment) => NumericType::from_ident(&first_segment.ident).is_some(),
                 None => false,
             },
             _ => false,
