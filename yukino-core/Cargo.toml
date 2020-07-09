@@ -31,7 +31,7 @@ version = "0.2.16"
 optional = true
 
 [dependencies.iroha]
-version = "0.1.1"
+version = "0.1.2"
 
 [features]
 default = ["mysql", "decimal"]
