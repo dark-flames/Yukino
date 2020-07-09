@@ -1,8 +1,8 @@
-pub mod error;
 pub mod attribution;
 pub mod definition;
-pub mod r#type;
+pub mod error;
 pub mod resolver;
+pub mod r#type;
 
-pub use r#type::*;
 pub use attribution::*;
+pub use r#type::*;

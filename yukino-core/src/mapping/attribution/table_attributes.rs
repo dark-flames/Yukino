@@ -1,7 +1,6 @@
+use super::enums::*;
 use std::collections::HashMap;
 use yui::YuiAttribute;
-use super::enums::*;
-
 
 /// DataStructure of index.
 ///
@@ -11,11 +10,11 @@ pub struct Index {
     /// Column names(field name in Rust) of index.
     pub columns: Vec<String>,
     /// Index method, enum `IndexMethod` will be different in different platform. Default use b-tree
-    #[attribute_field(enum_value=true, default="b_tree")]
+    #[attribute_field(enum_value = true, default = "b_tree")]
     pub method: IndexMethod,
     /// Is unique index. Default false.
-    #[attribute_field(default=false)]
-    pub unique: bool
+    #[attribute_field(default = false)]
+    pub unique: bool,
 }
 
 /// DataStructure of Table
@@ -26,9 +25,5 @@ pub struct Table {
     /// Table name in database, default is the struct ident(will be converted to snake_case) in Rust
     pub name: Option<String>,
     /// Index definitions, mapped by index name.
-    pub indexes: Option<HashMap<String, Index>>
+    pub indexes: Option<HashMap<String, Index>>,
 }
-
-
-
-

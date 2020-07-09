@@ -1,9 +1,9 @@
-mod maintainer;
-mod fetch_strategy;
 mod association_type;
+mod fetch_strategy;
+mod maintainer;
 
-pub use maintainer::*;
-pub use fetch_strategy::*;
 pub use association_type::{
-    Association, InverseAssociation, AssociationCollection, InverseAssociationCollection
+    Association, AssociationCollection, InverseAssociation, InverseAssociationCollection,
 };
+pub use fetch_strategy::*;
+pub use maintainer::*;

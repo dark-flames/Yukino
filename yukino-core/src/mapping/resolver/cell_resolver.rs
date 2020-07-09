@@ -1,22 +1,22 @@
-use std::collections::{HashMap};
-use syn::export::ToTokens;
-use yui::AttributeStructure;
-use proc_macro2::TokenStream;
-use syn::{DeriveInput, Error, Data, Fields};
-use crate::mapping::error::{ CompileError};
-use crate::mapping::{Table, FieldAttribute};
-use crate::mapping::definition::TableDefinition;
-use super::helper::compare_path_vector;
-use super::error::{ResolveError, UnresolvedError};
 use super::entity_resolve_cell::{EntityResolveCell, EntityResolveStatus};
+use super::error::{ResolveError, UnresolvedError};
 use super::field_resolve_cell::{FieldPath, FieldResolveCell, FieldResolveStatus};
+use super::helper::compare_path_vector;
+use crate::mapping::definition::TableDefinition;
+use crate::mapping::error::CompileError;
+use crate::mapping::{FieldAttribute, Table};
+use proc_macro2::TokenStream;
+use std::collections::HashMap;
+use syn::export::ToTokens;
+use syn::{Data, DeriveInput, Error, Fields};
+use yui::AttributeStructure;
 
 pub struct CellResolver {
     entity_cells: HashMap<String, EntityResolveCell>,
     wait_for_field: HashMap<FieldPath, Vec<FieldPath>>,
     wait_for_entity: HashMap<String, Vec<FieldPath>>,
     field_cells: HashMap<String, HashMap<String, Box<dyn FieldResolveCell>>>,
-    field_cell_seeds: Vec<Box<dyn FieldResolveCell>>
+    field_cell_seeds: Vec<Box<dyn FieldResolveCell>>,
 }
 
 #[allow(dead_code)]
@@ -27,14 +27,17 @@ impl CellResolver {
             wait_for_field: HashMap::new(),
             wait_for_entity: HashMap::new(),
             field_cells: HashMap::new(),
-            field_cell_seeds: seeds
+            field_cell_seeds: seeds,
         }
     }
 
-    fn add_field_cell(&mut self, cell: Box<dyn FieldResolveCell>) -> Result<&mut CellResolver, ResolveError> {
+    fn add_field_cell(
+        &mut self,
+        cell: Box<dyn FieldResolveCell>,
+    ) -> Result<&mut CellResolver, ResolveError> {
         let field_path = cell.field_path().unwrap();
         let status = cell.get_status();
-        if let Some(map) =  self.field_cells.get_mut(&field_path.0) {
+        if let Some(map) = self.field_cells.get_mut(&field_path.0) {
             map.insert(field_path.1.clone(), cell);
         } else {
             let mut map = HashMap::new();
@@ -45,7 +48,10 @@ impl CellResolver {
         self.process_field_resolve_status(&field_path, &status)
     }
 
-    fn add_entity_cell(&mut self, cell: EntityResolveCell) -> Result<&mut CellResolver, ResolveError> {
+    fn add_entity_cell(
+        &mut self,
+        cell: EntityResolveCell,
+    ) -> Result<&mut CellResolver, ResolveError> {
         let name = cell.entity_name();
         let status = cell.get_status();
         self.entity_cells.insert(name.clone(), cell);
@@ -54,32 +60,33 @@ impl CellResolver {
     }
 
     fn get_field_cell(&self, field_path: &FieldPath) -> Option<&dyn FieldResolveCell> {
-        match self.field_cells.get(&field_path.0).map(
-            |entity_map| {
-                entity_map.get(&field_path.1)
-            }
-        ) {
+        match self
+            .field_cells
+            .get(&field_path.0)
+            .map(|entity_map| entity_map.get(&field_path.1))
+        {
             Some(Some(v)) => Some(v.as_ref()),
-            _ => match self.entity_cells.get(&field_path.0).map(
-                |entity| entity.get_field(&field_path.1)
-            ) {
+            _ => match self
+                .entity_cells
+                .get(&field_path.0)
+                .map(|entity| entity.get_field(&field_path.1))
+            {
                 Some(Some(v)) => Some(v),
-                _ => None
-            }
+                _ => None,
+            },
         }
     }
 
     fn get_mut_field_cell_from_hash_map<'a>(
         field_cells: &'a mut HashMap<String, HashMap<String, Box<dyn FieldResolveCell>>>,
-        field_path: &FieldPath
-    ) -> Option<&'a mut dyn FieldResolveCell>{
-        match field_cells.get_mut (&field_path.0).map(
-            |entity_map| {
-                entity_map.get_mut(&field_path.1)
-            }
-        ) {
+        field_path: &FieldPath,
+    ) -> Option<&'a mut dyn FieldResolveCell> {
+        match field_cells
+            .get_mut(&field_path.0)
+            .map(|entity_map| entity_map.get_mut(&field_path.1))
+        {
             Some(Some(v)) => Some(v.as_mut()),
-            _ => None
+            _ => None,
         }
     }
 
@@ -88,10 +95,9 @@ impl CellResolver {
     }
 
     fn remove_field_cell(&mut self, field_path: &FieldPath) -> Option<Box<dyn FieldResolveCell>> {
-
         let field_map = match self.field_cells.get_mut(&field_path.0) {
             Some(m) => m,
-            None => return None
+            None => return None,
         };
 
         let result = field_map.remove(&field_path.1);
@@ -104,36 +110,36 @@ impl CellResolver {
     }
 
     fn process_resolve_fields(
-        &mut self, field_path: &FieldPath
+        &mut self,
+        field_path: &FieldPath,
     ) -> Result<FieldResolveStatus, ResolveError> {
-        let cell = self.get_field_cell(field_path).ok_or_else(
-            || ResolveError::new(
-                field_path,
-                "Unknown field path"
-            )
-        )?;
+        let cell = self
+            .get_field_cell(field_path)
+            .ok_or_else(|| ResolveError::new(field_path, "Unknown field path"))?;
         let mut result = cell.get_status();
 
-        let can_resolve = cell.get_status().get_fields().ok_or_else(
-            || ResolveError::new(
-                field_path,
-                "Cell is not waiting for fields"
-            )
-        )?.iter().any(
-            |path| {
-                !self.get_field_cell(path).map(
-                    |cell| cell.get_status().is_finished()
-                ).unwrap_or(false)
-            }
-        );
+        let can_resolve = cell
+            .get_status()
+            .get_fields()
+            .ok_or_else(|| ResolveError::new(field_path, "Cell is not waiting for fields"))?
+            .iter()
+            .any(|path| {
+                !self
+                    .get_field_cell(path)
+                    .map(|cell| cell.get_status().is_finished())
+                    .unwrap_or(false)
+            });
 
         if can_resolve {
             let mut cell = self.remove_field_cell(field_path).unwrap();
 
-            let fields: HashMap<FieldPath, &dyn FieldResolveCell> = cell.get_status()
-                .get_fields().unwrap().iter().map(
-                    |path| (path.clone(), self.get_field_cell(path).unwrap())
-                ).collect();
+            let fields: HashMap<FieldPath, &dyn FieldResolveCell> = cell
+                .get_status()
+                .get_fields()
+                .unwrap()
+                .iter()
+                .map(|path| (path.clone(), self.get_field_cell(path).unwrap()))
+                .collect();
 
             result = cell.resolve_fields(fields)?;
 
@@ -145,25 +151,28 @@ impl CellResolver {
 
     fn process_resolve_entity(
         &mut self,
-        field_path: &FieldPath
+        field_path: &FieldPath,
     ) -> Result<FieldResolveStatus, ResolveError> {
-        let cell = self.get_field_cell(&field_path).ok_or_else(
-            || ResolveError::new(
-                field_path,
-                "Unknown field path"
-            )
-        )?;
+        let cell = self
+            .get_field_cell(&field_path)
+            .ok_or_else(|| ResolveError::new(field_path, "Unknown field path"))?;
         let mut result = cell.get_status();
-        if cell.get_status().get_entity().ok_or_else(
-            || ResolveError::new(
-                &format!("{}::{}", &field_path.0, &field_path.1),
-                "Cell is not waiting for entity"
-            )
-        ).map(
-            |entity_name| self.entity_cells.get(entity_name).map(
-                |entity_cell| entity_cell.get_status() == EntityResolveStatus::Finished
-            ).unwrap_or(false)
-        )? {
+        let finished = cell
+            .get_status()
+            .get_entity()
+            .ok_or_else(|| {
+                ResolveError::new(
+                    &format!("{}::{}", &field_path.0, &field_path.1),
+                    "Cell is not waiting for entity",
+                )
+            })
+            .map(|entity_name| {
+                self.entity_cells
+                    .get(entity_name)
+                    .map(|entity_cell| entity_cell.get_status() == EntityResolveStatus::Finished)
+                    .unwrap_or(false)
+            })?;
+        if finished {
             let mut cell = self.remove_field_cell(&field_path).unwrap();
             let entity = self.entity_cells.get(result.get_entity().unwrap()).unwrap();
             result = cell.resolve_entity(entity)?;
@@ -175,13 +184,15 @@ impl CellResolver {
     }
 
     fn process_entity_resolve_status(
-        &mut self, entity_name: String,
-        result: &EntityResolveStatus
+        &mut self,
+        entity_name: String,
+        result: &EntityResolveStatus,
     ) -> Result<&mut Self, ResolveError> {
         match result {
             EntityResolveStatus::Finished => {
                 let default = Vec::new();
-                let paths: Vec<FieldPath> = self.wait_for_entity
+                let paths: Vec<FieldPath> = self
+                    .wait_for_entity
                     .get(&entity_name)
                     .unwrap_or(&default)
                     .clone();
@@ -189,26 +200,27 @@ impl CellResolver {
                 for path in paths.iter() {
                     self.process_resolve_entity(path)?;
                 }
-            },
+            }
             EntityResolveStatus::Assemble => {}
-            _ => return Err(ResolveError::new(&entity_name, "Unexpected resolve status"))
+            _ => return Err(ResolveError::new(&entity_name, "Unexpected resolve status")),
         };
 
         Ok(self)
     }
 
     fn process_field_resolve_status(
-        &mut self, field_path: &FieldPath,
-        result: &FieldResolveStatus
+        &mut self,
+        field_path: &FieldPath,
+        result: &FieldResolveStatus,
     ) -> Result<&mut Self, ResolveError> {
         match result {
             FieldResolveStatus::Finished => {
-                let cell = self.get_field_cell(&field_path).ok_or_else(
-                    || ResolveError::new(
+                let cell = self.get_field_cell(&field_path).ok_or_else(|| {
+                    ResolveError::new(
                         &format!("{}::{}", &field_path.0, &field_path.1),
-                        "Unknown field path"
+                        "Unknown field path",
                     )
-                )?;
+                })?;
 
                 let entity_name = cell.entity_name();
 
@@ -221,47 +233,46 @@ impl CellResolver {
 
                 let cell = self.remove_field_cell(&field_path).unwrap();
 
-                let entity = self.entity_cells.get_mut(
-                    entity_name.as_ref().unwrap()
-                ).ok_or_else(
-                    || ResolveError::new(
-                        entity_name.as_ref().unwrap(),
-                        format!("Unknown entity name: {}", entity_name.as_ref().unwrap()).as_str()
-                    )
-                )?;
+                let entity = self
+                    .entity_cells
+                    .get_mut(entity_name.as_ref().unwrap())
+                    .ok_or_else(|| {
+                        ResolveError::new(
+                            entity_name.as_ref().unwrap(),
+                            format!("Unknown entity name: {}", entity_name.as_ref().unwrap())
+                                .as_str(),
+                        )
+                    })?;
 
                 let entity_resolve_status = entity.assemble_column(cell);
                 self.process_entity_resolve_status(entity_name.unwrap(), &entity_resolve_status)?;
-            },
+            }
             FieldResolveStatus::WaitAssemble => {
                 let fields_cells = &mut self.field_cells;
                 let entity_cells = &self.entity_cells;
-                let cell = Self::get_mut_field_cell_from_hash_map(
-                    fields_cells,
-                    &field_path
-                ).ok_or_else(
-                    || ResolveError::new(
-                        &format!("{}::{}", &field_path.0, &field_path.1),
-                        "Unknown field path"
-                    )
-                )?;
-
-                let entity = entity_cells.get(
-                    &cell.entity_name().unwrap()
-                ).ok_or_else(
-                    || ResolveError::new(&cell.entity_name().unwrap(), "Unknown entity name")
-                )?;
-
-                match cell.assemble(entity)? {
-                    FieldResolveStatus::Finished => self.process_field_resolve_status(
-                        field_path, &FieldResolveStatus::Finished
-                    )?,
-                    _ => return Err(
+                let cell = Self::get_mut_field_cell_from_hash_map(fields_cells, &field_path)
+                    .ok_or_else(|| {
                         ResolveError::new(
                             &format!("{}::{}", &field_path.0, &field_path.1),
-                            "Can not assembly field"
+                            "Unknown field path",
                         )
-                    )
+                    })?;
+
+                let entity = entity_cells
+                    .get(&cell.entity_name().unwrap())
+                    .ok_or_else(|| {
+                        ResolveError::new(&cell.entity_name().unwrap(), "Unknown entity name")
+                    })?;
+
+                match cell.assemble(entity)? {
+                    FieldResolveStatus::Finished => self
+                        .process_field_resolve_status(field_path, &FieldResolveStatus::Finished)?,
+                    _ => {
+                        return Err(ResolveError::new(
+                            &format!("{}::{}", &field_path.0, &field_path.1),
+                            "Can not assembly field",
+                        ))
+                    }
                 };
             }
             FieldResolveStatus::WaitEntity(entity) => {
@@ -278,7 +289,7 @@ impl CellResolver {
 
                             self.wait_for_entity.insert(other.clone(), list);
                         }
-                    },
+                    }
                     _ => {
                         self.process_field_resolve_status(field_path, &result)?;
                     }
@@ -297,35 +308,34 @@ impl CellResolver {
                             } else {
                                 let list = vec![field_path.clone()];
 
-                                self.wait_for_field.insert(
-                                    field.clone(),
-                                    list
-                                );
+                                self.wait_for_field.insert(field.clone(), list);
                             }
-                        };
-                    },
+                        }
+                    }
                     _ => {
                         self.process_field_resolve_status(field_path, &result)?;
                     }
                 };
             }
-            _ => return Err(
-                ResolveError::new(field_path, "Unexpected resolve status")
-            )
+            _ => return Err(ResolveError::new(field_path, "Unexpected resolve status")),
         }
 
         Ok(self)
     }
 
-    pub fn parse(&mut self, input: DeriveInput, mod_path: &'static str) -> Result<&mut Self, syn::Error> {
-        let mut table_attr= None;
+    pub fn parse(
+        &mut self,
+        input: DeriveInput,
+        mod_path: &'static str,
+    ) -> Result<&mut Self, syn::Error> {
+        let mut table_attr = None;
         for attr in input.attrs.iter() {
             if attr.path == Table::get_path() {
                 let meta = attr.parse_meta()?;
                 let result: Table = Table::from_meta(&meta)?;
                 table_attr = Some(result)
             }
-        };
+        }
 
         if let Data::Struct(data_struct) = &input.data {
             if let Fields::Named(fields_named) = &data_struct.fields {
@@ -333,24 +343,30 @@ impl CellResolver {
                     &input.ident,
                     mod_path,
                     &table_attr,
-                    data_struct.fields.len()
-                ).map_err(|e| Error::new_spanned(&input, e.get_message()))?;
+                    data_struct.fields.len(),
+                )
+                .map_err(|e| Error::new_spanned(&input, e.get_message()))?;
 
                 let entity_name = entity_cell.entity_name();
 
-                self.add_entity_cell(entity_cell).map_err(
-                    |e| Error::new_spanned(&input, e.get_message())
-                )?;
+                self.add_entity_cell(entity_cell)
+                    .map_err(|e| Error::new_spanned(&input, e.get_message()))?;
 
                 for field in fields_named.named.iter() {
-                    let field_attrs = field.attrs.iter().map(
-                        |attr| FieldAttribute::from_attr(attr)
-                    ).collect::<Result<Vec<FieldAttribute>, Error>>()?;
+                    let field_attrs = field
+                        .attrs
+                        .iter()
+                        .map(|attr| FieldAttribute::from_attr(attr))
+                        .collect::<Result<Vec<FieldAttribute>, Error>>()?;
 
                     let field_cell: Box<dyn FieldResolveCell> = self.field_cell_seeds.iter().fold(
                         Err(Error::new_spanned(
                             &input,
-                            ResolveError::new(&field.ident.to_token_stream().to_string(), "No FieldResolveCell matched").get_message()
+                            ResolveError::new(
+                                &field.ident.to_token_stream().to_string(),
+                                "No FieldResolveCell matched",
+                            )
+                            .get_message(),
                         )),
                         |result, cell| {
                             if result.is_err() && cell.match_field(&field_attrs, &field.ty) {
@@ -358,29 +374,30 @@ impl CellResolver {
                                     entity_name.clone(),
                                     field.ident.as_ref().unwrap(),
                                     &field_attrs,
-                                    &field.ty
-                                ).map_err(|e| Error::new_spanned(field, e.get_message()))
+                                    &field.ty,
+                                )
+                                .map_err(|e| Error::new_spanned(field, e.get_message()))
                             } else {
                                 result
                             }
-                        }
+                        },
                     )?;
 
-                    self.add_field_cell(field_cell).map_err(
-                        |e| Error::new_spanned(&field, e.get_message())
-                    )?;
+                    self.add_field_cell(field_cell)
+                        .map_err(|e| Error::new_spanned(&field, e.get_message()))?;
                 }
                 Ok(())
             } else {
                 Err(Error::new_spanned(
                     &input,
-                    ResolveError::new(&input.ident, "Field of struct must be named field").get_message()
+                    ResolveError::new(&input.ident, "Field of struct must be named field")
+                        .get_message(),
                 ))
             }
         } else {
             Err(Error::new_spanned(
                 &input,
-                ResolveError::new(&input.ident, "Enum or Union are not supported").get_message()
+                ResolveError::new(&input.ident, "Enum or Union are not supported").get_message(),
             ))
         }?;
 
@@ -407,29 +424,23 @@ impl CellResolver {
     }
 
     pub fn get_implements(&mut self) -> Result<TokenStream, UnresolvedError> {
-        self.entity_cells.iter_mut().map(
-            |(_, cell)| {
+        self.entity_cells
+            .iter_mut()
+            .map(|(_, cell)| {
                 if let EntityResolveStatus::Finished = cell.get_status() {
                     cell.achieve()?
                 }
                 cell.get_implement_token_stream()
-            }
-        ).fold(
-            Ok(TokenStream::new()),
-            |previous, current| {
-                match previous {
-                    Ok(mut previous_token_stream) => {
-                        match current {
-                            Ok(current_token_stream) => {
-                                current_token_stream.to_tokens(&mut previous_token_stream);
-                                Ok(previous_token_stream)
-                            },
-                            Err(e) => Err(e)
-                        }
-                    },
-                    Err(e) => Err(e)
-                }
-            }
-        )
+            })
+            .fold(Ok(TokenStream::new()), |previous, current| match previous {
+                Ok(mut previous_token_stream) => match current {
+                    Ok(current_token_stream) => {
+                        current_token_stream.to_tokens(&mut previous_token_stream);
+                        Ok(previous_token_stream)
+                    }
+                    Err(e) => Err(e),
+                },
+                Err(e) => Err(e),
+            })
     }
 }

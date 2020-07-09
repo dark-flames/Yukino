@@ -1,13 +1,14 @@
-use std::collections::HashMap;
-use syn::Type;
-use quote::ToTokens;
-use proc_macro2::{Ident, TokenStream};
-use crate::mapping::{Column, FieldAttribute, DatabaseType};
+use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
-use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
-use crate::mapping::resolver::{ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus};
-
+use crate::mapping::resolver::{
+    ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus,
+};
+use crate::mapping::{Column, DatabaseType, FieldAttribute};
+use proc_macro2::{Ident, TokenStream};
+use quote::ToTokens;
+use std::collections::HashMap;
+use syn::Type;
 
 struct FloatType(usize);
 
@@ -194,23 +195,23 @@ impl FieldResolveCell for FloatResolveCell {
         &self,
         value_ident: &Ident,
     ) -> Result<TokenStream, UnresolvedError> {
-        let field = self.field_ident.as_ref().ok_or_else(
-            || UnresolvedError::new("Integer Resolve cell")
-        )?;
+        let field = self
+            .field_ident
+            .as_ref()
+            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))?;
         let field_ident = quote::quote! {
             self.#field
         };
         let column_name = self.column_names()?[0].clone();
-        self.ty.as_ref().map(
-            |ty| {
+        self.ty
+            .as_ref()
+            .map(|ty| {
                 let value = ty.to_database_value_tokens(&field_ident);
                 quote::quote! {
                     #value_ident.insert(#column_name.to_string(), #value)
                 }
-            }
-        ).ok_or_else(
-            || UnresolvedError::new("Float Resolve cell")
-        )
+            })
+            .ok_or_else(|| UnresolvedError::new("Float Resolve cell"))
     }
 
     fn convert_to_value_token_stream(

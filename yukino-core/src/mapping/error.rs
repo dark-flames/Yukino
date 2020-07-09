@@ -1,9 +1,8 @@
+use proc_macro2::{Ident, TokenStream};
 use std::error::Error;
+use syn::export::fmt::{Display, Formatter, Result};
 use syn::export::ToTokens;
 use yui::AttributeStructure;
-use proc_macro2::{TokenStream, Ident};
-use syn::export::fmt::{Display, Formatter, Result};
-
 
 pub trait CompileError: Error + Display {
     fn get_message(&self) -> String;
@@ -18,14 +17,11 @@ pub trait CompileError: Error + Display {
 }
 
 #[derive(Debug)]
-pub struct AttributeError (String);
+pub struct AttributeError(String);
 
 impl AttributeError {
     #[allow(dead_code)]
-    pub fn new<T: AttributeStructure, D: Display>(
-        ident: &Ident,
-        message: &D
-    ) -> Self {
+    pub fn new<T: AttributeStructure, D: Display>(ident: &Ident, message: &D) -> Self {
         AttributeError(format!(
             "Attribute Error: Error('{}') occurred in attribute '{}' on '{}'",
             message,
@@ -54,14 +50,11 @@ impl CompileError for AttributeError {
 }
 
 #[derive(Debug)]
-pub struct TypeError (String);
+pub struct TypeError(String);
 
 impl TypeError {
     #[allow(dead_code)]
-    pub fn new<D: Display + ?Sized>(
-        value_type: &dyn ToTokens,
-        message: &D
-    ) -> Self {
+    pub fn new<D: Display + ?Sized>(value_type: &dyn ToTokens, message: &D) -> Self {
         TypeError(format!(
             "Type Error: Error('{}') occurred in type: {}",
             message,
@@ -87,4 +80,3 @@ impl CompileError for TypeError {
         self.0.clone()
     }
 }
-

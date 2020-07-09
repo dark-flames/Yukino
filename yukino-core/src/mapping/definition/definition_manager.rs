@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use super::definitions::TableDefinition;
 use super::error::DefinitionError;
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 pub trait DefinitionProvider {
@@ -9,7 +9,7 @@ pub trait DefinitionProvider {
 
 #[allow(dead_code)]
 pub struct DefinitionManager {
-    definitions: HashMap<String, TableDefinition>
+    definitions: HashMap<String, TableDefinition>,
 }
 
 #[allow(dead_code)]
@@ -23,7 +23,7 @@ impl DefinitionManager {
     pub fn add_definitions(&mut self, definitions: Vec<TableDefinition>) -> &mut Self {
         for definition in definitions {
             self.definitions.insert(definition.name.clone(), definition);
-        };
+        }
         self
     }
 

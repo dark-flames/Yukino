@@ -1,15 +1,13 @@
+use crate::mapping::error::CompileError;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
-use crate::mapping::error::CompileError;
 
 #[derive(Debug, Clone)]
 pub struct DefinitionError(String);
 
 impl DefinitionError {
     #[allow(dead_code)]
-    pub fn new<D: Display + ?Sized>(
-        message: &D,
-    ) -> Self {
+    pub fn new<D: Display + ?Sized>(message: &D) -> Self {
         DefinitionError(format!(
             "Definition Error: Error('{}') occurred while resolving Definition.",
             message

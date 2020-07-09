@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::entity::error::ParseError;
-use crate::mapping::r#type::DatabaseValue;
 use crate::mapping::definition::TableDefinition;
+use crate::mapping::r#type::DatabaseValue;
+use std::collections::HashMap;
 
 /// Trait of entity
 /// Entity struct will implement it auto

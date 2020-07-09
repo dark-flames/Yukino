@@ -1,10 +1,10 @@
 use iroha::ToTokens;
-#[cfg(any(feature="data-time"))]
-use time::{Time, Date, PrimitiveDateTime};
+#[cfg(any(feature = "data-time"))]
+use time::{Date, PrimitiveDateTime, Time};
 
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
-#[Iroha(mod_path="yukino::mapping")]
+#[Iroha(mod_path = "yukino::mapping")]
 pub enum DatabaseType {
     SmallInteger,
     UnsignedSmallInteger,
@@ -16,16 +16,16 @@ pub enum DatabaseType {
     Float,
     Double,
 
-    #[cfg(any(feature="decimal"))]
+    #[cfg(any(feature = "decimal"))]
     Decimal(usize, usize),
 
     Binary,
 
-    #[cfg(any(feature="data-time"))]
+    #[cfg(any(feature = "data-time"))]
     Time,
-    #[cfg(any(feature="data-time"))]
+    #[cfg(any(feature = "data-time"))]
     Date,
-    #[cfg(any(feature="data-time"))]
+    #[cfg(any(feature = "data-time"))]
     DateTime,
 
     Timestamp,
@@ -35,7 +35,7 @@ pub enum DatabaseType {
     Text,
 
     Map,
-    Array
+    Array,
 }
 
 pub type Binary = Vec<u8>;
@@ -53,16 +53,16 @@ pub enum DatabaseValue {
     Float(f32),
     Double(f64),
 
-    #[cfg(any(feature="decimal"))]
+    #[cfg(any(feature = "decimal"))]
     Decimal(rust_decimal::Decimal),
 
     Binary(Binary),
 
-    #[cfg(any(feature="data-time"))]
+    #[cfg(any(feature = "data-time"))]
     Time(Time),
-    #[cfg(any(feature="data-time"))]
+    #[cfg(any(feature = "data-time"))]
     Date(Date),
-    #[cfg(any(feature="data-time"))]
+    #[cfg(any(feature = "data-time"))]
     DateTime(PrimitiveDateTime),
 
     Timestamp(i64),
@@ -73,5 +73,5 @@ pub enum DatabaseValue {
 
     BLOB(Binary),
 
-    JSON(String)
+    JSON(String),
 }

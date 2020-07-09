@@ -1,6 +1,6 @@
+use crate::error::RuntimeError;
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
-use crate::error::RuntimeError;
 
 #[derive(Debug)]
 pub struct ParseError(String);

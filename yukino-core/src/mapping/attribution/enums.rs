@@ -26,5 +26,5 @@ pub enum ReferenceAction {
     Restrict,
     SetNull,
     SetDefault,
-    Cascade
+    Cascade,
 }

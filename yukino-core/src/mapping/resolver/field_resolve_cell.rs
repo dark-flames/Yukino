@@ -1,15 +1,14 @@
-use std::collections::HashMap;
-use syn::Type;
-use proc_macro2::{Ident, TokenStream};
-use syn::export::fmt::{Display, Formatter, Result as FMTResult};
-use crate::mapping::{FieldAttribute};
-use crate::mapping::definition::{ColumnDefinition, TableDefinition, ForeignKeyDefinition};
-use super::error::{UnresolvedError, ResolveError};
 use super::entity_resolve_cell::EntityResolveCell;
-
+use super::error::{ResolveError, UnresolvedError};
+use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
+use crate::mapping::FieldAttribute;
+use proc_macro2::{Ident, TokenStream};
+use std::collections::HashMap;
+use syn::export::fmt::{Display, Formatter, Result as FMTResult};
+use syn::Type;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
-pub struct FieldPath (pub String, pub String);
+pub struct FieldPath(pub String, pub String);
 
 impl Display for FieldPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> FMTResult {
@@ -29,34 +28,36 @@ pub enum FieldResolveStatus {
     /// Wait for fields(entity_name, Vec<field_name>)
     WaitFields(Vec<FieldPath>),
     /// Seed
-    Seed
+    Seed,
 }
 
 impl FieldResolveStatus {
     pub fn get_fields(&self) -> Option<&Vec<FieldPath>> {
         match self {
             FieldResolveStatus::WaitFields(fields) => Some(fields),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn get_entity(&self) -> Option<&String> {
         match self {
             FieldResolveStatus::WaitEntity(entity) => Some(entity),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn is_finished(&self) -> bool {
         match self {
             FieldResolveStatus::Finished => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
 pub trait ConstructableCell {
-    fn get_seed() -> Self where Self: Sized;
+    fn get_seed() -> Self
+    where
+        Self: Sized;
 }
 
 pub trait FieldResolveCell: ConstructableCell {
@@ -65,10 +66,16 @@ pub trait FieldResolveCell: ConstructableCell {
     fn get_status(&self) -> FieldResolveStatus;
 
     /// Will be called at WaitFields status
-    fn resolve_fields(&mut self, fields: HashMap<FieldPath, &dyn FieldResolveCell>) -> Result<FieldResolveStatus, ResolveError>;
+    fn resolve_fields(
+        &mut self,
+        fields: HashMap<FieldPath, &dyn FieldResolveCell>,
+    ) -> Result<FieldResolveStatus, ResolveError>;
 
     /// Will be called at WaitEntity status
-    fn resolve_entity(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
+    fn resolve_entity(
+        &mut self,
+        entity: &EntityResolveCell,
+    ) -> Result<FieldResolveStatus, ResolveError>;
 
     /// Will be called at WaitAssemble status
     fn assemble(&mut self, entity: &EntityResolveCell) -> Result<FieldResolveStatus, ResolveError>;
@@ -81,13 +88,11 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn field_path(&self) -> Result<FieldPath, UnresolvedError> {
         match self.entity_name() {
-            Ok(entity_name) => {
-                match self.field_name() {
-                    Ok(field_name) => Ok(FieldPath(entity_name, field_name)),
-                    Err(e) => Err(e)
-                }
+            Ok(entity_name) => match self.field_name() {
+                Ok(field_name) => Ok(FieldPath(entity_name, field_name)),
+                Err(e) => Err(e),
             },
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 
@@ -99,12 +104,24 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn get_joined_table_definitions(&self) -> Result<Vec<TableDefinition>, UnresolvedError>;
 
-    fn convert_to_database_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
+    fn convert_to_database_value_token_stream(
+        &self,
+        value_ident: &Ident,
+    ) -> Result<TokenStream, UnresolvedError>;
 
-    fn convert_to_value_token_stream(&self, value_ident: &Ident) -> Result<TokenStream, UnresolvedError>;
+    fn convert_to_value_token_stream(
+        &self,
+        value_ident: &Ident,
+    ) -> Result<TokenStream, UnresolvedError>;
 
     /// breed from seed
-    fn breed(&self, entity_name: String, ident: &Ident, attributes: &[FieldAttribute], field_type: &Type) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
+    fn breed(
+        &self,
+        entity_name: String,
+        ident: &Ident,
+        attributes: &[FieldAttribute],
+        field_type: &Type,
+    ) -> Result<Box<dyn FieldResolveCell>, ResolveError>;
 
     /// Return true if cell matched the field
     fn match_field(&self, attributes: &[FieldAttribute], field_type: &Type) -> bool;

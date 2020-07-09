@@ -1,7 +1,7 @@
 use std::collections::HashMap;
+use yukino::mapping::DatabaseValue;
 use yukino::Entity;
 use yukino_test::entities::Foo;
-use yukino::mapping::DatabaseValue;
 
 #[test]
 fn tes_foo() {
@@ -17,11 +17,11 @@ fn tes_foo() {
 
     match raw_data.get(&key_1).unwrap() {
         DatabaseValue::UnsignedInteger(value) => assert_eq!(*value, 114514),
-        _ => panic!()
+        _ => panic!(),
     }
 
     match raw_data.get(&key_2).unwrap() {
         DatabaseValue::SmallInteger(value) => assert_eq!(*value, 1919),
-        _ => panic!()
+        _ => panic!(),
     }
 }
