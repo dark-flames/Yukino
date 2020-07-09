@@ -1,3 +1,4 @@
 /target
 Cargo.lock
 .idea
+yukino-test/src/schema.rs
