@@ -25,4 +25,7 @@ version = "1.0"
 [dependencies.proc-macro2]
 version = "1.0"
 
+[dependencies.cmd_lib]
+version = "0.7.8"
+
 [lib]

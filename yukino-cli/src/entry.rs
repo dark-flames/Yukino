@@ -1,13 +1,15 @@
 use crate::error::YukinoCLIError;
 use crate::resolver::Resolver;
 use clap::{crate_authors, crate_description, crate_version, App, SubCommand};
+use cmd_lib::run_cmd;
 use std::collections::HashMap;
-use std::process::exit;
+use std::process::{exit};
 use yukino_core::mapping::resolver::FieldResolveCell;
 
 #[allow(dead_code)]
 pub struct CommandLineEntry {
     resolver: Resolver, // db connection
+    after_setup: Option<&'static str>,
 }
 
 #[allow(dead_code)]
@@ -16,12 +18,16 @@ impl CommandLineEntry {
         seeds: Vec<Box<dyn FieldResolveCell>>,
         model_files_path: HashMap<&'static str, String>,
         output_file_path: String,
+        after_setup: Option<&'static str>,
     ) -> Self {
         let resolver = Self::handle_result(
             Resolver::new(seeds, model_files_path, output_file_path).map_err(YukinoCLIError::from),
         );
 
-        CommandLineEntry { resolver }
+        CommandLineEntry {
+            resolver,
+            after_setup,
+        }
     }
     pub fn process(&mut self) {
         let application = App::new("Yukino CommandLine Tool")
@@ -55,6 +61,10 @@ impl CommandLineEntry {
         self.resolver.resolve()?;
 
         self.resolver.write_implements()?;
+
+        if let Some(cmd) = self.after_setup {
+            run_cmd(cmd).map_err(YukinoCLIError::from)?
+        }
 
         Ok(())
     }

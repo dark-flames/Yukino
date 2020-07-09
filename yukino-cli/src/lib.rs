@@ -11,6 +11,31 @@ macro_rules! cli_entry{
         entity_files = {
             $($mod_path: literal -> $file: literal),*
         },
+        output_file = $output_path: literal,
+        after_setup = $after_setup: literal
+    ) => {
+        pub fn main() {
+            use yukino::mapping::resolver::ConstructableCell;
+            let crate_path = env!("CARGO_MANIFEST_DIR");
+            yukino::CommandLineEntry::new(
+                vec![$(Box::new($resolver::get_seed())),*],
+                {
+                    let mut map = std::collections::HashMap::new();
+                    $(
+                        map.insert($mod_path, format!("{}/{}", crate_path, $file));
+                    )*
+                    map
+                },
+                format!("{}/{}", crate_path, $output_path),
+                Some($after_setup)
+            ).process();
+        }
+    };
+    (
+        resolver = [$($resolver: ident),*],
+        entity_files = {
+            $($mod_path: literal -> $file: literal),*
+        },
         output_file = $output_path: literal
     ) => {
         pub fn main() {
@@ -25,8 +50,9 @@ macro_rules! cli_entry{
                     )*
                     map
                 },
-                format!("{}/{}", crate_path, $output_path)
-            ).process()
+                format!("{}/{}", crate_path, $output_path),
+                None
+            ).process();
         }
     }
 }

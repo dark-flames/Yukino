@@ -6,5 +6,6 @@ cli_entry!(
     entity_files = {
         "crate::entities" -> "src/entities.rs"
     },
-    output_file = "src/schema.rs"
+    output_file = "src/schema.rs",
+    after_setup = "cargo fmt"
 );

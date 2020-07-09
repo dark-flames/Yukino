@@ -14,7 +14,7 @@ use yukino_core::mapping::resolver::{CellResolver, FieldResolveCell};
 pub struct Resolver {
     pub cell_resolver: CellResolver,
     model_files: HashMap<&'static str, File>,
-    output_file: File
+    output_file: File,
 }
 
 #[allow(dead_code)]
@@ -22,7 +22,7 @@ impl Resolver {
     pub fn new(
         seeds: Vec<Box<dyn FieldResolveCell>>,
         model_files_path: HashMap<&'static str, String>,
-        output_file_path: String
+        output_file_path: String,
     ) -> Result<Self, FileError> {
         let model_files = model_files_path
             .into_iter()
@@ -44,7 +44,7 @@ impl Resolver {
         Ok(Resolver {
             cell_resolver: CellResolver::new(seeds),
             model_files,
-            output_file
+            output_file,
         })
     }
 

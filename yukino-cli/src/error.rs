@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter, Result};
 use std::io::Error as IOError;
+use std::string::FromUtf8Error;
 
 #[derive(Debug)]
 pub struct FileError {
@@ -118,6 +119,22 @@ impl From<OutputError> for YukinoCLIError {
 
 impl From<FileError> for YukinoCLIError {
     fn from(e: FileError) -> Self {
+        YukinoCLIError {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<IOError> for YukinoCLIError {
+    fn from(e: IOError) -> Self {
+        YukinoCLIError {
+            message: e.to_string(),
+        }
+    }
+}
+
+impl From<FromUtf8Error> for YukinoCLIError {
+    fn from(e: FromUtf8Error) -> Self {
         YukinoCLIError {
             message: e.to_string(),
         }
