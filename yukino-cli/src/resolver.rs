@@ -44,7 +44,6 @@ impl Resolver {
             |e| FileError::new(&output_file_path, e)
         )?;
 
-
         Ok(Resolver {
             cell_resolver: CellResolver::new(seeds),
             model_files,
