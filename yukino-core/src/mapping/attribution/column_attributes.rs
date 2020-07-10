@@ -5,11 +5,13 @@ use yui::YuiAttribute;
 /// It can be used on field of entity struct.
 /// Yukino also support multi-primary-key, but a table must have one primary key at least.
 #[derive(YuiAttribute, Clone)]
+#[mod_path = "yukino::mapping"]
 pub struct Id;
 
 /// Options of column
 /// If a field doesn't have Column attribute, the column will be generate automatically
 #[derive(YuiAttribute, Clone)]
+#[mod_path = "yukino::mapping"]
 pub struct Column {
     /// Name of column, default is field ident(will be converted to `snake_case`) in Rust.
     pub name: Option<String>,
@@ -25,4 +27,5 @@ pub struct Column {
 
 /// Ignore field
 #[derive(YuiAttribute, Clone)]
+#[mod_path = "yukino::mapping"]
 pub struct Ignore;

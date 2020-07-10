@@ -6,6 +6,7 @@ use yui::YuiAttribute;
 ///
 /// It can be used in attribute `Table`.
 #[derive(YuiAttribute, Clone)]
+#[mod_path = "yukino::mapping"]
 pub struct Index {
     /// Column names(field name in Rust) of index.
     pub columns: Vec<String>,
@@ -21,6 +22,7 @@ pub struct Index {
 ///
 /// Used to alias default table name or add index to table.
 #[derive(YuiAttribute, Clone)]
+#[mod_path = "yukino::mapping"]
 pub struct Table {
     /// Table name in database, default is the struct ident(will be converted to snake_case) in Rust
     pub name: Option<String>,

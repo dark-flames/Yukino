@@ -5,6 +5,7 @@ use yui::YuiEnumValue;
 /// * "hash" is not support on `sqlite`
 /// * "gin", "sp_gin", "gist", "brin" is only available on `postgre-sql`
 #[derive(YuiEnumValue, Clone, Eq, PartialEq, Debug)]
+#[mod_path = "yukino::mapping"]
 pub enum IndexMethod {
     BTree,
     #[cfg(any(feature = "mysql", feature = "postgre-sql"))]
@@ -21,6 +22,7 @@ pub enum IndexMethod {
 }
 
 #[derive(YuiEnumValue, Clone, Eq, PartialEq, Debug)]
+#[mod_path = "yukino::mapping"]
 pub enum ReferenceAction {
     NoAction,
     Restrict,

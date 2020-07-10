@@ -1,6 +1,5 @@
 use crate::error::{FileError, OutputError, ResolveError};
 use proc_macro2::TokenStream;
-use quote::ToTokens;
 use std::collections::HashMap;
 use std::convert::From;
 use std::fs::{remove_file, File};
@@ -73,18 +72,11 @@ impl Resolver {
     }
 
     pub fn write_implements(&mut self) -> Result<(), OutputError> {
-        let mut result: TokenStream = quote::quote! {
-            // This file is generate by Yukino CommandLine-Tools
-            #[allow(unused_imports)]
-            use yukino::mapping::{IndexMethod, ReferenceAction};
-        }; // hack, need update yui
-
-        self.cell_resolver
+        let result_string = self
+            .cell_resolver
             .get_implements()
             .map_err(|e| OutputError::new(e.to_string().as_str()))?
-            .to_tokens(&mut result);
-
-        let result_string = result.to_string();
+            .to_string();
 
         self.output_file
             .write_all(result_string.as_bytes())
