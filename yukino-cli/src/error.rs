@@ -3,6 +3,18 @@ use std::fmt::{Display, Formatter, Result};
 use std::io::Error as IOError;
 use std::string::FromUtf8Error;
 
+macro_rules! impl_from_for {
+    ($from: ident, $to: ident) => {
+        impl From<$from> for $to {
+            fn from(e: $from) -> Self {
+                $to {
+                    message: e.to_string(),
+                }
+            }
+        }
+    };
+}
+
 #[derive(Debug)]
 pub struct FileError {
     filename: String,
@@ -101,42 +113,8 @@ impl Error for YukinoCLIError {
     }
 }
 
-impl From<ResolveError> for YukinoCLIError {
-    fn from(e: ResolveError) -> Self {
-        YukinoCLIError {
-            message: e.to_string(),
-        }
-    }
-}
-
-impl From<OutputError> for YukinoCLIError {
-    fn from(e: OutputError) -> Self {
-        YukinoCLIError {
-            message: e.to_string(),
-        }
-    }
-}
-
-impl From<FileError> for YukinoCLIError {
-    fn from(e: FileError) -> Self {
-        YukinoCLIError {
-            message: e.to_string(),
-        }
-    }
-}
-
-impl From<IOError> for YukinoCLIError {
-    fn from(e: IOError) -> Self {
-        YukinoCLIError {
-            message: e.to_string(),
-        }
-    }
-}
-
-impl From<FromUtf8Error> for YukinoCLIError {
-    fn from(e: FromUtf8Error) -> Self {
-        YukinoCLIError {
-            message: e.to_string(),
-        }
-    }
-}
+impl_from_for!(ResolveError, YukinoCLIError);
+impl_from_for!(OutputError, YukinoCLIError);
+impl_from_for!(FileError, YukinoCLIError);
+impl_from_for!(IOError, YukinoCLIError);
+impl_from_for!(FromUtf8Error, YukinoCLIError);
