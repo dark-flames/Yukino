@@ -9,7 +9,7 @@ use yukino_core::mapping::resolver::FieldResolveCell;
 #[allow(dead_code)]
 pub struct CommandLineEntry {
     resolver: Resolver, // db connection
-    after_setup: Option<&'static str>,
+    after_setup: Vec<&'static str>,
 }
 
 #[allow(dead_code)]
@@ -18,7 +18,7 @@ impl CommandLineEntry {
         seeds: Vec<Box<dyn FieldResolveCell>>,
         model_files_path: HashMap<&'static str, String>,
         output_file_path: String,
-        after_setup: Option<&'static str>,
+        after_setup: Vec<&'static str>,
     ) -> Self {
         let resolver = Self::handle_result(
             Resolver::new(seeds, model_files_path, output_file_path).map_err(YukinoCLIError::from),
@@ -29,6 +29,7 @@ impl CommandLineEntry {
             after_setup,
         }
     }
+
     pub fn process(&mut self) {
         let application = App::new("Yukino CommandLine Tool")
             .version(crate_version!())
@@ -62,7 +63,7 @@ impl CommandLineEntry {
 
         self.resolver.write_implements()?;
 
-        if let Some(cmd) = self.after_setup {
+        for cmd in self.after_setup.iter() {
             run_cmd(cmd).map_err(YukinoCLIError::from)?
         }
 
