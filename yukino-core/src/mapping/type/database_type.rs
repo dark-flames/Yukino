@@ -1,4 +1,5 @@
 use iroha::ToTokens;
+use serde_json::Value;
 #[cfg(any(feature = "data-time"))]
 use time::{Date, PrimitiveDateTime, Time};
 
@@ -34,8 +35,8 @@ pub enum DatabaseType {
     String,
     Text,
 
-    Map,
-    Array,
+    #[cfg(any(feature = "json"))]
+    Json,
 }
 
 pub type Binary = Vec<u8>;
@@ -71,7 +72,6 @@ pub enum DatabaseValue {
     String(String),
     Text(String),
 
-    BLOB(Binary),
-
-    JSON(String),
+    #[cfg(any(feature = "json"))]
+    Json(Value),
 }

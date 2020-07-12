@@ -6,133 +6,114 @@ use crate::mapping::resolver::{
 };
 use crate::mapping::{Column, DatabaseType, FieldAttribute};
 use proc_macro2::{Ident, TokenStream};
-use quote::ToTokens;
+use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
-use syn::Type;
+use syn::export::ToTokens;
+use syn::punctuated::Iter;
+use syn::{GenericArgument, PathArguments, PathSegment, Type};
 
-pub enum NumericType {
-    Integer(usize),
-    UnsignedInteger(usize),
-    Float(usize),
+fn unwrap_generic_arguments(segment: &PathSegment) -> Option<Iter<GenericArgument>> {
+    match &segment.arguments {
+        PathArguments::AngleBracketed(arguments) => Some(arguments.args.iter()),
+        _ => None,
+    }
 }
 
-impl NumericType {
-    pub fn from_ident(ident: &Ident) -> Option<Self> {
-        let ident_string = ident.to_string();
+enum CollectionType {
+    /// Array with nested type tokens
+    Array(TokenStream),
+    /// Map with key type and value type tokens
+    Map(TokenStream, TokenStream),
+}
+
+impl CollectionType {
+    pub fn from_last_segment(segment: &PathSegment) -> Option<Self> {
+        let ident_string = segment.ident.to_string();
 
         match ident_string.as_str() {
-            "i16" => Some(NumericType::Integer(16)),
-            "i32" => Some(NumericType::Integer(32)),
-            "i64" => Some(NumericType::Integer(64)),
-            "u16" => Some(NumericType::UnsignedInteger(16)),
-            "u32" => Some(NumericType::UnsignedInteger(32)),
-            "u64" => Some(NumericType::UnsignedInteger(64)),
-            "f32" => Some(NumericType::Float(32)),
-            "f64" => Some(NumericType::Float(64)),
+            "Vec" => match unwrap_generic_arguments(segment) {
+                Some(args) => args
+                    .filter_map(|arg| match arg {
+                        GenericArgument::Type(ty) => Some(ty.to_token_stream()),
+                        _ => None,
+                    })
+                    .next()
+                    .map(CollectionType::Array),
+                None => None,
+            },
+            "HashMap" => match unwrap_generic_arguments(segment) {
+                Some(args) => {
+                    let mut iter = args.filter_map(|arg| match arg {
+                        GenericArgument::Type(ty) => Some(ty.to_token_stream()),
+                        _ => None,
+                    });
+
+                    let first_argument = iter.next()?;
+                    let second_argument = iter.next()?;
+
+                    Some(CollectionType::Map(first_argument, second_argument))
+                }
+                None => None,
+            },
             _ => None,
         }
     }
 
-    pub fn get_database_type(&self) -> DatabaseType {
-        match self {
-            NumericType::Integer(length) => match length {
-                8 => DatabaseType::SmallInteger,
-                16 | 32 => DatabaseType::Integer,
-                64 => DatabaseType::BigInteger,
-                _ => unreachable!(),
-            },
-            NumericType::UnsignedInteger(length) => match length {
-                8 => DatabaseType::UnsignedSmallInteger,
-                16 | 32 => DatabaseType::UnsignedInteger,
-                64 => DatabaseType::UnsignedBigInteger,
-                _ => unreachable!(),
-            },
-            NumericType::Float(length) => match length {
-                32 => DatabaseType::Float,
-                64 => DatabaseType::Double,
-                _ => unreachable!(),
-            },
-        }
-    }
-
-    fn database_value_variant(&self) -> TokenStream {
-        let prefix = quote::quote! {
-            yukino::mapping::DatabaseValue
-        };
-        match self {
-            NumericType::Integer(16) => quote::quote! {
-                #prefix::SmallInteger
-            },
-            NumericType::Integer(32) => quote::quote! {
-                #prefix::Integer
-            },
-            NumericType::Integer(64) => quote::quote! {
-                #prefix::BigInteger
-            },
-            NumericType::UnsignedInteger(16) => quote::quote! {
-                #prefix::UnsignedSmallInteger
-            },
-            NumericType::UnsignedInteger(32) => quote::quote! {
-                #prefix::UnsignedInteger
-            },
-            NumericType::UnsignedInteger(64) => quote::quote! {
-                #prefix::UnsignedBigInteger
-            },
-            NumericType::Float(32) => quote::quote! {
-                #prefix::Float
-            },
-            NumericType::Float(64) => quote::quote! {
-                #prefix::Double
-            },
-            _ => unreachable!(),
-        }
-    }
-
     pub fn to_database_value_tokens(&self, value_ident: &TokenStream) -> TokenStream {
-        let variant = self.database_value_variant();
         quote::quote! {
-            #variant(#value_ident)
+            yukino::mapping::DatabaseValue::Json(
+                serde_json::to_value(&#value_ident).map_err(
+                    |e| {
+                        let message = e.to_string();
+                        yukino::ParseError::new(message.as_str())
+                    }
+                )?
+            )
         }
     }
 
     pub fn to_value_tokens(&self, value: &TokenStream, field_name: String) -> TokenStream {
-        let variant = self.database_value_variant();
         let error_message = format!("Unexpected DatabaseValue on field {}", field_name);
         quote::quote! {
             match #value {
-                Some(#variant(integer)) => Ok(*integer),
+                Some(yukino::mapping::DatabaseValue::Json(json)) => {
+                    serde_json::from_value(json.clone()).map_err(
+                        |e| {
+                            let message = e.to_string();
+                            yukino::ParseError::new(message.as_str())
+                        }
+                    )
+                },
                 _ => Err(yukino::ParseError::new(#error_message))
             }?
         }
     }
 }
 
-pub struct NumericResolveCell {
+pub struct CollectionResolveCell {
     status: FieldResolveStatus,
+    ty: Option<CollectionType>,
     entity_name: Option<String>,
     field_ident: Option<Ident>,
-    is_primary_key: Option<bool>,
     column: Option<Column>,
-    ty: Option<NumericType>,
 }
 
-impl ConstructableCell for NumericResolveCell {
+impl ConstructableCell for CollectionResolveCell {
     fn get_seed() -> Self
     where
         Self: Sized,
     {
-        NumericResolveCell {
+        CollectionResolveCell {
             status: FieldResolveStatus::Seed,
+            ty: None,
             entity_name: None,
             field_ident: None,
-            is_primary_key: None,
             column: None,
-            ty: None,
         }
     }
 }
 
-impl FieldResolveCell for NumericResolveCell {
+impl FieldResolveCell for CollectionResolveCell {
     fn weight(&self) -> usize {
         1
     }
@@ -143,7 +124,7 @@ impl FieldResolveCell for NumericResolveCell {
 
     fn resolve_fields(
         &mut self,
-        _fields: HashMap<FieldPath, &dyn FieldResolveCell>,
+        _fields: HashMap<FieldPath, &dyn FieldResolveCell, RandomState>,
     ) -> Result<FieldResolveStatus, ResolveError> {
         unreachable!()
     }
@@ -159,14 +140,14 @@ impl FieldResolveCell for NumericResolveCell {
         &mut self,
         _entity: &EntityResolveCell,
     ) -> Result<FieldResolveStatus, ResolveError> {
-        unimplemented!()
+        unreachable!()
     }
 
     fn field_name(&self) -> Result<String, UnresolvedError> {
         self.field_ident
             .as_ref()
             .map(|name| name.to_string())
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))
     }
 
     fn column_names(&self) -> Result<Vec<String>, UnresolvedError> {
@@ -187,40 +168,38 @@ impl FieldResolveCell for NumericResolveCell {
     }
 
     fn is_primary_key(&self) -> Result<bool, UnresolvedError> {
-        self.is_primary_key
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+        if self.status.is_finished() {
+            Ok(false)
+        } else {
+            Err(UnresolvedError::new("Integer Resolve cell"))
+        }
     }
 
     fn get_foreigner_keys(&self) -> Result<Vec<ForeignKeyDefinition>, UnresolvedError> {
         match self.status {
-            FieldResolveStatus::Seed => Err(UnresolvedError::new("Integer Resolve cell")),
-            _ => Ok(vec![]),
+            FieldResolveStatus::Finished => Ok(vec![]),
+            _ => Err(UnresolvedError::new("Collection Resolve cell")),
         }
     }
 
     fn get_column_definitions(&self) -> Result<Vec<ColumnDefinition>, UnresolvedError> {
         match self.status {
-            FieldResolveStatus::Seed => Err(UnresolvedError::new("Integer Resolve cell")),
-            _ => Ok(vec![ColumnDefinition {
+            FieldResolveStatus::Finished => Ok(vec![ColumnDefinition {
                 name: self.column_names()?[0].clone(),
-                column_type: self.ty.as_ref().unwrap().get_database_type(),
-                unique: self
-                    .column
-                    .as_ref()
-                    .map(|column| column.unique)
-                    .unwrap_or(false),
-                auto_increase: self
-                    .column
-                    .as_ref()
-                    .map(|column| column.auto_increase)
-                    .unwrap_or(false),
-                is_primary_key: self.is_primary_key.unwrap(),
+                column_type: DatabaseType::Json,
+                unique: false,
+                auto_increase: false,
+                is_primary_key: false,
             }]),
+            _ => Err(UnresolvedError::new("Integer Resolve cell")),
         }
     }
 
     fn get_joined_table_definitions(&self) -> Result<Vec<TableDefinition>, UnresolvedError> {
-        Ok(vec![])
+        match self.status {
+            FieldResolveStatus::Finished => Ok(vec![]),
+            _ => Err(UnresolvedError::new("Collection Resolve cell")),
+        }
     }
 
     fn convert_to_database_value_token_stream(
@@ -230,10 +209,11 @@ impl FieldResolveCell for NumericResolveCell {
         let field = self
             .field_ident
             .as_ref()
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))?;
+            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))?;
         let field_ident = quote::quote! {
             self.#field
         };
+
         let column_name = self.column_names()?[0].clone();
         self.ty
             .as_ref()
@@ -243,7 +223,7 @@ impl FieldResolveCell for NumericResolveCell {
                     #value_ident.insert(#column_name.to_string(), #value)
                 }
             })
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))
     }
 
     fn convert_to_value_token_stream(
@@ -263,7 +243,7 @@ impl FieldResolveCell for NumericResolveCell {
                 };
                 ty.to_value_tokens(&value, self.entity_name().unwrap())
             })
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))
     }
 
     fn breed(
@@ -274,27 +254,19 @@ impl FieldResolveCell for NumericResolveCell {
         field_type: &Type,
     ) -> Result<Box<dyn FieldResolveCell>, ResolveError> {
         let ty = match field_type {
-            Type::Path(type_path) => match type_path.path.segments.first() {
-                Some(first_segment) => NumericType::from_ident(&first_segment.ident),
+            Type::Path(type_path) => match type_path.path.segments.iter().rev().next() {
+                Some(last_segment) => CollectionType::from_last_segment(&last_segment),
                 None => None,
             },
             _ => None,
         }
         .ok_or_else(|| {
             let message = format!(
-                "{} is not supported by integer resolve cell",
+                "{} is not supported by collection resolve cell",
                 field_type.to_token_stream().to_string()
             );
             ResolveError::new(&entity_name, &message)
         })?;
-
-        let is_primary_key = attributes.iter().any(|attr| {
-            if let FieldAttribute::Id(_) = attr {
-                true
-            } else {
-                false
-            }
-        });
 
         let column = attributes
             .iter()
@@ -304,20 +276,19 @@ impl FieldResolveCell for NumericResolveCell {
             })
             .next();
 
-        Ok(Box::new(NumericResolveCell {
+        Ok(Box::new(CollectionResolveCell {
             status: FieldResolveStatus::Finished,
+            ty: Some(ty),
             entity_name: Some(entity_name),
             field_ident: Some(ident.clone()),
-            is_primary_key: Some(is_primary_key),
             column,
-            ty: Some(ty),
         }))
     }
 
     fn match_field(&self, _attributes: &[FieldAttribute], field_type: &Type) -> bool {
         match field_type {
-            Type::Path(type_path) => match type_path.path.segments.first() {
-                Some(first_segment) => NumericType::from_ident(&first_segment.ident).is_some(),
+            Type::Path(type_path) => match type_path.path.segments.iter().rev().next() {
+                Some(last_segment) => CollectionType::from_last_segment(&last_segment).is_some(),
                 None => false,
             },
             _ => false,

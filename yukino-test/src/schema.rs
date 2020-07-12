@@ -20,7 +20,40 @@ impl yukino::Entity for crate::entities::Foo {
                 "Unexpected DatabaseValue on field crate::entities::Foo",
             )),
         }?;
-        Ok(Box::new(crate::entities::Foo { int16, integer }))
+        let vec = match {
+            let column_name = "vec".to_string();
+            result.get(&column_name)
+        } {
+            Some(yukino::mapping::DatabaseValue::Json(json)) => {
+                serde_json::from_value(json.clone()).map_err(|e| {
+                    let message = e.to_string();
+                    yukino::ParseError::new(message.as_str())
+                })
+            }
+            _ => Err(yukino::ParseError::new(
+                "Unexpected DatabaseValue on field crate::entities::Foo",
+            )),
+        }?;
+        let map = match {
+            let column_name = "map".to_string();
+            result.get(&column_name)
+        } {
+            Some(yukino::mapping::DatabaseValue::Json(json)) => {
+                serde_json::from_value(json.clone()).map_err(|e| {
+                    let message = e.to_string();
+                    yukino::ParseError::new(message.as_str())
+                })
+            }
+            _ => Err(yukino::ParseError::new(
+                "Unexpected DatabaseValue on field crate::entities::Foo",
+            )),
+        }?;
+        Ok(Box::new(crate::entities::Foo {
+            int16,
+            integer,
+            vec,
+            map,
+        }))
     }
     fn to_raw_value(
         &self,
@@ -34,6 +67,20 @@ impl yukino::Entity for crate::entities::Foo {
         database_value.insert(
             "integer".to_string(),
             yukino::mapping::DatabaseValue::UnsignedInteger(self.integer),
+        );
+        database_value.insert(
+            "vec".to_string(),
+            yukino::mapping::DatabaseValue::Json(serde_json::to_value(&self.vec).map_err(|e| {
+                let message = e.to_string();
+                yukino::ParseError::new(message.as_str())
+            })?),
+        );
+        database_value.insert(
+            "map".to_string(),
+            yukino::mapping::DatabaseValue::Json(serde_json::to_value(&self.map).map_err(|e| {
+                let message = e.to_string();
+                yukino::ParseError::new(message.as_str())
+            })?),
         );
         Ok(database_value)
     }
@@ -68,77 +115,16 @@ impl yukino::Entity for crate::entities::Foo {
                     false,
                     false,
                 ),
-            ],
-            vec![],
-        )]
-    }
-}
-impl yukino::Entity for crate::entities::Bar {
-    fn from_raw_result(
-        result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>,
-    ) -> Result<Box<Self>, yukino::ParseError> {
-        let float64 = match {
-            let column_name = "float64".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::Double(integer)) => Ok(*integer),
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Bar",
-            )),
-        }?;
-        let float = match {
-            let column_name = "float".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::Float(integer)) => Ok(*integer),
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Bar",
-            )),
-        }?;
-        Ok(Box::new(crate::entities::Bar { float64, float }))
-    }
-    fn to_raw_value(
-        &self,
-    ) -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError>
-    {
-        let mut database_value = std::collections::HashMap::new();
-        database_value.insert(
-            "float64".to_string(),
-            yukino::mapping::DatabaseValue::Double(self.float64),
-        );
-        database_value.insert(
-            "float".to_string(),
-            yukino::mapping::DatabaseValue::Float(self.float),
-        );
-        Ok(database_value)
-    }
-    fn get_definitions(&self) -> Vec<yukino::mapping::definition::TableDefinition> {
-        vec![yukino::mapping::definition::TableDefinition::new(
-            "bar".to_string(),
-            vec![yukino::mapping::definition::IndexDefinition::new(
-                "float".to_string(),
-                yukino::mapping::IndexMethod::BTree,
-                vec!["float".to_string()],
-                true,
-            )],
-            vec![
                 yukino::mapping::definition::ColumnDefinition::new(
-                    "__bar_id".to_string(),
-                    yukino::mapping::DatabaseType::String,
-                    true,
-                    false,
-                    true,
-                ),
-                yukino::mapping::definition::ColumnDefinition::new(
-                    "float64".to_string(),
-                    yukino::mapping::DatabaseType::Double,
+                    "vec".to_string(),
+                    yukino::mapping::DatabaseType::Json,
                     false,
                     false,
                     false,
                 ),
                 yukino::mapping::definition::ColumnDefinition::new(
-                    "float".to_string(),
-                    yukino::mapping::DatabaseType::Float,
+                    "map".to_string(),
+                    yukino::mapping::DatabaseType::Json,
                     false,
                     false,
                     false,

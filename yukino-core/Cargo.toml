@@ -33,10 +33,15 @@ optional = true
 [dependencies.iroha]
 version = "0.1.2"
 
+[dependencies.serde_json]
+version = "1.0.56"
+optional = true
+
 [features]
-default = ["mysql", "decimal"]
+default = ["mysql", "decimal", "json"]
 mysql = []
 postgre-sql = []
 sqlite = []
+json = ["serde_json"]
 decimal = ["rust_decimal"]
 data-time = ["time"]

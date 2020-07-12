@@ -1,9 +1,10 @@
 use yukino::cli_entry;
-use yukino::mapping::resolver::NumericResolveCell;
+use yukino::mapping::resolver::{CollectionResolveCell, NumericResolveCell};
 
 cli_entry!(
     resolver = [
-        NumericResolveCell
+        NumericResolveCell,
+        CollectionResolveCell
     ],
     after_setup = [
         "cargo fmt"
