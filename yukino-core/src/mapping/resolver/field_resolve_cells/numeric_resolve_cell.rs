@@ -261,7 +261,14 @@ impl FieldResolveCell for NumericResolveCell {
                         #value_ident.get(&column_name)
                     }
                 };
-                ty.to_value_tokens(&value, self.entity_name().unwrap())
+                ty.to_value_tokens(
+                    &value,
+                    format!(
+                        "{}::{}",
+                        self.entity_name().unwrap(),
+                        self.field_name().unwrap()
+                    ),
+                )
             })
             .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
     }

@@ -2,22 +2,22 @@ impl yukino::Entity for crate::entities::Foo {
     fn from_raw_result(
         result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>,
     ) -> Result<Box<Self>, yukino::ParseError> {
-        let int16 = match {
-            let column_name = "int16".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::SmallInteger(integer)) => Ok(*integer),
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo",
-            )),
-        }?;
         let integer = match {
             let column_name = "integer".to_string();
             result.get(&column_name)
         } {
             Some(yukino::mapping::DatabaseValue::UnsignedInteger(integer)) => Ok(*integer),
             _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo",
+                "Unexpected DatabaseValue on field crate::entities::Foo::integer",
+            )),
+        }?;
+        let int16 = match {
+            let column_name = "int16".to_string();
+            result.get(&column_name)
+        } {
+            Some(yukino::mapping::DatabaseValue::SmallInteger(integer)) => Ok(*integer),
+            _ => Err(yukino::ParseError::new(
+                "Unexpected DatabaseValue on field crate::entities::Foo::int16",
             )),
         }?;
         let vec = match {
@@ -31,7 +31,7 @@ impl yukino::Entity for crate::entities::Foo {
                 })
             }
             _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo",
+                "Unexpected DatabaseValue on field crate::entities::Foo::vec",
             )),
         }?;
         let map = match {
@@ -45,12 +45,12 @@ impl yukino::Entity for crate::entities::Foo {
                 })
             }
             _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo",
+                "Unexpected DatabaseValue on field crate::entities::Foo::map",
             )),
         }?;
         Ok(Box::new(crate::entities::Foo {
-            int16,
             integer,
+            int16,
             vec,
             map,
         }))
@@ -61,12 +61,12 @@ impl yukino::Entity for crate::entities::Foo {
     {
         let mut database_value = std::collections::HashMap::new();
         database_value.insert(
-            "int16".to_string(),
-            yukino::mapping::DatabaseValue::SmallInteger(self.int16),
-        );
-        database_value.insert(
             "integer".to_string(),
             yukino::mapping::DatabaseValue::UnsignedInteger(self.integer),
+        );
+        database_value.insert(
+            "int16".to_string(),
+            yukino::mapping::DatabaseValue::SmallInteger(self.int16),
         );
         database_value.insert(
             "vec".to_string(),
@@ -102,15 +102,15 @@ impl yukino::Entity for crate::entities::Foo {
                     true,
                 ),
                 yukino::mapping::definition::ColumnDefinition::new(
-                    "int16".to_string(),
-                    yukino::mapping::DatabaseType::Integer,
+                    "integer".to_string(),
+                    yukino::mapping::DatabaseType::UnsignedInteger,
                     false,
                     false,
                     false,
                 ),
                 yukino::mapping::definition::ColumnDefinition::new(
-                    "integer".to_string(),
-                    yukino::mapping::DatabaseType::UnsignedInteger,
+                    "int16".to_string(),
+                    yukino::mapping::DatabaseType::Integer,
                     false,
                     false,
                     false,
