@@ -1,8 +1,10 @@
 use super::entity_resolve_cell::EntityResolveCell;
 use super::error::{ResolveError, UnresolvedError};
 use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
-use crate::mapping::FieldAttribute;
+use crate::mapping::{DatabaseValue, FieldAttribute};
+use crate::ParseError;
 use proc_macro2::{Ident, TokenStream};
+use quote::ToTokens;
 use std::collections::HashMap;
 use syn::export::fmt::{Display, Formatter, Result as FMTResult};
 use syn::Type;
@@ -104,15 +106,9 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn get_joined_table_definitions(&self) -> Result<Vec<TableDefinition>, UnresolvedError>;
 
-    fn convert_to_database_value_token_stream(
-        &self,
-        value_ident: &Ident,
-    ) -> Result<TokenStream, UnresolvedError>;
+    fn get_data_converter_token_stream(&self) -> Result<TokenStream, UnresolvedError>;
 
-    fn convert_to_value_token_stream(
-        &self,
-        value_ident: &Ident,
-    ) -> Result<TokenStream, UnresolvedError>;
+    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError>;
 
     /// breed from seed
     fn breed(
@@ -125,4 +121,10 @@ pub trait FieldResolveCell: ConstructableCell {
 
     /// Return true if cell matched the field
     fn match_field(&self, attributes: &[FieldAttribute], field_type: &Type) -> bool;
+}
+
+pub trait ValueConverter<T>: ToTokens {
+    fn to_value(&self, values: &HashMap<String, DatabaseValue>) -> Result<T, ParseError>;
+
+    fn to_database_value(&self, value: &T) -> Result<HashMap<String, DatabaseValue>, ParseError>;
 }

@@ -37,11 +37,15 @@ version = "0.1.2"
 version = "1.0.56"
 optional = true
 
+[dependencies.serde]
+version="1.0.114"
+optional = true
+
 [features]
 default = ["mysql", "decimal", "json"]
 mysql = []
 postgre-sql = []
 sqlite = []
-json = ["serde_json"]
+json = ["serde_json", "serde"]
 decimal = ["rust_decimal"]
 data-time = ["time"]

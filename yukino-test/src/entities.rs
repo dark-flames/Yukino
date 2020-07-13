@@ -7,6 +7,6 @@ use yukino::Yukino;
 pub struct Foo {
     pub(super) integer: u32,
     pub(super) int16: i16,
-    pub(super) vec: Vec<String>,
+    pub(super) array: Vec<String>,
     pub(super) map: HashMap<String, i32>,
 }

@@ -2,14 +2,17 @@ use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDe
 use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
 use crate::mapping::resolver::{
-    ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus,
+    ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus, ValueConverter,
 };
-use crate::mapping::{Column, DatabaseType, FieldAttribute};
+use crate::mapping::{Column, DatabaseType, DatabaseValue, FieldAttribute};
+use crate::ParseError;
+use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
 use syn::Type;
 
+#[derive(ToTokens)]
 enum NumericType {
     Integer(usize),
     UnsignedInteger(usize),
@@ -33,79 +36,186 @@ impl NumericType {
         }
     }
 
-    pub fn get_database_type(&self) -> DatabaseType {
+    pub fn get_converter_token_stream(&self, column_name: &String) -> TokenStream {
         match self {
-            NumericType::Integer(length) => match length {
-                8 => DatabaseType::SmallInteger,
-                16 | 32 => DatabaseType::Integer,
-                64 => DatabaseType::BigInteger,
-                _ => unreachable!(),
-            },
-            NumericType::UnsignedInteger(length) => match length {
-                8 => DatabaseType::UnsignedSmallInteger,
-                16 | 32 => DatabaseType::UnsignedInteger,
-                64 => DatabaseType::UnsignedBigInteger,
-                _ => unreachable!(),
-            },
-            NumericType::Float(length) => match length {
-                32 => DatabaseType::Float,
-                64 => DatabaseType::Double,
-                _ => unreachable!(),
-            },
+            NumericType::Integer(16) => (SmallIntegerValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::Integer(32) => (IntegerValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::Integer(64) => (BigIntegerValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::UnsignedInteger(16) => (UnsignedSmallIntegerValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::UnsignedInteger(32) => (UnsignedIntegerValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::UnsignedInteger(64) => (UnsignedBigIntegerValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::Float(32) => (FloatValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            NumericType::Float(64) => (DoubleValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            _ => unreachable!(),
         }
     }
 
-    fn database_value_variant(&self) -> TokenStream {
+    pub fn get_converter_name(&self) -> TokenStream {
         let prefix = quote::quote! {
-            yukino::mapping::DatabaseValue
+            yukino::mapping::resolver
         };
+
         match self {
             NumericType::Integer(16) => quote::quote! {
-                #prefix::SmallInteger
+                #prefix::SmallIntegerValueConverter
             },
             NumericType::Integer(32) => quote::quote! {
-                #prefix::Integer
+                #prefix::IntegerValueConverter
             },
             NumericType::Integer(64) => quote::quote! {
-                #prefix::BigInteger
+                #prefix::BigIntegerValueConverter
             },
             NumericType::UnsignedInteger(16) => quote::quote! {
-                #prefix::UnsignedSmallInteger
+                #prefix::UnsignedSmallIntegerValueConverter
             },
             NumericType::UnsignedInteger(32) => quote::quote! {
-                #prefix::UnsignedInteger
+                #prefix::UnsignedIntegerValueConverter
             },
             NumericType::UnsignedInteger(64) => quote::quote! {
-                #prefix::UnsignedBigInteger
+                #prefix::UnsignedBigIntegerValueConverter
             },
             NumericType::Float(32) => quote::quote! {
-                #prefix::Float
+                #prefix::FloatValueConverter
             },
             NumericType::Float(64) => quote::quote! {
-                #prefix::Double
+                #prefix::DoubleValueConverter
             },
             _ => unreachable!(),
         }
     }
 
-    pub fn to_database_value_tokens(&self, value_ident: &TokenStream) -> TokenStream {
-        let variant = self.database_value_variant();
-        quote::quote! {
-            #variant(#value_ident)
-        }
-    }
-
-    pub fn to_value_tokens(&self, value: &TokenStream, field_name: String) -> TokenStream {
-        let variant = self.database_value_variant();
-        let error_message = format!("Unexpected DatabaseValue on field {}", field_name);
-        quote::quote! {
-            match #value {
-                Some(#variant(integer)) => Ok(*integer),
-                _ => Err(yukino::ParseError::new(#error_message))
-            }?
+    pub fn get_database_type(&self) -> DatabaseType {
+        match self {
+            NumericType::Integer(16) => DatabaseType::SmallInteger,
+            NumericType::Integer(32) => DatabaseType::Integer,
+            NumericType::Integer(64) => DatabaseType::BigInteger,
+            NumericType::UnsignedInteger(16) => DatabaseType::UnsignedSmallInteger,
+            NumericType::UnsignedInteger(32) => DatabaseType::UnsignedInteger,
+            NumericType::UnsignedInteger(64) => DatabaseType::UnsignedBigInteger,
+            NumericType::Float(32) => DatabaseType::Float,
+            NumericType::Float(64) => DatabaseType::Double,
+            _ => unreachable!(),
         }
     }
 }
+
+macro_rules! impl_converter {
+    ($ident: ident, $output_type: ty, $database_value: ident) => {
+        impl ValueConverter<$output_type> for $ident {
+            fn to_value(
+                &self,
+                values: &HashMap<String, DatabaseValue>,
+            ) -> Result<$output_type, ParseError> {
+                match values.get(&self.column_name) {
+                    Some(DatabaseValue::$database_value(value)) => Ok(*value),
+                    _ => {
+                        let message =
+                            format!("Unexpected DatabaseValue on field {}", &self.column_name);
+                        Err(ParseError::new(&message))
+                    }
+                }
+            }
+
+            fn to_database_value(
+                &self,
+                value: &$output_type,
+            ) -> Result<HashMap<String, DatabaseValue>, ParseError> {
+                let mut map = std::collections::HashMap::new();
+                map.insert(
+                    self.column_name.clone(),
+                    DatabaseValue::$database_value(*value),
+                );
+
+                Ok(map)
+            }
+        }
+    };
+}
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct SmallIntegerValueConverter {
+    column_name: String,
+}
+
+impl_converter!(SmallIntegerValueConverter, i16, SmallInteger);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct IntegerValueConverter {
+    column_name: String,
+}
+impl_converter!(IntegerValueConverter, i32, Integer);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct BigIntegerValueConverter {
+    column_name: String,
+}
+impl_converter!(BigIntegerValueConverter, i64, BigInteger);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct UnsignedSmallIntegerValueConverter {
+    column_name: String,
+}
+impl_converter!(
+    UnsignedSmallIntegerValueConverter,
+    u16,
+    UnsignedSmallInteger
+);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct UnsignedIntegerValueConverter {
+    column_name: String,
+}
+impl_converter!(UnsignedIntegerValueConverter, u32, UnsignedInteger);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct UnsignedBigIntegerValueConverter {
+    column_name: String,
+}
+impl_converter!(UnsignedBigIntegerValueConverter, u64, UnsignedBigInteger);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct FloatValueConverter {
+    column_name: String,
+}
+impl_converter!(FloatValueConverter, f32, Float);
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct DoubleValueConverter {
+    column_name: String,
+}
+impl_converter!(DoubleValueConverter, f64, Double);
 
 pub struct NumericResolveCell {
     status: FieldResolveStatus,
@@ -166,7 +276,7 @@ impl FieldResolveCell for NumericResolveCell {
         self.field_ident
             .as_ref()
             .map(|name| name.to_string())
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+            .ok_or_else(|| UnresolvedError::new("Integer resolve cell"))
     }
 
     fn column_names(&self) -> Result<Vec<String>, UnresolvedError> {
@@ -223,54 +333,26 @@ impl FieldResolveCell for NumericResolveCell {
         Ok(vec![])
     }
 
-    fn convert_to_database_value_token_stream(
-        &self,
-        value_ident: &Ident,
-    ) -> Result<TokenStream, UnresolvedError> {
-        let field = self
-            .field_ident
-            .as_ref()
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))?;
-        let field_ident = quote::quote! {
-            self.#field
-        };
+    fn get_data_converter_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
         let column_name = self.column_names()?[0].clone();
-        self.ty
+        let converter = self
+            .ty
             .as_ref()
-            .map(|ty| {
-                let value = ty.to_database_value_tokens(&field_ident);
-                quote::quote! {
-                    #value_ident.insert(#column_name.to_string(), #value)
-                }
-            })
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))?
+            .get_converter_token_stream(&column_name);
+
+        let method_name = self.get_data_converter_getter_ident()?;
+        let output_type = self.ty.as_ref().unwrap().get_converter_name();
+
+        Ok(quote::quote! {
+            pub fn #method_name() -> #output_type {
+                #converter
+            }
+        })
     }
 
-    fn convert_to_value_token_stream(
-        &self,
-        value_ident: &Ident,
-    ) -> Result<TokenStream, UnresolvedError> {
-        self.ty
-            .as_ref()
-            .map(|ty| {
-                let column_names = self.column_names().unwrap();
-                let column_name = column_names.first().unwrap();
-                let value = quote::quote! {
-                    {
-                        let column_name = #column_name.to_string();
-                        #value_ident.get(&column_name)
-                    }
-                };
-                ty.to_value_tokens(
-                    &value,
-                    format!(
-                        "{}::{}",
-                        self.entity_name().unwrap(),
-                        self.field_name().unwrap()
-                    ),
-                )
-            })
-            .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))
+    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError> {
+        Ok(quote::format_ident!("get_{}_converter", self.field_name()?))
     }
 
     fn breed(

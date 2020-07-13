@@ -1,88 +1,44 @@
+impl crate::entities::Foo {
+    pub fn get_int16_converter() -> yukino::mapping::resolver::SmallIntegerValueConverter {
+        yukino::mapping::resolver::SmallIntegerValueConverter::new("int16".to_string())
+    }
+    pub fn get_array_converter() -> yukino::mapping::resolver::ArrayValueConverter {
+        yukino::mapping::resolver::ArrayValueConverter::new("array".to_string())
+    }
+    pub fn get_integer_converter() -> yukino::mapping::resolver::UnsignedIntegerValueConverter {
+        yukino::mapping::resolver::UnsignedIntegerValueConverter::new("integer".to_string())
+    }
+    pub fn get_map_converter() -> yukino::mapping::resolver::MapValueConverter {
+        yukino::mapping::resolver::MapValueConverter::new("map".to_string())
+    }
+}
 impl yukino::Entity for crate::entities::Foo {
-    fn from_raw_result(
+    fn from_database_value(
         result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>,
     ) -> Result<Box<Self>, yukino::ParseError> {
-        let integer = match {
-            let column_name = "integer".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::UnsignedInteger(integer)) => Ok(*integer),
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo::integer",
-            )),
-        }?;
-        let int16 = match {
-            let column_name = "int16".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::SmallInteger(integer)) => Ok(*integer),
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo::int16",
-            )),
-        }?;
-        let vec = match {
-            let column_name = "vec".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::Json(json)) => {
-                serde_json::from_value(json.clone()).map_err(|e| {
-                    let message = e.to_string();
-                    yukino::ParseError::new(message.as_str())
-                })
-            }
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo::vec",
-            )),
-        }?;
-        let map = match {
-            let column_name = "map".to_string();
-            result.get(&column_name)
-        } {
-            Some(yukino::mapping::DatabaseValue::Json(json)) => {
-                serde_json::from_value(json.clone()).map_err(|e| {
-                    let message = e.to_string();
-                    yukino::ParseError::new(message.as_str())
-                })
-            }
-            _ => Err(yukino::ParseError::new(
-                "Unexpected DatabaseValue on field crate::entities::Foo::map",
-            )),
-        }?;
+        use yukino::mapping::resolver::ValueConverter;
+        let int16 = Self::get_int16_converter().to_value(result)?;
+        let array = Self::get_array_converter().to_value(result)?;
+        let integer = Self::get_integer_converter().to_value(result)?;
+        let map = Self::get_map_converter().to_value(result)?;
         Ok(Box::new(crate::entities::Foo {
-            integer,
             int16,
-            vec,
+            array,
+            integer,
             map,
         }))
     }
-    fn to_raw_value(
+    fn to_database_value(
         &self,
     ) -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError>
     {
-        let mut database_value = std::collections::HashMap::new();
-        database_value.insert(
-            "integer".to_string(),
-            yukino::mapping::DatabaseValue::UnsignedInteger(self.integer),
-        );
-        database_value.insert(
-            "int16".to_string(),
-            yukino::mapping::DatabaseValue::SmallInteger(self.int16),
-        );
-        database_value.insert(
-            "vec".to_string(),
-            yukino::mapping::DatabaseValue::Json(serde_json::to_value(&self.vec).map_err(|e| {
-                let message = e.to_string();
-                yukino::ParseError::new(message.as_str())
-            })?),
-        );
-        database_value.insert(
-            "map".to_string(),
-            yukino::mapping::DatabaseValue::Json(serde_json::to_value(&self.map).map_err(|e| {
-                let message = e.to_string();
-                yukino::ParseError::new(message.as_str())
-            })?),
-        );
-        Ok(database_value)
+        let mut map = std::collections::HashMap::new();
+        use yukino::mapping::resolver::ValueConverter;
+        map.extend(Self::get_int16_converter().to_database_value(&self.int16)?);
+        map.extend(Self::get_array_converter().to_database_value(&self.array)?);
+        map.extend(Self::get_integer_converter().to_database_value(&self.integer)?);
+        map.extend(Self::get_map_converter().to_database_value(&self.map)?);
+        Ok(map)
     }
     fn get_definitions(&self) -> Vec<yukino::mapping::definition::TableDefinition> {
         vec![yukino::mapping::definition::TableDefinition::new(
@@ -102,22 +58,22 @@ impl yukino::Entity for crate::entities::Foo {
                     true,
                 ),
                 yukino::mapping::definition::ColumnDefinition::new(
+                    "int16".to_string(),
+                    yukino::mapping::DatabaseType::SmallInteger,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::mapping::definition::ColumnDefinition::new(
+                    "array".to_string(),
+                    yukino::mapping::DatabaseType::Json,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::mapping::definition::ColumnDefinition::new(
                     "integer".to_string(),
                     yukino::mapping::DatabaseType::UnsignedInteger,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::mapping::definition::ColumnDefinition::new(
-                    "int16".to_string(),
-                    yukino::mapping::DatabaseType::Integer,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::mapping::definition::ColumnDefinition::new(
-                    "vec".to_string(),
-                    yukino::mapping::DatabaseType::Json,
                     false,
                     false,
                     false,

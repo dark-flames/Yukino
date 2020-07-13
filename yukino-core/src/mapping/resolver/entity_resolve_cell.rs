@@ -157,77 +157,96 @@ impl<'a> EntityResolveCell {
             .ok_or_else(|| UnresolvedError::new(&self.ident))
     }
 
-    fn convert_to_database_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
-        let value_ident = format_ident!("database_value");
-        let fields = self
-            .fields
-            .iter()
-            .map(|(_, cell)| cell.convert_to_database_value_token_stream(&value_ident))
-            .collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
-
-        Ok(quote! {
-            fn to_raw_value(&self) -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError> {
-                let mut #value_ident = std::collections::HashMap::new();
-
-                #(#fields;)*
-
-                Ok(#value_ident)
-            }
-        })
-    }
-
-    fn convert_to_value_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
-        let value_ident = format_ident!("result");
-        let full_ident = TokenStream::from_str(self.entity_name().as_str())
-            .map_err(|_| UnresolvedError::new(&self.ident))?;
-
-        let fields = self
-            .fields
-            .iter()
-            .map(|(field_name, cell)| {
-                cell.convert_to_value_token_stream(&value_ident)
-                    .map(|value| {
-                        let field_ident = format_ident!("{}", field_name);
-                        quote::quote! {
-                            let #field_ident = #value
-                        }
-                    })
-            })
-            .collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
-
-        let construct_params: Vec<Ident> = self
-            .fields
-            .iter()
-            .map(|(field_name, _)| format_ident!("{}", field_name))
-            .collect();
-
-        Ok(quote! {
-            fn from_raw_result(
-                result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>
-            ) -> Result<Box<Self>, yukino::ParseError> {
-                #(#fields;)*
-
-                Ok(Box::new(#full_ident {
-                    #(#construct_params),*
-                }))
-            }
-        })
-    }
-
     pub fn get_implement_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
-        let to_raw_value = self.convert_to_database_value_token_stream()?;
-        let from_raw_result = self.convert_to_value_token_stream()?;
-
         let ident = TokenStream::from_str(self.entity_name().as_str())
             .map_err(|_| UnresolvedError::new(&self.ident))?;
 
         let definitions = self.get_definitions()?;
 
-        Ok(quote! {
-            impl yukino::Entity for #ident {
-                #from_raw_result
+        let converters = self
+            .fields
+            .values()
+            .map(|cell| cell.get_data_converter_token_stream())
+            .collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
 
-                #to_raw_value
+        let temp_values = self
+            .fields
+            .values()
+            .map(|cell| {
+                let method = match cell.get_data_converter_getter_ident() {
+                    Ok(ident) => ident,
+                    Err(e) => return Err(e),
+                };
+
+                let field_ident = match cell.field_name() {
+                    Ok(name) => format_ident!("{}", name),
+                    Err(e) => return Err(e),
+                };
+
+                Ok(quote::quote! {
+                    let #field_ident = Self::#method().to_value(result)?
+                })
+            })
+            .collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
+
+        let fields = self
+            .fields
+            .values()
+            .map(|cell| match cell.field_name() {
+                Ok(name) => Ok(format_ident!("{}", name)),
+                Err(e) => return Err(e),
+            })
+            .collect::<Result<Vec<Ident>, UnresolvedError>>()?;
+
+        let inserts = self
+            .fields
+            .values()
+            .map(|cell| {
+                let method = match cell.get_data_converter_getter_ident() {
+                    Ok(ident) => ident,
+                    Err(e) => return Err(e),
+                };
+
+                let field_ident = match cell.field_name() {
+                    Ok(name) => format_ident!("{}", name),
+                    Err(e) => return Err(e),
+                };
+
+                Ok(quote::quote! {
+                    map.extend(Self::#method().to_database_value(&self.#field_ident)?)
+                })
+            })
+            .collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
+
+        Ok(quote! {
+            impl #ident {
+                #(#converters)*
+            }
+
+            impl yukino::Entity for #ident {
+                fn from_database_value(
+                    result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>
+                ) -> Result<Box<Self>, yukino::ParseError> {
+                    use yukino::mapping::resolver::ValueConverter;
+
+                    #(#temp_values;)*
+
+                    Ok(Box::new(
+                        #ident {
+                            #(#fields),*
+                        }
+                    ))
+                }
+
+                fn to_database_value(&self)
+                    -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError> {
+                    let mut map = std::collections::HashMap::new();
+                    use yukino::mapping::resolver::ValueConverter;
+
+                    #(#inserts;)*
+
+                    Ok(map)
+                }
 
                 fn get_definitions(&self) -> Vec<yukino::mapping::definition::TableDefinition> {
                     vec![

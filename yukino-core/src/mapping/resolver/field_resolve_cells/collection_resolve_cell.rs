@@ -2,28 +2,25 @@ use crate::mapping::definition::{ColumnDefinition, ForeignKeyDefinition, TableDe
 use crate::mapping::resolver::entity_resolve_cell::EntityResolveCell;
 use crate::mapping::resolver::error::{ResolveError, UnresolvedError};
 use crate::mapping::resolver::{
-    ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus,
+    ConstructableCell, FieldPath, FieldResolveCell, FieldResolveStatus, ValueConverter,
 };
-use crate::mapping::{Column, DatabaseType, FieldAttribute};
+use crate::mapping::{Column, DatabaseType, DatabaseValue, FieldAttribute};
+use crate::ParseError;
+use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
+use serde::{de::DeserializeOwned, ser::Serialize};
+use serde_json::{from_value, to_value};
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
+use std::hash::Hash;
 use syn::export::ToTokens;
-use syn::punctuated::Iter;
-use syn::{GenericArgument, PathArguments, PathSegment, Type};
-
-fn unwrap_generic_arguments(segment: &PathSegment) -> Option<Iter<GenericArgument>> {
-    match &segment.arguments {
-        PathArguments::AngleBracketed(arguments) => Some(arguments.args.iter()),
-        _ => None,
-    }
-}
+use syn::{PathSegment, Type};
 
 enum CollectionType {
     /// Array with nested type tokens
-    Array(TokenStream),
+    Array,
     /// Map with key type and value type tokens
-    Map(TokenStream, TokenStream),
+    Map,
 }
 
 impl CollectionType {
@@ -31,62 +28,144 @@ impl CollectionType {
         let ident_string = segment.ident.to_string();
 
         match ident_string.as_str() {
-            "Vec" => match unwrap_generic_arguments(segment) {
-                Some(args) => args
-                    .filter_map(|arg| match arg {
-                        GenericArgument::Type(ty) => Some(ty.to_token_stream()),
-                        _ => None,
-                    })
-                    .next()
-                    .map(CollectionType::Array),
-                None => None,
-            },
-            "HashMap" => match unwrap_generic_arguments(segment) {
-                Some(args) => {
-                    let mut iter = args.filter_map(|arg| match arg {
-                        GenericArgument::Type(ty) => Some(ty.to_token_stream()),
-                        _ => None,
-                    });
-
-                    let first_argument = iter.next()?;
-                    let second_argument = iter.next()?;
-
-                    Some(CollectionType::Map(first_argument, second_argument))
-                }
-                None => None,
-            },
+            "Vec" => Some(CollectionType::Array),
+            "HashMap" => Some(CollectionType::Map),
             _ => None,
         }
     }
 
-    pub fn to_database_value_tokens(&self, value_ident: &TokenStream) -> TokenStream {
-        quote::quote! {
-            yukino::mapping::DatabaseValue::Json(
-                serde_json::to_value(&#value_ident).map_err(
-                    |e| {
-                        let message = e.to_string();
-                        yukino::ParseError::new(message.as_str())
-                    }
-                )?
-            )
+    pub fn converter_token_stream(&self, column_name: String) -> TokenStream {
+        match self {
+            CollectionType::Array => (ArrayValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
+            CollectionType::Map => (MapValueConverter {
+                column_name: column_name.clone(),
+            })
+            .to_token_stream(),
         }
     }
 
-    pub fn to_value_tokens(&self, value: &TokenStream, field_name: String) -> TokenStream {
-        let error_message = format!("Unexpected DatabaseValue on field {}", field_name);
-        quote::quote! {
-            match #value {
-                Some(yukino::mapping::DatabaseValue::Json(json)) => {
-                    serde_json::from_value(json.clone()).map_err(
-                        |e| {
-                            let message = e.to_string();
-                            yukino::ParseError::new(message.as_str())
-                        }
-                    )
-                },
-                _ => Err(yukino::ParseError::new(#error_message))
-            }?
+    pub fn get_converter_name(&self) -> TokenStream {
+        match self {
+            CollectionType::Array => quote::quote! {
+                yukino::mapping::resolver::ArrayValueConverter
+            },
+            CollectionType::Map => quote::quote! {
+                yukino::mapping::resolver::MapValueConverter
+            },
         }
+    }
+}
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct ArrayValueConverter {
+    column_name: String,
+}
+
+impl<T> ValueConverter<Vec<T>> for ArrayValueConverter
+where
+    T: Serialize + DeserializeOwned,
+{
+    fn to_value(&self, values: &HashMap<String, DatabaseValue>) -> Result<Vec<T>, ParseError> {
+        match values.get(&self.column_name) {
+            Some(DatabaseValue::Json(value)) if value.is_array() => Ok(from_value(value.clone())
+                .map_err(|e| {
+                let message = format!(
+                    "Some Error occur while parsing field {}: {}",
+                    &self.column_name,
+                    e.to_string()
+                );
+
+                ParseError::new(message.as_str())
+            })?),
+            _ => {
+                let message = format!("Unexpected DatabaseValue on field {}", &self.column_name);
+                Err(ParseError::new(&message))
+            }
+        }
+    }
+
+    fn to_database_value(
+        &self,
+        value: &Vec<T>,
+    ) -> Result<HashMap<String, DatabaseValue>, ParseError> {
+        let json_value = to_value(value).map_err(|e| {
+            let message = format!(
+                "Some Error occur while serializing field {}: {}",
+                &self.column_name,
+                e.to_string()
+            );
+
+            ParseError::new(message.as_str())
+        })?;
+
+        let key = self.column_name.clone();
+
+        let mut result = HashMap::new();
+
+        result.insert(key, DatabaseValue::Json(json_value));
+
+        Ok(result)
+    }
+}
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::mapping::resolver")]
+pub struct MapValueConverter {
+    column_name: String,
+}
+
+impl<K, V> ValueConverter<HashMap<K, V>> for MapValueConverter
+where
+    K: Eq + Hash + Serialize + DeserializeOwned,
+    V: Serialize + DeserializeOwned,
+{
+    fn to_value(
+        &self,
+        values: &HashMap<String, DatabaseValue>,
+    ) -> Result<HashMap<K, V>, ParseError> {
+        match values.get(&self.column_name) {
+            Some(DatabaseValue::Json(value)) if value.is_object() => Ok(from_value(value.clone())
+                .map_err(|e| {
+                    let message = format!(
+                        "Some Error occur while parsing field {}: {}",
+                        &self.column_name,
+                        e.to_string()
+                    );
+
+                    ParseError::new(message.as_str())
+                })?),
+            _ => {
+                let message = format!("Unexpected DatabaseValue on field {}", &self.column_name);
+                Err(ParseError::new(&message))
+            }
+        }
+    }
+
+    fn to_database_value(
+        &self,
+        value: &HashMap<K, V>,
+    ) -> Result<HashMap<String, DatabaseValue>, ParseError> {
+        let json_value = to_value(value).map_err(|e| {
+            let message = format!(
+                "Some Error occur while serializing field {}: {}",
+                &self.column_name,
+                e.to_string()
+            );
+
+            ParseError::new(message.as_str())
+        })?;
+
+        let key = self.column_name.clone();
+
+        let mut result = HashMap::new();
+
+        result.insert(key, DatabaseValue::Json(json_value));
+
+        Ok(result)
     }
 }
 
@@ -202,55 +281,26 @@ impl FieldResolveCell for CollectionResolveCell {
         }
     }
 
-    fn convert_to_database_value_token_stream(
-        &self,
-        value_ident: &Ident,
-    ) -> Result<TokenStream, UnresolvedError> {
-        let field = self
-            .field_ident
-            .as_ref()
-            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))?;
-        let field_ident = quote::quote! {
-            self.#field
-        };
-
+    fn get_data_converter_token_stream(&self) -> Result<TokenStream, UnresolvedError> {
         let column_name = self.column_names()?[0].clone();
-        self.ty
+        let converter = self
+            .ty
             .as_ref()
-            .map(|ty| {
-                let value = ty.to_database_value_tokens(&field_ident);
-                quote::quote! {
-                    #value_ident.insert(#column_name.to_string(), #value)
-                }
-            })
-            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))
+            .ok_or_else(|| UnresolvedError::new("Collection resolve cell"))?
+            .converter_token_stream(column_name);
+
+        let method_name = self.get_data_converter_getter_ident()?;
+        let output_type = self.ty.as_ref().unwrap().get_converter_name();
+
+        Ok(quote::quote! {
+            pub fn #method_name() -> #output_type {
+                #converter
+            }
+        })
     }
 
-    fn convert_to_value_token_stream(
-        &self,
-        value_ident: &Ident,
-    ) -> Result<TokenStream, UnresolvedError> {
-        self.ty
-            .as_ref()
-            .map(|ty| {
-                let column_names = self.column_names().unwrap();
-                let column_name = column_names.first().unwrap();
-                let value = quote::quote! {
-                    {
-                        let column_name = #column_name.to_string();
-                        #value_ident.get(&column_name)
-                    }
-                };
-                ty.to_value_tokens(
-                    &value,
-                    format!(
-                        "{}::{}",
-                        self.entity_name().unwrap(),
-                        self.field_name().unwrap()
-                    ),
-                )
-            })
-            .ok_or_else(|| UnresolvedError::new("Collection Resolve cell"))
+    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError> {
+        Ok(quote::format_ident!("get_{}_converter", self.field_name()?))
     }
 
     fn breed(
