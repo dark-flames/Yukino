@@ -194,7 +194,7 @@ impl<'a> EntityResolveCell {
             .values()
             .map(|cell| match cell.field_name() {
                 Ok(name) => Ok(format_ident!("{}", name)),
-                Err(e) => return Err(e),
+                Err(e) => Err(e),
             })
             .collect::<Result<Vec<Ident>, UnresolvedError>>()?;
 
@@ -213,7 +213,7 @@ impl<'a> EntityResolveCell {
                 };
 
                 Ok(quote::quote! {
-                    map.extend(Self::#method().to_database_value(&self.#field_ident)?)
+                    map.extend(Self::#method().to_database_value_by_ref(&self.#field_ident)?)
                 })
             })
             .collect::<Result<Vec<TokenStream>, UnresolvedError>>()?;
@@ -242,7 +242,6 @@ impl<'a> EntityResolveCell {
                     -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError> {
                     let mut map = std::collections::HashMap::new();
                     use yukino::mapping::resolver::ValueConverter;
-
                     #(#inserts;)*
 
                     Ok(map)

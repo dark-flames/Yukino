@@ -36,40 +36,26 @@ impl NumericType {
         }
     }
 
-    pub fn get_converter_token_stream(&self, column_name: &String) -> TokenStream {
+    pub fn get_converter_token_stream(&self, column_name: String) -> TokenStream {
         match self {
-            NumericType::Integer(16) => (SmallIntegerValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::Integer(32) => (IntegerValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::Integer(64) => (BigIntegerValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::UnsignedInteger(16) => (UnsignedSmallIntegerValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::UnsignedInteger(32) => (UnsignedIntegerValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::UnsignedInteger(64) => (UnsignedBigIntegerValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::Float(32) => (FloatValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            NumericType::Float(64) => (DoubleValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
+            NumericType::Integer(16) => {
+                (SmallIntegerValueConverter { column_name }).to_token_stream()
+            }
+            NumericType::Integer(32) => (IntegerValueConverter { column_name }).to_token_stream(),
+            NumericType::Integer(64) => {
+                (BigIntegerValueConverter { column_name }).to_token_stream()
+            }
+            NumericType::UnsignedInteger(16) => {
+                (UnsignedSmallIntegerValueConverter { column_name }).to_token_stream()
+            }
+            NumericType::UnsignedInteger(32) => {
+                (UnsignedIntegerValueConverter { column_name }).to_token_stream()
+            }
+            NumericType::UnsignedInteger(64) => {
+                (UnsignedBigIntegerValueConverter { column_name }).to_token_stream()
+            }
+            NumericType::Float(32) => (FloatValueConverter { column_name }).to_token_stream(),
+            NumericType::Float(64) => (DoubleValueConverter { column_name }).to_token_stream(),
             _ => unreachable!(),
         }
     }
@@ -140,7 +126,7 @@ macro_rules! impl_converter {
                 }
             }
 
-            fn to_database_value(
+            fn to_database_value_by_ref(
                 &self,
                 value: &$output_type,
             ) -> Result<HashMap<String, DatabaseValue>, ParseError> {
@@ -339,7 +325,7 @@ impl FieldResolveCell for NumericResolveCell {
             .ty
             .as_ref()
             .ok_or_else(|| UnresolvedError::new("Integer Resolve cell"))?
-            .get_converter_token_stream(&column_name);
+            .get_converter_token_stream(column_name);
 
         let method_name = self.get_data_converter_getter_ident()?;
         let output_type = self.ty.as_ref().unwrap().get_converter_name();
@@ -349,10 +335,6 @@ impl FieldResolveCell for NumericResolveCell {
                 #converter
             }
         })
-    }
-
-    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError> {
-        Ok(quote::format_ident!("get_{}_converter", self.field_name()?))
     }
 
     fn breed(

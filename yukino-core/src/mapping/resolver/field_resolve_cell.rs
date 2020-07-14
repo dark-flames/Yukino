@@ -108,7 +108,9 @@ pub trait FieldResolveCell: ConstructableCell {
 
     fn get_data_converter_token_stream(&self) -> Result<TokenStream, UnresolvedError>;
 
-    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError>;
+    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError> {
+        Ok(quote::format_ident!("get_{}_converter", self.field_name()?))
+    }
 
     /// breed from seed
     fn breed(
@@ -126,5 +128,12 @@ pub trait FieldResolveCell: ConstructableCell {
 pub trait ValueConverter<T>: ToTokens {
     fn to_value(&self, values: &HashMap<String, DatabaseValue>) -> Result<T, ParseError>;
 
-    fn to_database_value(&self, value: &T) -> Result<HashMap<String, DatabaseValue>, ParseError>;
+    fn to_database_value(&self, value: T) -> Result<HashMap<String, DatabaseValue>, ParseError> {
+        self.to_database_value_by_ref(&value)
+    }
+
+    fn to_database_value_by_ref(
+        &self,
+        value: &T,
+    ) -> Result<HashMap<String, DatabaseValue>, ParseError>;
 }

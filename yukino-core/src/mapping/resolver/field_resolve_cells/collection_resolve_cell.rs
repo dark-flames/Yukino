@@ -36,14 +36,8 @@ impl CollectionType {
 
     pub fn converter_token_stream(&self, column_name: String) -> TokenStream {
         match self {
-            CollectionType::Array => (ArrayValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
-            CollectionType::Map => (MapValueConverter {
-                column_name: column_name.clone(),
-            })
-            .to_token_stream(),
+            CollectionType::Array => (ArrayValueConverter { column_name }).to_token_stream(),
+            CollectionType::Map => (MapValueConverter { column_name }).to_token_stream(),
         }
     }
 
@@ -88,7 +82,7 @@ where
         }
     }
 
-    fn to_database_value(
+    fn to_database_value_by_ref(
         &self,
         value: &Vec<T>,
     ) -> Result<HashMap<String, DatabaseValue>, ParseError> {
@@ -145,7 +139,7 @@ where
         }
     }
 
-    fn to_database_value(
+    fn to_database_value_by_ref(
         &self,
         value: &HashMap<K, V>,
     ) -> Result<HashMap<String, DatabaseValue>, ParseError> {
@@ -297,10 +291,6 @@ impl FieldResolveCell for CollectionResolveCell {
                 #converter
             }
         })
-    }
-
-    fn get_data_converter_getter_ident(&self) -> Result<Ident, UnresolvedError> {
-        Ok(quote::format_ident!("get_{}_converter", self.field_name()?))
     }
 
     fn breed(
