@@ -1,4 +1,5 @@
 use crate::mapping::DatabaseValue;
+
 #[macro_export]
 macro_rules! alias {
     ($($path: ident).+) => {

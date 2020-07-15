@@ -15,5 +15,9 @@ version = "1.0"
 [dependencies.quote]
 version = "1.0"
 
+[dependencies.yukino-core]
+version = "0.1.0"
+path = "../yukino-core"
+
 [lib]
 proc-macro=true
