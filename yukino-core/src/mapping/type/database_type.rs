@@ -42,7 +42,7 @@ pub enum DatabaseType {
 pub type Binary = Vec<u8>;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DatabaseValue {
     SmallInteger(i16),
     UnsignedSmallInteger(u16),

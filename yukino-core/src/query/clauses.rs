@@ -1,4 +1,5 @@
 use crate::mapping::DatabaseValue;
+use syn::export::fmt::Display;
 
 #[macro_export]
 macro_rules! alias {
@@ -25,4 +26,13 @@ pub struct AliasItem {
 pub struct AssignmentItem {
     pub column_name: String,
     pub value: DatabaseValue,
+}
+
+impl AssignmentItem {
+    pub fn new<D: Display + ?Sized>(column_name: &D, value: &DatabaseValue) -> AssignmentItem {
+        AssignmentItem {
+            column_name: column_name.to_string(),
+            value: value.clone()
+        }
+    }
 }
