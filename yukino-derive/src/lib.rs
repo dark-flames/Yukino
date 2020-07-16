@@ -1,9 +1,9 @@
 mod query;
 
 extern crate proc_macro;
+use crate::query::FieldAssignments;
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
-use crate::query::FieldAssignments;
 
 #[proc_macro_derive(
     Yukino,
@@ -12,7 +12,6 @@ use crate::query::FieldAssignments;
 pub fn entity_derive(_: TokenStream) -> TokenStream {
     TokenStream::new()
 }
-
 
 #[proc_macro]
 pub fn assignment(input: TokenStream) -> TokenStream {

@@ -1,38 +1,50 @@
 use crate::mapping::DatabaseValue;
 use syn::export::fmt::Display;
+use crate::query::expr::Expression;
 
-#[macro_export]
-macro_rules! alias {
-    ($($path: ident).+) => {
-        $crate::query::AliasItem {
-            path: vec![$(stringify!($path).to_string())*],
-            alias: None
-        }
-    };
-    ($($path: ident).+ as $alias: ident) => {
-        $crate::query::AliasItem {
-            path: vec![$(stringify!($path).to_string()),*],
-            alias: Some(stringify!($alias).to_string())
-        }
-    }
+pub enum SelectItem {
+    All,
+    Item(Expression),
+    AliasItem(AssignmentItem)
 }
 
-#[derive(Eq, PartialEq, Debug)]
 pub struct AliasItem {
-    pub path: Vec<String>,
-    pub alias: Option<String>,
+    pub path: Expression,
+    pub alias: String
 }
 
 pub struct AssignmentItem {
     pub column_name: String,
-    pub value: DatabaseValue,
+    pub value: DatabaseValue
 }
 
 impl AssignmentItem {
     pub fn new<D: Display + ?Sized>(column_name: &D, value: &DatabaseValue) -> AssignmentItem {
         AssignmentItem {
             column_name: column_name.to_string(),
-            value: value.clone()
+            value: value.clone(),
         }
     }
+}
+
+pub enum Order {
+    ASC,
+    DESC
+}
+
+pub struct  OrderByItem {
+    pub expr: Expression,
+    pub order: Order
+}
+
+pub enum JoinType {
+    LeftJoin,
+    InnerJoin,
+    RightJoin
+}
+
+pub struct JoinItem {
+    pub table: String,
+    pub alias: Option<String>,
+    pub condition: Expression
 }

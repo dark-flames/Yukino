@@ -1,8 +1,8 @@
+use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseBuffer};
 use syn::{token::Comma, Error, Expr, Token};
-use quote::{format_ident, quote};
-use heck::SnakeCase;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct EntityField {
@@ -35,7 +35,7 @@ impl EntityField {
 pub struct FieldAssignment {
     pub field: EntityField,
     pub value: Expr,
-    pub is_ref: bool
+    pub is_ref: bool,
 }
 
 impl Parse for FieldAssignment {
@@ -47,7 +47,11 @@ impl Parse for FieldAssignment {
 
         let value = input.parse()?;
 
-        Ok(FieldAssignment { field, value, is_ref })
+        Ok(FieldAssignment {
+            field,
+            value,
+            is_ref,
+        })
     }
 }
 
@@ -57,9 +61,9 @@ impl FieldAssignment {
         let value = &self.value;
 
         let method = if self.is_ref {
-            quote!{ to_database_value_by_ref }
+            quote! { to_database_value_by_ref }
         } else {
-            quote!{ to_database_value }
+            quote! { to_database_value }
         };
 
         quote! {
@@ -98,9 +102,11 @@ impl Parse for FieldAssignments {
 
 impl FieldAssignments {
     pub fn to_assignment_items(&self) -> TokenStream {
-        let items = self.0.iter().map(
-            |assignment| assignment.to_assignment_items()
-        ).collect::<Vec<TokenStream>>();
+        let items = self
+            .0
+            .iter()
+            .map(|assignment| assignment.to_assignment_items())
+            .collect::<Vec<TokenStream>>();
 
         quote! {
             vec![
@@ -144,12 +150,6 @@ fn test_field_assignment() {
         "test2".to_string()
     );
 
-    assert_eq!(
-        result.0[0].is_ref,
-        true
-    );
-    assert_eq!(
-        result.0[1].is_ref,
-        false
-    );
+    assert_eq!(result.0[0].is_ref, true);
+    assert_eq!(result.0[1].is_ref, false);
 }

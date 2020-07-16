@@ -1,3 +1,4 @@
+mod expr;
 #[macro_use]
 mod clauses;
 mod query_builder;
