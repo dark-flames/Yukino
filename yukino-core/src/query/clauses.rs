@@ -40,6 +40,6 @@ pub enum JoinType {
 
 pub struct JoinItem {
     pub table: String,
-    pub alias: Option<String>,
+    pub alias: String,
     pub condition: Expression,
 }
