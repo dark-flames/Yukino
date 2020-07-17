@@ -5,12 +5,7 @@ use syn::export::fmt::Display;
 pub enum SelectItem {
     All,
     Item(Expression),
-    AliasItem(AssignmentItem),
-}
-
-pub struct AliasItem {
-    pub path: Expression,
-    pub alias: String,
+    AliasItem { expr: Expression, alias: String },
 }
 
 pub struct AssignmentItem {

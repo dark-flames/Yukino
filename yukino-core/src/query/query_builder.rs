@@ -83,6 +83,8 @@ pub enum QueryType {
 #[allow(dead_code)]
 pub struct QueryBuilder {
     ty: QueryType,
+    /// table_name mapped by alias
+    alias: HashMap<String, String>,
     root_alias: Option<String>,
     root_name: &'static str, // todo: other ident
     where_conditions: Vec<Expression>,
@@ -97,24 +99,60 @@ impl QueryBuilder {
         alias: Option<&str>,
         definition_manager: &'static DefinitionManager,
     ) -> Result<Self, QueryError> {
-        let mut definitions = HashMap::new();
         let root_name = type_name::<T>();
 
-        definitions.insert(
-            type_name::<T>(),
-            definition_manager
-                .get_definition::<T>()
-                .ok_or_else(|| QueryError::UnknownEntity(root_name))?,
-        );
-
-        Ok(QueryBuilder {
+        let mut result = QueryBuilder {
             ty,
+            alias: HashMap::new(),
             root_alias: alias.map(|s| s.to_string()),
             root_name,
             where_conditions: Vec::new(),
             join_items: Vec::new(),
             definition_manager,
-        })
+        };
+
+        result.resolve_entity_alias::<T>(alias)?;
+
+        Ok(result)
+    }
+
+    fn resolve_entity_alias<T: Entity>(
+        &mut self,
+        alias: Option<&str>,
+    ) -> Result<&mut Self, QueryError> {
+        let definitions = self
+            .definition_manager
+            .get_entity_definitions::<T>()
+            .ok_or_else(|| QueryError::UnknownEntity(type_name::<T>()))?;
+
+        for definition in definitions {
+            if self
+                .alias
+                .values()
+                .any(|table_name| table_name.eq(&definition.name))
+            {
+                return Err(QueryError::ConflictAlias(definition.name.clone()));
+            }
+
+            let mut len = 1;
+            let table_alias = loop {
+                let (prefix, _) = definition.name.split_at(len);
+                len += 1;
+
+                let prefix = prefix.to_string();
+                if !self.alias.contains_key(&prefix) {
+                    break prefix;
+                }
+            };
+            let result = match alias {
+                Some(entity_alias) => format!("{}_{}", entity_alias, table_alias),
+                None => table_alias,
+            };
+
+            self.alias.insert(result, definition.name.clone());
+        }
+
+        Ok(self)
     }
 
     pub fn and_where(&mut self, condition: Expression) -> &mut Self {
