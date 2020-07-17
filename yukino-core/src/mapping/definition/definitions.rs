@@ -57,4 +57,5 @@ pub struct TableDefinition {
     pub indexes: Vec<IndexDefinition>,
     pub columns: Vec<ColumnDefinition>,
     pub foreign_keys: Vec<ForeignKeyDefinition>,
+    pub auto_generated: bool,
 }

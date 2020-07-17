@@ -1,21 +1,21 @@
 use crate::mapping::DatabaseValue;
-use syn::export::fmt::Display;
 use crate::query::expr::Expression;
+use syn::export::fmt::Display;
 
 pub enum SelectItem {
     All,
     Item(Expression),
-    AliasItem(AssignmentItem)
+    AliasItem(AssignmentItem),
 }
 
 pub struct AliasItem {
     pub path: Expression,
-    pub alias: String
+    pub alias: String,
 }
 
 pub struct AssignmentItem {
     pub column_name: String,
-    pub value: DatabaseValue
+    pub value: DatabaseValue,
 }
 
 impl AssignmentItem {
@@ -29,22 +29,22 @@ impl AssignmentItem {
 
 pub enum Order {
     ASC,
-    DESC
+    DESC,
 }
 
-pub struct  OrderByItem {
+pub struct OrderByItem {
     pub expr: Expression,
-    pub order: Order
+    pub order: Order,
 }
 
 pub enum JoinType {
     LeftJoin,
     InnerJoin,
-    RightJoin
+    RightJoin,
 }
 
 pub struct JoinItem {
     pub table: String,
     pub alias: Option<String>,
-    pub condition: Expression
+    pub condition: Expression,
 }

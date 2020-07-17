@@ -141,6 +141,7 @@ impl<'a> EntityResolveCell {
             indexes: self.indexes.clone(),
             columns,
             foreign_keys,
+            auto_generated: false,
         });
 
         self.status = EntityResolveStatus::Achieved;
@@ -247,7 +248,7 @@ impl<'a> EntityResolveCell {
                     Ok(map)
                 }
 
-                fn get_definitions(&self) -> Vec<yukino::mapping::definition::TableDefinition> {
+                fn get_definitions() -> Vec<yukino::mapping::definition::TableDefinition> {
                     vec![
                         #(#definitions),*
                     ]

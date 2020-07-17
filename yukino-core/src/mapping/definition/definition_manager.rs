@@ -1,37 +1,47 @@
 use super::definitions::TableDefinition;
-use super::error::DefinitionError;
+use crate::Entity;
+use std::any::type_name;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[allow(dead_code)]
-pub trait DefinitionProvider {
-    fn get_definitions() -> Result<Vec<TableDefinition>, DefinitionError>;
-}
-
-#[allow(dead_code)]
+#[derive(Default)]
 pub struct DefinitionManager {
-    definitions: HashMap<String, TableDefinition>,
+    definitions: HashMap<&'static str, Arc<Vec<TableDefinition>>>,
 }
 
 #[allow(dead_code)]
 impl DefinitionManager {
-    pub fn use_provider<T: DefinitionProvider>(&mut self) -> Result<&mut Self, DefinitionError> {
-        let definitions = T::get_definitions()?;
+    pub fn register<T: Entity>(&mut self) -> &mut Self {
+        let type_name = type_name::<T>();
+        self.definitions
+            .insert(type_name, Arc::new(T::get_definitions()));
 
-        Ok(self.add_definitions(definitions))
-    }
-
-    pub fn add_definitions(&mut self, definitions: Vec<TableDefinition>) -> &mut Self {
-        for definition in definitions {
-            self.definitions.insert(definition.name.clone(), definition);
-        }
         self
     }
 
-    pub fn get(&self, name: &str) -> Option<&TableDefinition> {
-        self.definitions.get(name)
+    pub fn get_definition<T: Entity>(&self) -> Option<Arc<Vec<TableDefinition>>> {
+        let type_name = type_name::<T>();
+        self.definitions.get(type_name).map(Arc::clone)
     }
+}
 
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut TableDefinition> {
-        self.definitions.get_mut(name)
+#[macro_export]
+macro_rules! construct_definition_manager {
+    ($($entity: path),*) => {
+        #[macro_use]
+        extern crate lazy_static;
+
+        lazy_static! {
+            static ref DEFINITION_MANAGER: yukino::mapping::DefinitionManager = {
+                let mut manager = yukino::mapping::DefinitionManager::default();
+
+                $(
+                    manager.register::<$entity>();
+                )*
+
+                manager
+            }
+        }
     }
 }

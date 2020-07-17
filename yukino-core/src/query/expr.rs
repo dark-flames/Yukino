@@ -3,13 +3,13 @@ pub enum Expression {
     ComparisonExpr(ComparisonExpression),
     SubqueryExpr(SubqueryExpression),
     IdentExpr(IdentExpression),
-    Function(Function)
+    Function(Function),
 }
 
 pub enum LogicalExpression {
     And(Box<Expression>, Box<Expression>),
     Or(Box<Expression>, Box<Expression>),
-    Not(Box<Expression>)
+    Not(Box<Expression>),
 }
 
 pub enum ComparisonExpression {
@@ -18,7 +18,7 @@ pub enum ComparisonExpression {
     GT(Box<Expression>, Box<Expression>),
     GTE(Box<Expression>, Box<Expression>),
     LT(Box<Expression>, Box<Expression>),
-    LTE(Box<Expression>, Box<Expression>)
+    LTE(Box<Expression>, Box<Expression>),
 }
 
 pub enum SubqueryExpression {
@@ -26,7 +26,7 @@ pub enum SubqueryExpression {
     Any(Box<Expression>),
     Some(Box<Expression>),
     ALL(Box<Expression>),
-    Exists(Box<Expression>)
+    Exists(Box<Expression>),
 }
 
 pub enum Function {
@@ -41,5 +41,5 @@ pub enum Function {
 
 #[allow(dead_code)]
 pub struct IdentExpression {
-    segments: Vec<String>
+    segments: Vec<String>,
 }

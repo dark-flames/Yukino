@@ -13,5 +13,5 @@ pub trait Entity {
 
     fn to_database_value(&self) -> Result<HashMap<String, DatabaseValue>, ParseError>;
 
-    fn get_definitions(&self) -> Vec<TableDefinition>;
+    fn get_definitions() -> Vec<TableDefinition>;
 }

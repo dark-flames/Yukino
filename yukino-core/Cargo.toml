@@ -41,6 +41,11 @@ optional = true
 version="1.0.114"
 optional = true
 
+[dependencies.lazy_static]
+version = "1.4.0"
+[dependencies.thiserror ]
+version = "1.0.20"
+
 [features]
 default = ["mysql", "decimal", "json"]
 mysql = []

@@ -1,4 +1,5 @@
 mod entity;
+mod entity_manager;
 
 pub mod association;
 pub mod error;

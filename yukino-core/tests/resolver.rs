@@ -52,6 +52,7 @@ fn test_numeric() {
             },
         ],
         foreign_keys: vec![],
+        auto_generated: false,
     };
 
     assert_eq!(definitions[0], expect_definition);

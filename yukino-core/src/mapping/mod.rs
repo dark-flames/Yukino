@@ -5,4 +5,5 @@ pub mod resolver;
 pub mod r#type;
 
 pub use attribution::*;
+pub use definition::DefinitionManager;
 pub use r#type::*;

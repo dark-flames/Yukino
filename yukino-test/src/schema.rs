@@ -1,15 +1,15 @@
 impl crate::entities::Foo {
-    pub fn get_int16_converter() -> yukino::mapping::resolver::SmallIntegerValueConverter {
-        yukino::mapping::resolver::SmallIntegerValueConverter::new("int16".to_string())
-    }
     pub fn get_array_converter() -> yukino::mapping::resolver::ArrayValueConverter {
         yukino::mapping::resolver::ArrayValueConverter::new("array".to_string())
     }
-    pub fn get_map_converter() -> yukino::mapping::resolver::MapValueConverter {
-        yukino::mapping::resolver::MapValueConverter::new("map".to_string())
+    pub fn get_int16_converter() -> yukino::mapping::resolver::SmallIntegerValueConverter {
+        yukino::mapping::resolver::SmallIntegerValueConverter::new("int16".to_string())
     }
     pub fn get_integer_converter() -> yukino::mapping::resolver::UnsignedIntegerValueConverter {
         yukino::mapping::resolver::UnsignedIntegerValueConverter::new("integer".to_string())
+    }
+    pub fn get_map_converter() -> yukino::mapping::resolver::MapValueConverter {
+        yukino::mapping::resolver::MapValueConverter::new("map".to_string())
     }
 }
 impl yukino::Entity for crate::entities::Foo {
@@ -17,15 +17,15 @@ impl yukino::Entity for crate::entities::Foo {
         result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>,
     ) -> Result<Box<Self>, yukino::ParseError> {
         use yukino::mapping::resolver::ValueConverter;
-        let int16 = Self::get_int16_converter().to_value(result)?;
         let array = Self::get_array_converter().to_value(result)?;
-        let map = Self::get_map_converter().to_value(result)?;
+        let int16 = Self::get_int16_converter().to_value(result)?;
         let integer = Self::get_integer_converter().to_value(result)?;
+        let map = Self::get_map_converter().to_value(result)?;
         Ok(Box::new(crate::entities::Foo {
-            int16,
             array,
-            map,
+            int16,
             integer,
+            map,
         }))
     }
     fn to_database_value(
@@ -34,13 +34,13 @@ impl yukino::Entity for crate::entities::Foo {
     {
         let mut map = std::collections::HashMap::new();
         use yukino::mapping::resolver::ValueConverter;
-        map.extend(Self::get_int16_converter().to_database_value_by_ref(&self.int16)?);
         map.extend(Self::get_array_converter().to_database_value_by_ref(&self.array)?);
-        map.extend(Self::get_map_converter().to_database_value_by_ref(&self.map)?);
+        map.extend(Self::get_int16_converter().to_database_value_by_ref(&self.int16)?);
         map.extend(Self::get_integer_converter().to_database_value_by_ref(&self.integer)?);
+        map.extend(Self::get_map_converter().to_database_value_by_ref(&self.map)?);
         Ok(map)
     }
-    fn get_definitions(&self) -> Vec<yukino::mapping::definition::TableDefinition> {
+    fn get_definitions() -> Vec<yukino::mapping::definition::TableDefinition> {
         vec![yukino::mapping::definition::TableDefinition::new(
             "foo".to_string(),
             vec![yukino::mapping::definition::IndexDefinition::new(
@@ -58,13 +58,6 @@ impl yukino::Entity for crate::entities::Foo {
                     true,
                 ),
                 yukino::mapping::definition::ColumnDefinition::new(
-                    "int16".to_string(),
-                    yukino::mapping::DatabaseType::SmallInteger,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::mapping::definition::ColumnDefinition::new(
                     "array".to_string(),
                     yukino::mapping::DatabaseType::Json,
                     false,
@@ -72,8 +65,8 @@ impl yukino::Entity for crate::entities::Foo {
                     false,
                 ),
                 yukino::mapping::definition::ColumnDefinition::new(
-                    "map".to_string(),
-                    yukino::mapping::DatabaseType::Json,
+                    "int16".to_string(),
+                    yukino::mapping::DatabaseType::SmallInteger,
                     false,
                     false,
                     false,
@@ -85,8 +78,16 @@ impl yukino::Entity for crate::entities::Foo {
                     false,
                     false,
                 ),
+                yukino::mapping::definition::ColumnDefinition::new(
+                    "map".to_string(),
+                    yukino::mapping::DatabaseType::Json,
+                    false,
+                    false,
+                    false,
+                ),
             ],
             vec![],
+            false,
         )]
     }
 }
