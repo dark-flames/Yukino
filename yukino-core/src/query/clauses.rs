@@ -38,8 +38,13 @@ pub enum JoinType {
     RightJoin,
 }
 
-pub struct JoinItem {
-    pub table: String,
+pub struct JoinClause {
     pub alias: String,
     pub condition: Expression,
+}
+
+#[allow(dead_code)]
+pub struct GroupByClause {
+    items: Vec<Expression>,
+    filter: Vec<Expression>,
 }
