@@ -1,3 +1,1 @@
-pub enum MathematicalExpression {
-
-}
+pub enum MathematicalExpression {}

@@ -1,10 +1,10 @@
-use syn::{Lit, Error};
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
+use syn::{Error, Lit};
 
 pub enum Value {
     Lit(Lit),
-    ExternalValue(Ident)
+    ExternalValue(Ident),
 }
 
 impl Parse for Value {

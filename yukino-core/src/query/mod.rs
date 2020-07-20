@@ -7,5 +7,5 @@ mod query_builder_initializer;
 
 pub use clauses::*;
 pub use error::*;
-pub use query_builder_initializer::*;
 pub use expr::*;
+pub use query_builder_initializer::*;

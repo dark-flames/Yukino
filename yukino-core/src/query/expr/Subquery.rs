@@ -1,5 +1,5 @@
-use crate::query::Expression;
 use crate::query::query_builder::SelectQueryBuilder;
+use crate::query::Expression;
 use syn::parse::{Parse, ParseBuffer};
 use syn::Error;
 
