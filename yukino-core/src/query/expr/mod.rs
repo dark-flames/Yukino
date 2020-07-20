@@ -1,5 +1,5 @@
 mod comparative;
-mod exprssion;
+mod expression;
 mod function;
 mod ident;
 mod logical;
@@ -8,7 +8,7 @@ mod subquery;
 mod value;
 
 pub use comparative::*;
-pub use exprssion::*;
+pub use expression::*;
 pub use function::*;
 pub use ident::*;
 pub use logical::*;
