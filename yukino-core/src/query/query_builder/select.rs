@@ -34,7 +34,7 @@ impl SelectQueryBuilder {
                 if let Some(char) = char_iter.next() {
                     if char == '_' {
                         continue;
-                    }
+                    };
 
                     table_alias.push(char);
 

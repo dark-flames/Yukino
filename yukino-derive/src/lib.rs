@@ -19,3 +19,8 @@ pub fn assignment(input: TokenStream) -> TokenStream {
 
     TokenStream::from(assignments.to_assignment_items())
 }
+
+#[proc_macro]
+pub fn expression(input: TokenStream) -> TokenStream {
+    input
+}
