@@ -1,13 +1,12 @@
 use crate::query::expr::logical::LogicalExpression;
 use crate::query::expr::mathematical::MathematicalExpression;
-use crate::query::{ComparativeExpression, Function, IdentExpression, SubqueryExpression, Value};
+use crate::query::{Function, IdentExpression, SubqueryExpression, Value};
 use syn::parse::{Parse, ParseBuffer};
 use syn::Error;
 
 pub enum Expression {
     MathematicalExpr(MathematicalExpression),
     LogicalExpr(LogicalExpression),
-    ComparativeExpr(ComparativeExpression),
     SubqueryExpr(SubqueryExpression),
     IdentExpr(IdentExpression),
     Function(Function),

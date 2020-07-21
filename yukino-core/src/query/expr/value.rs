@@ -27,7 +27,7 @@ impl Parse for Value {
 
 #[test]
 fn test_value() {
-    use syn::{parse_quote};
+    use syn::parse_quote;
 
     let value_lit: Value = parse_quote! {
         "foo"

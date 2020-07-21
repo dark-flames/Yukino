@@ -14,22 +14,16 @@ impl Parse for IdentExpression {
         let ahead = input.lookahead1();
 
         if ahead.peek(Ident) {
-            segments.push(
-                input.parse::<Ident>()?.to_string()
-            )
+            segments.push(input.parse::<Ident>()?.to_string())
         }
 
         while input.peek(Token![.]) {
             input.parse::<Token![.]>()?;
 
-            segments.push(
-                input.parse::<Ident>()?.to_string()
-            )
+            segments.push(input.parse::<Ident>()?.to_string())
         }
 
-        Ok(IdentExpression {
-            segments
-        })
+        Ok(IdentExpression { segments })
     }
 }
 
@@ -40,9 +34,10 @@ fn test_ident() {
         a.b.c
     };
 
-    assert_eq!(ident , IdentExpression { segments: vec![
-        "a".to_string(),
-        "b".to_string(),
-        "c".to_string()
-    ] })
+    assert_eq!(
+        ident,
+        IdentExpression {
+            segments: vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        }
+    )
 }
