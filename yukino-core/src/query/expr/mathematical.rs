@@ -1,7 +1,7 @@
-use crate::query::{Expression, Value, IdentExpression};
-use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, token, parenthesized, Token};
+use crate::query::{Expression, IdentExpression, Value};
 use proc_macro2::Span;
+use syn::parse::{Parse, ParseBuffer};
+use syn::{parenthesized, token, Error, Token};
 
 pub enum MathematicalExpression {
     Paren(Box<Expression>),
@@ -45,15 +45,14 @@ enum BinaryOperator {
 }
 
 enum UnaryOperator {
-    BitInverse(Token![~])
+    BitInverse(Token![~]),
 }
 
 impl Parse for BinaryOperator {
-
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
-        if input.peek(Token![^])  {
+        if input.peek(Token![^]) {
             input.parse().map(BinaryOperator::BitXor)
-        } else if input.peek(Token![*])  {
+        } else if input.peek(Token![*]) {
             input.parse().map(BinaryOperator::Multi)
         } else if input.peek(Token![/]) {
             input.parse().map(BinaryOperator::Div)
@@ -71,20 +70,23 @@ impl Parse for BinaryOperator {
             input.parse().map(BinaryOperator::BitAnd)
         } else if input.peek(Token![|]) {
             input.parse().map(BinaryOperator::BitOr)
-        } else if input.peek(Token![<])  {
+        } else if input.peek(Token![<]) {
             input.parse().map(BinaryOperator::LT)
-        } else if input.peek(Token![>])  {
+        } else if input.peek(Token![>]) {
             input.parse().map(BinaryOperator::GT)
-        } else if input.peek(Token![<=])  {
+        } else if input.peek(Token![<=]) {
             input.parse().map(BinaryOperator::LTE)
-        } else if input.peek(Token![>=])  {
+        } else if input.peek(Token![>=]) {
             input.parse().map(BinaryOperator::GTE)
-        } else if input.peek(Token![==])  {
+        } else if input.peek(Token![==]) {
             input.parse().map(BinaryOperator::EQ)
-        } else if input.peek(Token![!=])  {
+        } else if input.peek(Token![!=]) {
             input.parse().map(BinaryOperator::NEQ)
         } else {
-            Err(Error::new(Span::call_site(), "Cannot parse into an binary operator"))
+            Err(Error::new(
+                Span::call_site(),
+                "Cannot parse into an binary operator",
+            ))
         }
     }
 }
@@ -93,8 +95,11 @@ impl Parse for UnaryOperator {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         if input.peek(Token![~]) {
             input.parse().map(UnaryOperator::BitInverse)
-        }  else {
-            Err(Error::new(Span::call_site(), "Cannot parse into an Unary operator"))
+        } else {
+            Err(Error::new(
+                Span::call_site(),
+                "Cannot parse into an Unary operator",
+            ))
         }
     }
 }
@@ -109,9 +114,13 @@ impl BinaryOperator {
             BinaryOperator::Div(_) => MathematicalExpression::Div(left_box, right_box),
             BinaryOperator::Mod(_) => MathematicalExpression::Mod(left_box, right_box),
             BinaryOperator::Add(_) => MathematicalExpression::Add(left_box, right_box),
-            BinaryOperator::Sub(_)  => MathematicalExpression::Sub(left_box, right_box),
-            BinaryOperator::BitLeftShift(_) => MathematicalExpression::BitLeftShift(left_box, right_box),
-            BinaryOperator::BitRightShift(_) => MathematicalExpression::BitRightShift(left_box, right_box),
+            BinaryOperator::Sub(_) => MathematicalExpression::Sub(left_box, right_box),
+            BinaryOperator::BitLeftShift(_) => {
+                MathematicalExpression::BitLeftShift(left_box, right_box)
+            }
+            BinaryOperator::BitRightShift(_) => {
+                MathematicalExpression::BitRightShift(left_box, right_box)
+            }
             BinaryOperator::BitAnd(_) => MathematicalExpression::BitAnd(left_box, right_box),
             BinaryOperator::BitOr(_) => MathematicalExpression::BitOr(left_box, right_box),
             BinaryOperator::GT(_) => MathematicalExpression::GT(left_box, right_box),
@@ -126,15 +135,13 @@ impl BinaryOperator {
     pub fn precedence(&self) -> Precedence {
         match self {
             BinaryOperator::BitXor(_) => Precedence::BitXor,
-            BinaryOperator::Multi(_)
-            | BinaryOperator::Div(_)
-            | BinaryOperator::Mod(_) => Precedence::Term,
-            BinaryOperator::Add(_)
-            | BinaryOperator::Sub(_) => {
-                Precedence::Add
+            BinaryOperator::Multi(_) | BinaryOperator::Div(_) | BinaryOperator::Mod(_) => {
+                Precedence::Term
             }
-            BinaryOperator::BitLeftShift(_)
-            | BinaryOperator::BitRightShift(_) => Precedence::BitShift,
+            BinaryOperator::Add(_) | BinaryOperator::Sub(_) => Precedence::Add,
+            BinaryOperator::BitLeftShift(_) | BinaryOperator::BitRightShift(_) => {
+                Precedence::BitShift
+            }
             BinaryOperator::BitAnd(_) => Precedence::BitAnd,
             BinaryOperator::BitOr(_) => Precedence::BitOr,
             BinaryOperator::GT(_)
@@ -152,13 +159,13 @@ impl UnaryOperator {
         let boxed_expr = Box::new(expr);
 
         match self {
-            UnaryOperator::BitInverse(_) => MathematicalExpression::BitInverse(boxed_expr)
+            UnaryOperator::BitInverse(_) => MathematicalExpression::BitInverse(boxed_expr),
         }
     }
 
     pub fn precedence(&self) -> Precedence {
         match self {
-            UnaryOperator::BitInverse(_) => Precedence::BitInverse
+            UnaryOperator::BitInverse(_) => Precedence::BitInverse,
         }
     }
 }
@@ -178,18 +185,14 @@ pub enum Precedence {
 }
 
 impl Precedence {
-    fn peek<'a>(input: &'a ParseBuffer<'a>) -> Option<Self>{
-        if input.peek(Token![^])  {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> Option<Self> {
+        if input.peek(Token![^]) {
             Some(Precedence::BitXor)
-        } else if input.peek(Token![*])
-            | input.peek(Token![/])
-            | input.peek(Token![%]) {
+        } else if input.peek(Token![*]) | input.peek(Token![/]) | input.peek(Token![%]) {
             Some(Precedence::Term)
-        } else if input.peek(Token![+])
-            | input.peek(Token![-]) {
+        } else if input.peek(Token![+]) | input.peek(Token![-]) {
             Some(Precedence::Add)
-        } else if input.peek(Token![>>])
-            | input.peek(Token![<<]) {
+        } else if input.peek(Token![>>]) | input.peek(Token![<<]) {
             Some(Precedence::BitShift)
         } else if input.peek(Token![&]) {
             Some(Precedence::BitAnd)
@@ -200,7 +203,8 @@ impl Precedence {
             | input.peek(Token![<=])
             | input.peek(Token![>=])
             | input.peek(Token![==])
-            | input.peek(Token![!=]) {
+            | input.peek(Token![!=])
+        {
             Some(Precedence::Comparison)
         } else {
             None
@@ -208,79 +212,63 @@ impl Precedence {
     }
 }
 
-
 impl MathematicalExpression {
     pub fn parse_right_as_mathematical_expr<'a>(
         input: &'a ParseBuffer<'a>,
-        operator_precedence: Precedence
+        operator_precedence: Precedence,
     ) -> Result<Self, Error> {
         let expr = Self::parse_right_expression(input, operator_precedence)?;
-        println!("finish {}", input.to_string());
 
         match expr {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
-            other_expr => Ok(MathematicalExpression::Paren(Box::new(other_expr)))
+            other_expr => Ok(MathematicalExpression::Paren(Box::new(other_expr))),
         }
     }
 
     pub fn parse_right_expression<'a>(
         input: &'a ParseBuffer<'a>,
-        operator_precedence: Precedence
+        operator_precedence: Precedence,
     ) -> Result<Expression, Error> {
-        println!("parse {}", input.to_string());
         let result = if input.peek(token::Paren) {
-            println!("from paren");
-            Self::parse_from_parentheses(input).map(
-                Expression::MathematicalExpr
-            )
+            Self::parse_from_parentheses(input).map(Expression::MathematicalExpr)
         } else if let Ok(unary_operator) = input.parse::<UnaryOperator>() {
-            println!("from unary operator");
             let right = MathematicalExpression::parse_right_as_mathematical_expr(
                 input,
-                unary_operator.precedence()
+                unary_operator.precedence(),
             )?;
 
             Ok(Expression::MathematicalExpr(
-                unary_operator.construct_expr(Expression::MathematicalExpr(right))
+                unary_operator.construct_expr(Expression::MathematicalExpr(right)),
             ))
         } else if let Ok(value) = input.parse::<Value>() {
-            println!("from value");
             Ok(Expression::Value(value))
         } else if let Ok(ident) = input.parse::<IdentExpression>() {
-            println!("from ident: {:?}", ident);
             Ok(Expression::IdentExpr(ident))
         } else {
-            Err(Error::new(Span::call_site(), "Cannot parse into expression or unary operator"))
+            Err(Error::new(
+                Span::call_site(),
+                "Cannot parse into expression or unary operator",
+            ))
         }?;
 
-        println!("Finish first expr");
-
         let next_binary_operator_precedence = Precedence::peek(input);
-        println!("Next operator {:?}", &next_binary_operator_precedence);
 
         match next_binary_operator_precedence {
             Some(next_precedence) if next_precedence > operator_precedence => {
                 let operator = input.parse::<BinaryOperator>()?;
-                println!("Continue merge");
-                let next_expr = Self::parse_right_as_mathematical_expr(
-                    input,
-                    operator.precedence()
-                )?;
-
-                println!("start merge {:?}", &operator);
+                let next_expr =
+                    Self::parse_right_as_mathematical_expr(input, operator.precedence())?;
 
                 Ok(Expression::MathematicalExpr(operator.construct_expr(
                     result,
-                    Expression::MathematicalExpr(next_expr)
+                    Expression::MathematicalExpr(next_expr),
                 )))
-            },
-            _ => Ok(result)
+            }
+            _ => Ok(result),
         }
     }
 
-    fn parse_from_parentheses<'a>(
-        input: &'a ParseBuffer<'a>,
-    ) -> Result<Self, Error> {
+    fn parse_from_parentheses<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         let content;
         parenthesized!(content in input);
 
@@ -290,41 +278,126 @@ impl MathematicalExpression {
 
 impl Parse for MathematicalExpression {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
-        let mut result = Self::parse_right_expression(
-            input,
-            Precedence::None
-        )?;
+        let mut result = Self::parse_right_expression(input, Precedence::None)?;
 
         while !input.is_empty() {
-            println!("parse next part: {}", input);
             let operator = input.parse::<BinaryOperator>()?;
-
-            println!("operator: {:?}", &operator);
 
             result = Expression::MathematicalExpr(operator.construct_expr(
                 result,
-                Self::parse_right_expression(
-                    input,
-                    operator.precedence()
-                )?
+                Self::parse_right_expression(input, operator.precedence())?,
             ))
         }
 
         match result {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
-            other_expr => Ok(MathematicalExpression::Paren(Box::new(other_expr)))
+            other_expr => Ok(MathematicalExpression::Paren(Box::new(other_expr))),
         }
     }
 }
 
 #[test]
 fn test_mathematical_expr() {
+    use syn::Lit;
     let expr: MathematicalExpression = syn::parse_quote! {
-        1 + @value * 10 > ~10 % (5 + 3)
+        1 + @value * 10 > ~10 % (foo.bar / 3)
     };
 
-    if let MathematicalExpression::GT(_, _) = expr {
-        println!("OK")
+    if let MathematicalExpression::GT(gt_left, gt_right) = expr {
+        if let Expression::MathematicalExpr(
+            MathematicalExpression::Add(add_left, add_right)
+        )= *gt_left {
+            if let Expression::Value(Value::Lit(Lit::Int(lit))) = *add_left {
+                assert_eq!(lit.base10_parse::<i32>().unwrap(), 1)
+            } else {
+                panic!("Add left value")
+            }
+
+            if let Expression::MathematicalExpr(
+                MathematicalExpression::Multi(
+                    multi_left,
+                    multi_right
+                )
+            )= * add_right {
+                if let Expression::Value(Value::ExternalValue(ident)) = * multi_left {
+                    assert_eq!(ident.to_string(), "value".to_string())
+                } else {
+                    panic!("multi left")
+                }
+
+                if let Expression::MathematicalExpr(
+                    MathematicalExpression::Paren(
+                        nested
+                    )
+                ) = * multi_right {
+                    if let Expression::Value(Value::Lit(Lit::Int(lit))) = *nested {
+                        assert_eq!(lit.base10_parse::<i32>().unwrap(), 10);
+                    } else {
+                        panic!("multi right")
+                    }
+                } else {
+                    panic!("multi right")
+                }
+            }
+        } else {
+            panic!("Add");
+        }
+
+        if let Expression::MathematicalExpr(
+            MathematicalExpression::Mod(mod_left, mod_right)
+        ) = *gt_right {
+            if let Expression::MathematicalExpr(
+                MathematicalExpression::BitInverse(inverse)
+            ) = *mod_left {
+                if let Expression::MathematicalExpr(
+                    MathematicalExpression::Paren(
+                        nested
+                    )
+                ) = *inverse {
+                    if let Expression::Value(Value::Lit(Lit::Int(lit))) = *nested {
+                        assert_eq!(lit.base10_parse::<i32>().unwrap(), 10)
+                    } else {
+                        panic!("Inverse value");
+                    }
+                } else {
+                    panic!("Inverse nested");
+                }
+            } else {
+                panic!("Inverse")
+            }
+
+            if let Expression::MathematicalExpr(
+                MathematicalExpression::Div(
+                    div_left, div_right
+                )
+            ) = *mod_right{
+                if let Expression::IdentExpr(
+                    ident
+                ) = *div_left {
+                    assert_eq!(ident.segments, vec!["foo".to_string(), "bar".to_string()]);
+                } else {
+                    panic!("Ident");
+                }
+
+                if let Expression::MathematicalExpr(
+                    MathematicalExpression::Paren(div_right_nested)
+                ) = *div_right {
+                    if let Expression::Value(
+                        Value::Lit(Lit::Int(lit))
+                    ) = *div_right_nested {
+                        assert_eq!(lit.base10_parse::<i32>().unwrap(), 3);
+                    } else {
+                        panic!("Div right nested");
+                    }
+                } else {
+                    panic!("Div right")
+                }
+            } else {
+                panic!("Div");
+            }
+        } else {
+            panic!("Mod");
+        }
     } else {
         panic!("GT")
     }

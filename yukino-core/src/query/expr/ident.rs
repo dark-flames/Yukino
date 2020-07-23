@@ -4,7 +4,7 @@ use syn::{Error, Ident, Token};
 #[allow(dead_code)]
 #[derive(Eq, PartialEq, Debug)]
 pub struct IdentExpression {
-    segments: Vec<String>,
+    pub segments: Vec<String>,
 }
 
 impl Parse for IdentExpression {
