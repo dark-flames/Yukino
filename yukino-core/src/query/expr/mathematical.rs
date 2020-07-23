@@ -304,32 +304,29 @@ fn test_mathematical_expr() {
     };
 
     if let MathematicalExpression::GT(gt_left, gt_right) = expr {
-        if let Expression::MathematicalExpr(
-            MathematicalExpression::Add(add_left, add_right)
-        )= *gt_left {
+        if let Expression::MathematicalExpr(MathematicalExpression::Add(add_left, add_right)) =
+            *gt_left
+        {
             if let Expression::Value(Value::Lit(Lit::Int(lit))) = *add_left {
                 assert_eq!(lit.base10_parse::<i32>().unwrap(), 1)
             } else {
                 panic!("Add left value")
             }
 
-            if let Expression::MathematicalExpr(
-                MathematicalExpression::Multi(
-                    multi_left,
-                    multi_right
-                )
-            )= * add_right {
-                if let Expression::Value(Value::ExternalValue(ident)) = * multi_left {
+            if let Expression::MathematicalExpr(MathematicalExpression::Multi(
+                multi_left,
+                multi_right,
+            )) = *add_right
+            {
+                if let Expression::Value(Value::ExternalValue(ident)) = *multi_left {
                     assert_eq!(ident.to_string(), "value".to_string())
                 } else {
                     panic!("multi left")
                 }
 
-                if let Expression::MathematicalExpr(
-                    MathematicalExpression::Paren(
-                        nested
-                    )
-                ) = * multi_right {
+                if let Expression::MathematicalExpr(MathematicalExpression::Paren(nested)) =
+                    *multi_right
+                {
                     if let Expression::Value(Value::Lit(Lit::Int(lit))) = *nested {
                         assert_eq!(lit.base10_parse::<i32>().unwrap(), 10);
                     } else {
@@ -343,17 +340,15 @@ fn test_mathematical_expr() {
             panic!("Add");
         }
 
-        if let Expression::MathematicalExpr(
-            MathematicalExpression::Mod(mod_left, mod_right)
-        ) = *gt_right {
-            if let Expression::MathematicalExpr(
-                MathematicalExpression::BitInverse(inverse)
-            ) = *mod_left {
-                if let Expression::MathematicalExpr(
-                    MathematicalExpression::Paren(
-                        nested
-                    )
-                ) = *inverse {
+        if let Expression::MathematicalExpr(MathematicalExpression::Mod(mod_left, mod_right)) =
+            *gt_right
+        {
+            if let Expression::MathematicalExpr(MathematicalExpression::BitInverse(inverse)) =
+                *mod_left
+            {
+                if let Expression::MathematicalExpr(MathematicalExpression::Paren(nested)) =
+                    *inverse
+                {
                     if let Expression::Value(Value::Lit(Lit::Int(lit))) = *nested {
                         assert_eq!(lit.base10_parse::<i32>().unwrap(), 10)
                     } else {
@@ -366,25 +361,20 @@ fn test_mathematical_expr() {
                 panic!("Inverse")
             }
 
-            if let Expression::MathematicalExpr(
-                MathematicalExpression::Div(
-                    div_left, div_right
-                )
-            ) = *mod_right{
-                if let Expression::IdentExpr(
-                    ident
-                ) = *div_left {
+            if let Expression::MathematicalExpr(MathematicalExpression::Div(div_left, div_right)) =
+                *mod_right
+            {
+                if let Expression::IdentExpr(ident) = *div_left {
                     assert_eq!(ident.segments, vec!["foo".to_string(), "bar".to_string()]);
                 } else {
                     panic!("Ident");
                 }
 
-                if let Expression::MathematicalExpr(
-                    MathematicalExpression::Paren(div_right_nested)
-                ) = *div_right {
-                    if let Expression::Value(
-                        Value::Lit(Lit::Int(lit))
-                    ) = *div_right_nested {
+                if let Expression::MathematicalExpr(MathematicalExpression::Paren(
+                    div_right_nested,
+                )) = *div_right
+                {
+                    if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right_nested {
                         assert_eq!(lit.base10_parse::<i32>().unwrap(), 3);
                     } else {
                         panic!("Div right nested");
