@@ -257,11 +257,11 @@ impl MathematicalExpression {
             Some(next_precedence) if next_precedence > operator_precedence => {
                 let operator = input.parse::<BinaryOperator>()?;
                 let next_expr =
-                    Self::parse_right_as_mathematical_expr(input, operator.precedence())?;
+                    Self::parse_right_expression(input, operator.precedence())?;
 
                 Ok(Expression::MathematicalExpr(operator.construct_expr(
                     result,
-                    Expression::MathematicalExpr(next_expr),
+                    next_expr,
                 )))
             }
             _ => Ok(result),
@@ -324,14 +324,8 @@ fn test_mathematical_expr() {
                     panic!("multi left")
                 }
 
-                if let Expression::MathematicalExpr(MathematicalExpression::Paren(nested)) =
-                    *multi_right
-                {
-                    if let Expression::Value(Value::Lit(Lit::Int(lit))) = *nested {
-                        assert_eq!(lit.base10_parse::<i32>().unwrap(), 10);
-                    } else {
-                        panic!("multi right")
-                    }
+                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *multi_right{
+                    assert_eq!(lit.base10_parse::<i32>().unwrap(), 10);
                 } else {
                     panic!("multi right")
                 }
@@ -370,17 +364,10 @@ fn test_mathematical_expr() {
                     panic!("Ident");
                 }
 
-                if let Expression::MathematicalExpr(MathematicalExpression::Paren(
-                    div_right_nested,
-                )) = *div_right
-                {
-                    if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right_nested {
-                        assert_eq!(lit.base10_parse::<i32>().unwrap(), 3);
-                    } else {
-                        panic!("Div right nested");
-                    }
+                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right{
+                    assert_eq!(lit.base10_parse::<i32>().unwrap(), 3);
                 } else {
-                    panic!("Div right")
+                    panic!("Div right");
                 }
             } else {
                 panic!("Div");
