@@ -1,7 +1,7 @@
 use crate::query::Expression;
 use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
-use syn::Error;
+use syn::{Error, parenthesized};
 
 pub enum Function {
     Average(Box<Expression>),
@@ -16,7 +16,9 @@ pub enum Function {
 impl Parse for Function {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         let ident: Ident = input.parse::<Ident>()?;
-        let expr = Box::new(input.parse::<Expression>()?);
+        let content;
+        parenthesized!(content in input);
+        let expr = Box::new(content.parse::<Expression>()?);
         match ident.to_string().to_lowercase().as_str() {
             "average" => Ok(Function::Average(expr)),
             "max" => Ok(Function::Max(expr)),
