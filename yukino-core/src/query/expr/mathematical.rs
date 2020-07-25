@@ -256,13 +256,11 @@ impl MathematicalExpression {
         match next_binary_operator_precedence {
             Some(next_precedence) if next_precedence > operator_precedence => {
                 let operator = input.parse::<BinaryOperator>()?;
-                let next_expr =
-                    Self::parse_right_expression(input, operator.precedence())?;
+                let next_expr = Self::parse_right_expression(input, operator.precedence())?;
 
-                Ok(Expression::MathematicalExpr(operator.construct_expr(
-                    result,
-                    next_expr,
-                )))
+                Ok(Expression::MathematicalExpr(
+                    operator.construct_expr(result, next_expr),
+                ))
             }
             _ => Ok(result),
         }
@@ -324,7 +322,7 @@ fn test_mathematical_expr() {
                     panic!("multi left")
                 }
 
-                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *multi_right{
+                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *multi_right {
                     assert_eq!(lit.base10_parse::<i32>().unwrap(), 10);
                 } else {
                     panic!("multi right")
@@ -364,7 +362,7 @@ fn test_mathematical_expr() {
                     panic!("Ident");
                 }
 
-                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right{
+                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right {
                     assert_eq!(lit.base10_parse::<i32>().unwrap(), 3);
                 } else {
                     panic!("Div right");
