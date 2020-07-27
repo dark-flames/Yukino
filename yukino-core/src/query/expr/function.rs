@@ -1,7 +1,7 @@
-use crate::query::Expression;
+use crate::query::{Expression, Peekable};
 use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, parenthesized};
+use syn::{parenthesized, Error, token::Paren, Ident as IdentMark};
 
 pub enum Function {
     Average(Box<Expression>),
@@ -29,5 +29,11 @@ impl Parse for Function {
             "contact" => Ok(Function::Abs(expr)),
             _ => Err(Error::new(Span::call_site(), "Unexpected function")),
         }
+    }
+}
+
+impl Peekable for Function {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
+        input.peek(IdentMark) && input.peek2(Paren)
     }
 }

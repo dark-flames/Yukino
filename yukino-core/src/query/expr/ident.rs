@@ -1,5 +1,6 @@
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Ident, Token};
+use crate::query::Peekable;
 
 #[allow(dead_code)]
 #[derive(Eq, PartialEq, Debug)]
@@ -24,6 +25,12 @@ impl Parse for IdentExpression {
         }
 
         Ok(IdentExpression { segments })
+    }
+}
+
+impl Peekable for IdentExpression {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
+        input.peek(Ident)
     }
 }
 

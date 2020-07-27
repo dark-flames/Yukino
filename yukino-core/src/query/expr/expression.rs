@@ -18,3 +18,10 @@ impl Parse for Expression {
         unimplemented!()
     }
 }
+
+#[allow(dead_code)]
+impl Expression {
+    fn parse_item<'a>(_input: &'a ParseBuffer<'a>) -> Result<Expression, Error> {
+        unimplemented!()
+    }
+}

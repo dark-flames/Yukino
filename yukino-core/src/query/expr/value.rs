@@ -1,6 +1,7 @@
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Lit, Token};
+use crate::query::Peekable;
 
 /// ValueExpression
 /// Lit: literal like string or number ...
@@ -22,6 +23,12 @@ impl Parse for Value {
         } else {
             Err(ahead.error())
         }
+    }
+}
+
+impl Peekable for Value {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
+        input.peek(Lit) || input.peek(Token![@])
     }
 }
 

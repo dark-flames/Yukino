@@ -266,6 +266,28 @@ impl MathematicalExpression {
         }
     }
 
+    pub fn parse_operator_and_right_expression<'a>(
+        input: &'a ParseBuffer<'a>,
+        left: Expression
+    ) -> Result<Expression, Error> {
+
+        let mut result = left;
+
+        while !input.is_empty() {
+            let operator = match input.parse::<BinaryOperator>() {
+                Ok(o) => o,
+                _ => break
+            };
+
+            result = Expression::MathematicalExpr(operator.construct_expr(
+                result,
+                Self::parse_right_expression(input, operator.precedence())?,
+            ))
+        }
+
+        Ok(result)
+    }
+
     fn parse_from_parentheses<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         let content;
         parenthesized!(content in input);
@@ -276,18 +298,10 @@ impl MathematicalExpression {
 
 impl Parse for MathematicalExpression {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
-        let mut result = Self::parse_right_expression(input, Precedence::None)?;
-
-        while !input.is_empty() {
-            let operator = input.parse::<BinaryOperator>()?;
-
-            result = Expression::MathematicalExpr(operator.construct_expr(
-                result,
-                Self::parse_right_expression(input, operator.precedence())?,
-            ))
-        }
-
-        match result {
+        match Self::parse_operator_and_right_expression(
+            input,
+            Self::parse_right_expression(input, Precedence::None)?
+        )? {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
             other_expr => Ok(MathematicalExpression::Paren(Box::new(other_expr))),
         }
