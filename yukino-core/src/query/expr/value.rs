@@ -1,7 +1,7 @@
+use crate::query::Peekable;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Lit, Token};
-use crate::query::Peekable;
 
 /// ValueExpression
 /// Lit: literal like string or number ...

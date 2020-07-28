@@ -1,7 +1,7 @@
 use crate::query::{Expression, Peekable};
 use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
-use syn::{parenthesized, Error, token::Paren, Ident as IdentMark};
+use syn::{parenthesized, token::Paren, Error, Ident as IdentMark};
 
 pub enum Function {
     Average(Box<Expression>),

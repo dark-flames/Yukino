@@ -1,4 +1,4 @@
-use crate::query::{Expression, IdentExpression, Value};
+use crate::query::{Expression, IdentExpression, Value, Peekable};
 use proc_macro2::Span;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token, Error, Token};
@@ -232,13 +232,13 @@ impl MathematicalExpression {
         let result = if input.peek(token::Paren) {
             Self::parse_from_parentheses(input).map(Expression::MathematicalExpr)
         } else if let Ok(unary_operator) = input.parse::<UnaryOperator>() {
-            let right = MathematicalExpression::parse_right_as_mathematical_expr(
+            let right = MathematicalExpression::parse_right_expression(
                 input,
                 unary_operator.precedence(),
             )?;
 
             Ok(Expression::MathematicalExpr(
-                unary_operator.construct_expr(Expression::MathematicalExpr(right)),
+                unary_operator.construct_expr(right),
             ))
         } else if let Ok(value) = input.parse::<Value>() {
             Ok(Expression::Value(value))
@@ -268,15 +268,14 @@ impl MathematicalExpression {
 
     pub fn parse_operator_and_right_expression<'a>(
         input: &'a ParseBuffer<'a>,
-        left: Expression
+        left: Expression,
     ) -> Result<Expression, Error> {
-
         let mut result = left;
 
         while !input.is_empty() {
             let operator = match input.parse::<BinaryOperator>() {
                 Ok(o) => o,
-                _ => break
+                _ => break,
             };
 
             result = Expression::MathematicalExpr(operator.construct_expr(
@@ -286,6 +285,13 @@ impl MathematicalExpression {
         }
 
         Ok(result)
+    }
+
+    pub fn parse_into_expression<'a>(input: &'a ParseBuffer<'a>) -> Result<Expression, Error> {
+        Self::parse_operator_and_right_expression(
+            input,
+            Self::parse_right_expression(input, Precedence::None)?,
+        )
     }
 
     fn parse_from_parentheses<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
@@ -300,11 +306,17 @@ impl Parse for MathematicalExpression {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         match Self::parse_operator_and_right_expression(
             input,
-            Self::parse_right_expression(input, Precedence::None)?
+            Self::parse_right_expression(input, Precedence::None)?,
         )? {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
             other_expr => Ok(MathematicalExpression::Paren(Box::new(other_expr))),
         }
+    }
+}
+
+impl Peekable for MathematicalExpression {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
+        Precedence::peek(input).is_some()
     }
 }
 
@@ -352,16 +364,10 @@ fn test_mathematical_expr() {
             if let Expression::MathematicalExpr(MathematicalExpression::BitInverse(inverse)) =
                 *mod_left
             {
-                if let Expression::MathematicalExpr(MathematicalExpression::Paren(nested)) =
-                    *inverse
-                {
-                    if let Expression::Value(Value::Lit(Lit::Int(lit))) = *nested {
-                        assert_eq!(lit.base10_parse::<i32>().unwrap(), 10)
-                    } else {
-                        panic!("Inverse value");
-                    }
+                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *inverse {
+                    assert_eq!(lit.base10_parse::<i32>().unwrap(), 10)
                 } else {
-                    panic!("Inverse nested");
+                    panic!("Inverse value");
                 }
             } else {
                 panic!("Inverse")

@@ -12,8 +12,8 @@ pub use ident::*;
 pub use logical::*;
 pub use mathematical::*;
 pub use subquery::*;
-pub use value::*;
 use syn::parse::{Parse, ParseBuffer};
+pub use value::*;
 
 pub(crate) trait Peekable: Parse {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool;

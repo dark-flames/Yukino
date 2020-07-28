@@ -1,6 +1,6 @@
+use crate::query::Peekable;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Ident, Token};
-use crate::query::Peekable;
 
 #[allow(dead_code)]
 #[derive(Eq, PartialEq, Debug)]
