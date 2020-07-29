@@ -93,21 +93,21 @@ impl Parse for BinaryOperator {
 impl Peekable for BinaryOperator {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
         input.peek(Token![^])
-        | input.peek(Token![*])
-        | input.peek(Token![/])
-        | input.peek(Token![%])
-        | input.peek(Token![+])
-        | input.peek(Token![-])
-        | input.peek(Token![>>])
-        | input.peek(Token![<<])
-        | input.peek(Token![&])
-        | input.peek(Token![|])
-        | input.peek(Token![<])
-        | input.peek(Token![>])
-        | input.peek(Token![<=])
-        | input.peek(Token![>=])
-        | input.peek(Token![==])
-        | input.peek(Token![!=])
+            | input.peek(Token![*])
+            | input.peek(Token![/])
+            | input.peek(Token![%])
+            | input.peek(Token![+])
+            | input.peek(Token![-])
+            | input.peek(Token![>>])
+            | input.peek(Token![<<])
+            | input.peek(Token![&])
+            | input.peek(Token![|])
+            | input.peek(Token![<])
+            | input.peek(Token![>])
+            | input.peek(Token![<=])
+            | input.peek(Token![>=])
+            | input.peek(Token![==])
+            | input.peek(Token![!=])
     }
 }
 
@@ -314,7 +314,10 @@ impl Parse for MathematicalExpression {
             Self::parse_right_expression(input, Precedence::None)?,
         )? {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
-            _ => Err(Error::new(Span::call_site(),"Not a mathematical expression"))
+            _ => Err(Error::new(
+                Span::call_site(),
+                "Not a mathematical expression",
+            )),
         }
     }
 }

@@ -1,10 +1,12 @@
 use crate::query::expr::logical::LogicalExpression;
 use crate::query::expr::mathematical::MathematicalExpression;
-use crate::query::{Function, IdentExpression, SubqueryExpression, Value, Peekable, UnaryOperator, BinaryOperator};
-use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, parenthesized};
-use syn::token::Paren;
+use crate::query::{
+    BinaryOperator, Function, IdentExpression, Peekable, SubqueryExpression, UnaryOperator, Value,
+};
 use proc_macro2::Span;
+use syn::parse::{Parse, ParseBuffer};
+use syn::token::Paren;
+use syn::{parenthesized, Error};
 
 pub enum Expression {
     MathematicalExpr(MathematicalExpression),
@@ -23,9 +25,9 @@ impl Parse for Expression {
             if BinaryOperator::peek(input) {
                 result = MathematicalExpression::parse_operator_and_right_expression(input, result)?
             } else {
-                return Err(Error::new(Span::call_site(), "Unexpected expression part"))
+                return Err(Error::new(Span::call_site(), "Unexpected expression part"));
             }
-        };
+        }
 
         Ok(result)
     }
@@ -58,12 +60,12 @@ impl Expression {
 fn test_expr() {
     use syn::Lit;
     let expr: Expression = syn::parse_quote! {
-        1 + @value * 10 > ~10 % (foo.bar / 3)
+        1 + @value * 10 > ~10 % (average(foo.bar) / 3)
     };
 
     if let Expression::MathematicalExpr(MathematicalExpression::GT(gt_left, gt_right)) = expr {
         if let Expression::MathematicalExpr(MathematicalExpression::Add(add_left, add_right)) =
-        *gt_left
+            *gt_left
         {
             if let Expression::Value(Value::Lit(Lit::Int(lit))) = *add_left {
                 assert_eq!(lit.base10_parse::<i32>().unwrap(), 1)
@@ -72,9 +74,9 @@ fn test_expr() {
             }
 
             if let Expression::MathematicalExpr(MathematicalExpression::Multi(
-                                                    multi_left,
-                                                    multi_right,
-                                                )) = *add_right
+                multi_left,
+                multi_right,
+            )) = *add_right
             {
                 if let Expression::Value(Value::ExternalValue(ident)) = *multi_left {
                     assert_eq!(ident.to_string(), "value".to_string())
@@ -93,10 +95,10 @@ fn test_expr() {
         }
 
         if let Expression::MathematicalExpr(MathematicalExpression::Mod(mod_left, mod_right)) =
-        *gt_right
+            *gt_right
         {
             if let Expression::MathematicalExpr(MathematicalExpression::BitInverse(inverse)) =
-            *mod_left
+                *mod_left
             {
                 if let Expression::Value(Value::Lit(Lit::Int(lit))) = *inverse {
                     assert_eq!(lit.base10_parse::<i32>().unwrap(), 10)
@@ -108,12 +110,16 @@ fn test_expr() {
             }
 
             if let Expression::MathematicalExpr(MathematicalExpression::Div(div_left, div_right)) =
-            *mod_right
+                *mod_right
             {
-                if let Expression::IdentExpr(ident) = *div_left {
-                    assert_eq!(ident.segments, vec!["foo".to_string(), "bar".to_string()]);
+                if let Expression::Function(Function::Average(aver)) = *div_left {
+                    if let Expression::IdentExpr(ident) = *aver {
+                        assert_eq!(ident.segments, vec!["foo".to_string(), "bar".to_string()]);
+                    } else {
+                        panic!("Ident");
+                    }
                 } else {
-                    panic!("Ident");
+                    panic!("Function");
                 }
 
                 if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right {
