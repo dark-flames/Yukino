@@ -158,24 +158,24 @@ impl BinaryOperator {
         }
     }
 
-    pub fn precedence(&self) -> Precedence {
+    pub fn precedence(&self) -> MathematicalPrecedence {
         match self {
-            BinaryOperator::BitXor(_) => Precedence::BitXor,
+            BinaryOperator::BitXor(_) => MathematicalPrecedence::BitXor,
             BinaryOperator::Multi(_) | BinaryOperator::Div(_) | BinaryOperator::Mod(_) => {
-                Precedence::Term
+                MathematicalPrecedence::Term
             }
-            BinaryOperator::Add(_) | BinaryOperator::Sub(_) => Precedence::Add,
+            BinaryOperator::Add(_) | BinaryOperator::Sub(_) => MathematicalPrecedence::Add,
             BinaryOperator::BitLeftShift(_) | BinaryOperator::BitRightShift(_) => {
-                Precedence::BitShift
+                MathematicalPrecedence::BitShift
             }
-            BinaryOperator::BitAnd(_) => Precedence::BitAnd,
-            BinaryOperator::BitOr(_) => Precedence::BitOr,
+            BinaryOperator::BitAnd(_) => MathematicalPrecedence::BitAnd,
+            BinaryOperator::BitOr(_) => MathematicalPrecedence::BitOr,
             BinaryOperator::GT(_)
             | BinaryOperator::LT(_)
             | BinaryOperator::GTE(_)
             | BinaryOperator::LTE(_)
             | BinaryOperator::EQ(_)
-            | BinaryOperator::NEQ(_) => Precedence::Comparison,
+            | BinaryOperator::NEQ(_) => MathematicalPrecedence::Comparison,
         }
     }
 }
@@ -189,15 +189,15 @@ impl UnaryOperator {
         }
     }
 
-    pub fn precedence(&self) -> Precedence {
+    pub fn precedence(&self) -> MathematicalPrecedence {
         match self {
-            UnaryOperator::BitInverse(_) => Precedence::BitInverse,
+            UnaryOperator::BitInverse(_) => MathematicalPrecedence::BitInverse,
         }
     }
 }
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
-pub enum Precedence {
+pub enum MathematicalPrecedence {
     None,
     Comparison,
     BitOr,
@@ -210,20 +210,20 @@ pub enum Precedence {
     Parentheses,
 }
 
-impl Precedence {
+impl MathematicalPrecedence {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> Option<Self> {
         if input.peek(Token![^]) {
-            Some(Precedence::BitXor)
+            Some(MathematicalPrecedence::BitXor)
         } else if input.peek(Token![*]) | input.peek(Token![/]) | input.peek(Token![%]) {
-            Some(Precedence::Term)
+            Some(MathematicalPrecedence::Term)
         } else if input.peek(Token![+]) | input.peek(Token![-]) {
-            Some(Precedence::Add)
+            Some(MathematicalPrecedence::Add)
         } else if input.peek(Token![>>]) | input.peek(Token![<<]) {
-            Some(Precedence::BitShift)
+            Some(MathematicalPrecedence::BitShift)
         } else if input.peek(Token![&]) {
-            Some(Precedence::BitAnd)
+            Some(MathematicalPrecedence::BitAnd)
         } else if input.peek(Token![|]) {
-            Some(Precedence::BitOr)
+            Some(MathematicalPrecedence::BitOr)
         } else if input.peek(Token![<])
             | input.peek(Token![>])
             | input.peek(Token![<=])
@@ -231,7 +231,7 @@ impl Precedence {
             | input.peek(Token![==])
             | input.peek(Token![!=])
         {
-            Some(Precedence::Comparison)
+            Some(MathematicalPrecedence::Comparison)
         } else {
             None
         }
@@ -241,7 +241,7 @@ impl Precedence {
 impl MathematicalExpression {
     pub fn parse_right_expression<'a>(
         input: &'a ParseBuffer<'a>,
-        operator_precedence: Precedence,
+        operator_precedence: MathematicalPrecedence,
     ) -> Result<Expression, Error> {
         let result = if input.peek(token::Paren) {
             Expression::parse_item(input)
@@ -263,7 +263,7 @@ impl MathematicalExpression {
             ))
         }?;
 
-        let next_binary_operator_precedence = Precedence::peek(input);
+        let next_binary_operator_precedence = MathematicalPrecedence::peek(input);
 
         match next_binary_operator_precedence {
             Some(next_precedence) if next_precedence > operator_precedence => {
@@ -302,7 +302,7 @@ impl MathematicalExpression {
     pub fn parse_into_expression<'a>(input: &'a ParseBuffer<'a>) -> Result<Expression, Error> {
         Self::parse_operator_and_right_expression(
             input,
-            Self::parse_right_expression(input, Precedence::None)?,
+            Self::parse_right_expression(input, MathematicalPrecedence::None)?,
         )
     }
 }
@@ -311,7 +311,7 @@ impl Parse for MathematicalExpression {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         match Self::parse_operator_and_right_expression(
             input,
-            Self::parse_right_expression(input, Precedence::None)?,
+            Self::parse_right_expression(input, MathematicalPrecedence::None)?,
         )? {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
             _ => Err(Error::new(
@@ -324,6 +324,6 @@ impl Parse for MathematicalExpression {
 
 impl Peekable for MathematicalExpression {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        Precedence::peek(input).is_some()
+        MathematicalPrecedence::peek(input).is_some()
     }
 }
