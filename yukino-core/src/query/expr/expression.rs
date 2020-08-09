@@ -1,4 +1,3 @@
-use crate::query::expr::logical::LogicalExpression;
 use crate::query::expr::mathematical::MathematicalExpression;
 use crate::query::{
     BinaryOperator, Function, IdentExpression, Peekable, SubqueryExpression, UnaryOperator, Value,
@@ -10,7 +9,6 @@ use syn::{parenthesized, Error};
 
 pub enum Expression {
     MathematicalExpr(MathematicalExpression),
-    LogicalExpr(LogicalExpression),
     SubqueryExpr(SubqueryExpression),
     IdentExpr(IdentExpression),
     Function(Function),
@@ -23,7 +21,8 @@ impl Parse for Expression {
 
         while !input.is_empty() {
             if BinaryOperator::peek(input) {
-                result = MathematicalExpression::parse_operator_and_right_expression(input, result)?
+                result =
+                    MathematicalExpression::parse_operator_and_right_expression(input, result)?;
             } else {
                 return Err(Error::new(Span::call_site(), "Unexpected expression part"));
             }
@@ -42,14 +41,14 @@ impl Expression {
             parenthesized!(content in input);
 
             content.parse()
+        } else if UnaryOperator::peek(input) {
+            input.parse().map(Expression::MathematicalExpr)
         } else if Function::peek(input) {
             input.parse().map(Expression::Function)
         } else if IdentExpression::peek(input) {
             input.parse().map(Expression::IdentExpr)
         } else if Value::peek(input) {
             input.parse().map(Expression::Value)
-        } else if UnaryOperator::peek(input) {
-            input.parse().map(Expression::MathematicalExpr)
         } else {
             Err(Error::new(Span::call_site(), "Unexpected expression item"))
         }
@@ -135,5 +134,55 @@ fn test_expr() {
         }
     } else {
         panic!("GT")
+    }
+}
+
+#[test]
+fn test_logical() {
+    use syn::Lit;
+    let expr: Expression = syn::parse_quote! {
+        a.ratio > 20 AND (NOT b.ratio <= @value)
+    };
+
+    if let Expression::MathematicalExpr(MathematicalExpression::And(and_left, and_right)) = expr {
+        if let Expression::MathematicalExpr(MathematicalExpression::GT(gt_left, gt_right)) =
+            *and_left
+        {
+            if let Expression::IdentExpr(ident) = *gt_left {
+                assert_eq!(ident.segments, vec!["a".to_string(), "ratio".to_string()]);
+            } else {
+                panic!("A ident");
+            }
+
+            if let Expression::Value(Value::Lit(Lit::Int(lit))) = *gt_right {
+                assert_eq!(lit.base10_parse::<i32>().unwrap(), 20);
+            } else {
+                panic!("lit");
+            }
+        }
+
+        if let Expression::MathematicalExpr(MathematicalExpression::Not(not)) = *and_right {
+            if let Expression::MathematicalExpr(MathematicalExpression::LTE(lte_left, lte_right)) =
+                *not
+            {
+                if let Expression::IdentExpr(ident) = *lte_left {
+                    assert_eq!(ident.segments, vec!["b".to_string(), "ratio".to_string()]);
+                } else {
+                    panic!("B ident");
+                }
+
+                if let Expression::Value(Value::ExternalValue(ident)) = *lte_right {
+                    assert_eq!(ident.to_string(), "value".to_string());
+                } else {
+                    panic!("external value");
+                }
+            } else {
+                panic!("lte");
+            }
+        } else {
+            panic!("not");
+        }
+    } else {
+        panic!("and");
     }
 }

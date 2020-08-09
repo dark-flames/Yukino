@@ -1,7 +1,7 @@
 use crate::query::{Expression, IdentExpression, Peekable, Value};
-use proc_macro2::Span;
+use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
-use syn::{token, Error, Token};
+use syn::{token, Error, Ident as IdentMark, Token};
 
 pub enum MathematicalExpression {
     BitInverse(Box<Expression>),
@@ -21,6 +21,10 @@ pub enum MathematicalExpression {
     LTE(Box<Expression>, Box<Expression>),
     EQ(Box<Expression>, Box<Expression>),
     NEQ(Box<Expression>, Box<Expression>),
+    And(Box<Expression>, Box<Expression>),
+    Or(Box<Expression>, Box<Expression>),
+    Xor(Box<Expression>, Box<Expression>),
+    Not(Box<Expression>),
 }
 
 #[derive(Debug)]
@@ -41,10 +45,14 @@ pub enum BinaryOperator {
     LTE(Token![<=]),
     EQ(Token![==]),
     NEQ(Token![!=]),
+    And,
+    Or,
+    Xor,
 }
 
 pub enum UnaryOperator {
     BitInverse(Token![~]),
+    Not,
 }
 
 impl Parse for BinaryOperator {
@@ -69,18 +77,34 @@ impl Parse for BinaryOperator {
             input.parse().map(BinaryOperator::BitAnd)
         } else if input.peek(Token![|]) {
             input.parse().map(BinaryOperator::BitOr)
-        } else if input.peek(Token![<]) {
-            input.parse().map(BinaryOperator::LT)
-        } else if input.peek(Token![>]) {
-            input.parse().map(BinaryOperator::GT)
         } else if input.peek(Token![<=]) {
             input.parse().map(BinaryOperator::LTE)
         } else if input.peek(Token![>=]) {
             input.parse().map(BinaryOperator::GTE)
+        } else if input.peek(Token![<]) {
+            input.parse().map(BinaryOperator::LT)
+        } else if input.peek(Token![>]) {
+            input.parse().map(BinaryOperator::GT)
         } else if input.peek(Token![==]) {
             input.parse().map(BinaryOperator::EQ)
         } else if input.peek(Token![!=]) {
             input.parse().map(BinaryOperator::NEQ)
+        } else if input.peek(IdentMark) {
+            let ident: Ident = input.parse()?;
+            let ident_str = ident.to_string().to_lowercase();
+            match ident_str.as_str() {
+                "and" => Ok(BinaryOperator::And),
+                "or" => Ok(BinaryOperator::Or),
+                "xor" => Ok(BinaryOperator::Xor),
+                _ => Err(Error::new(
+                    Span::call_site(),
+                    "Unexpected binary logical operator",
+                )),
+            }
+        } else if input.peek(Token![||]) {
+            Ok(BinaryOperator::Or)
+        } else if input.peek(Token![&&]) {
+            Ok(BinaryOperator::And)
         } else {
             Err(Error::new(
                 Span::call_site(),
@@ -108,6 +132,13 @@ impl Peekable for BinaryOperator {
             | input.peek(Token![>=])
             | input.peek(Token![==])
             | input.peek(Token![!=])
+            | match input.fork().parse::<Ident>() {
+                Ok(ident) => match ident.to_string().to_lowercase().as_str() {
+                    "and" | "or" | "xor" => true,
+                    _ => false,
+                },
+                _ => false,
+            }
     }
 }
 
@@ -115,6 +146,16 @@ impl Parse for UnaryOperator {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         if input.peek(Token![~]) {
             input.parse().map(UnaryOperator::BitInverse)
+        } else if input.peek(IdentMark) {
+            let ident: Ident = input.parse()?;
+            let ident_str = ident.to_string().to_lowercase();
+            match ident_str.as_str() {
+                "not" => Ok(UnaryOperator::Not),
+                _ => Err(Error::new(
+                    Span::call_site(),
+                    "Cannot parse into an Unary operator",
+                )),
+            }
         } else {
             Err(Error::new(
                 Span::call_site(),
@@ -126,7 +167,17 @@ impl Parse for UnaryOperator {
 
 impl Peekable for UnaryOperator {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        input.peek(Token![~])
+        input.peek(Token![~]) || {
+            let fork = input.fork();
+            if fork.peek(IdentMark) {}
+            match fork.parse::<IdentMark>() {
+                Ok(ident) => match ident.to_string().to_lowercase().as_str() {
+                    "not" => true,
+                    _ => false,
+                },
+                _ => false,
+            }
+        }
     }
 }
 
@@ -155,27 +206,33 @@ impl BinaryOperator {
             BinaryOperator::LTE(_) => MathematicalExpression::LTE(left_box, right_box),
             BinaryOperator::EQ(_) => MathematicalExpression::EQ(left_box, right_box),
             BinaryOperator::NEQ(_) => MathematicalExpression::NEQ(left_box, right_box),
+            BinaryOperator::Or => MathematicalExpression::Or(left_box, right_box),
+            BinaryOperator::And => MathematicalExpression::And(left_box, right_box),
+            BinaryOperator::Xor => MathematicalExpression::Xor(left_box, right_box),
         }
     }
 
-    pub fn precedence(&self) -> MathematicalPrecedence {
+    pub fn precedence(&self) -> Precedence {
         match self {
-            BinaryOperator::BitXor(_) => MathematicalPrecedence::BitXor,
+            BinaryOperator::BitXor(_) => Precedence::BitXor,
             BinaryOperator::Multi(_) | BinaryOperator::Div(_) | BinaryOperator::Mod(_) => {
-                MathematicalPrecedence::Term
+                Precedence::Term
             }
-            BinaryOperator::Add(_) | BinaryOperator::Sub(_) => MathematicalPrecedence::Add,
+            BinaryOperator::Add(_) | BinaryOperator::Sub(_) => Precedence::Add,
             BinaryOperator::BitLeftShift(_) | BinaryOperator::BitRightShift(_) => {
-                MathematicalPrecedence::BitShift
+                Precedence::BitShift
             }
-            BinaryOperator::BitAnd(_) => MathematicalPrecedence::BitAnd,
-            BinaryOperator::BitOr(_) => MathematicalPrecedence::BitOr,
+            BinaryOperator::BitAnd(_) => Precedence::BitAnd,
+            BinaryOperator::BitOr(_) => Precedence::BitOr,
             BinaryOperator::GT(_)
             | BinaryOperator::LT(_)
             | BinaryOperator::GTE(_)
             | BinaryOperator::LTE(_)
             | BinaryOperator::EQ(_)
-            | BinaryOperator::NEQ(_) => MathematicalPrecedence::Comparison,
+            | BinaryOperator::NEQ(_) => Precedence::Comparison,
+            BinaryOperator::Or => Precedence::Or,
+            BinaryOperator::And => Precedence::And,
+            BinaryOperator::Xor => Precedence::Xor,
         }
     }
 }
@@ -186,19 +243,25 @@ impl UnaryOperator {
 
         match self {
             UnaryOperator::BitInverse(_) => MathematicalExpression::BitInverse(boxed_expr),
+            UnaryOperator::Not => MathematicalExpression::Not(boxed_expr),
         }
     }
 
-    pub fn precedence(&self) -> MathematicalPrecedence {
+    pub fn precedence(&self) -> Precedence {
         match self {
-            UnaryOperator::BitInverse(_) => MathematicalPrecedence::BitInverse,
+            UnaryOperator::BitInverse(_) => Precedence::BitInverse,
+            UnaryOperator::Not => Precedence::Not,
         }
     }
 }
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
-pub enum MathematicalPrecedence {
+pub enum Precedence {
     None,
+    Or,
+    Xor,
+    And,
+    Not,
     Comparison,
     BitOr,
     BitAnd,
@@ -207,31 +270,44 @@ pub enum MathematicalPrecedence {
     Term,
     BitXor,
     BitInverse,
-    Parentheses,
 }
 
-impl MathematicalPrecedence {
-    fn peek<'a>(input: &'a ParseBuffer<'a>) -> Option<Self> {
+impl Precedence {
+    pub fn peek<'a>(input: &'a ParseBuffer<'a>) -> Option<Self> {
         if input.peek(Token![^]) {
-            Some(MathematicalPrecedence::BitXor)
+            Some(Precedence::BitXor)
         } else if input.peek(Token![*]) | input.peek(Token![/]) | input.peek(Token![%]) {
-            Some(MathematicalPrecedence::Term)
+            Some(Precedence::Term)
         } else if input.peek(Token![+]) | input.peek(Token![-]) {
-            Some(MathematicalPrecedence::Add)
+            Some(Precedence::Add)
         } else if input.peek(Token![>>]) | input.peek(Token![<<]) {
-            Some(MathematicalPrecedence::BitShift)
+            Some(Precedence::BitShift)
         } else if input.peek(Token![&]) {
-            Some(MathematicalPrecedence::BitAnd)
+            Some(Precedence::BitAnd)
         } else if input.peek(Token![|]) {
-            Some(MathematicalPrecedence::BitOr)
-        } else if input.peek(Token![<])
-            | input.peek(Token![>])
-            | input.peek(Token![<=])
+            Some(Precedence::BitOr)
+        } else if input.peek(Token![<=])
             | input.peek(Token![>=])
+            | input.peek(Token![<])
+            | input.peek(Token![>])
             | input.peek(Token![==])
             | input.peek(Token![!=])
         {
-            Some(MathematicalPrecedence::Comparison)
+            Some(Precedence::Comparison)
+        } else if input.peek(IdentMark) {
+            let ident: Ident = input.fork().parse().ok()?;
+            let ident_str = ident.to_string().to_lowercase();
+            match ident_str.as_str() {
+                "or" => Some(Precedence::Or),
+                "xor" => Some(Precedence::Xor),
+                "and" => Some(Precedence::And),
+                "not" => Some(Precedence::Not),
+                _ => None,
+            }
+        } else if input.peek(Token![||]) {
+            Some(Precedence::Or)
+        } else if input.peek(Token![&&]) {
+            Some(Precedence::And)
         } else {
             None
         }
@@ -241,20 +317,21 @@ impl MathematicalPrecedence {
 impl MathematicalExpression {
     pub fn parse_right_expression<'a>(
         input: &'a ParseBuffer<'a>,
-        operator_precedence: MathematicalPrecedence,
+        operator_precedence: Precedence,
     ) -> Result<Expression, Error> {
         let result = if input.peek(token::Paren) {
             Expression::parse_item(input)
-        } else if let Ok(unary_operator) = input.parse::<UnaryOperator>() {
-            let right =
-                MathematicalExpression::parse_right_expression(input, unary_operator.precedence())?;
-
+        } else if UnaryOperator::peek(input) {
+            let unary_operator: UnaryOperator = input.parse()?;
+            let right = Self::parse_right_expression(input, unary_operator.precedence())?;
             Ok(Expression::MathematicalExpr(
                 unary_operator.construct_expr(right),
             ))
-        } else if let Ok(value) = input.parse::<Value>() {
+        } else if Value::peek(input) {
+            let value = input.parse()?;
             Ok(Expression::Value(value))
-        } else if let Ok(ident) = input.parse::<IdentExpression>() {
+        } else if IdentExpression::peek(input) {
+            let ident = input.parse()?;
             Ok(Expression::IdentExpr(ident))
         } else {
             Err(Error::new(
@@ -263,7 +340,7 @@ impl MathematicalExpression {
             ))
         }?;
 
-        let next_binary_operator_precedence = MathematicalPrecedence::peek(input);
+        let next_binary_operator_precedence = Precedence::peek(input);
 
         match next_binary_operator_precedence {
             Some(next_precedence) if next_precedence > operator_precedence => {
@@ -302,17 +379,16 @@ impl MathematicalExpression {
     pub fn parse_into_expression<'a>(input: &'a ParseBuffer<'a>) -> Result<Expression, Error> {
         Self::parse_operator_and_right_expression(
             input,
-            Self::parse_right_expression(input, MathematicalPrecedence::None)?,
+            Self::parse_right_expression(input, Precedence::None)?,
         )
     }
 }
 
 impl Parse for MathematicalExpression {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
-        match Self::parse_operator_and_right_expression(
-            input,
-            Self::parse_right_expression(input, MathematicalPrecedence::None)?,
-        )? {
+        let left = Self::parse_right_expression(input, Precedence::None)?;
+
+        match Self::parse_operator_and_right_expression(input, left)? {
             Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
             _ => Err(Error::new(
                 Span::call_site(),
@@ -324,6 +400,6 @@ impl Parse for MathematicalExpression {
 
 impl Peekable for MathematicalExpression {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        MathematicalPrecedence::peek(input).is_some()
+        Precedence::peek(input).is_some()
     }
 }
