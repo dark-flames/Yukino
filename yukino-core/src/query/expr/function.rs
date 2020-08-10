@@ -36,7 +36,7 @@ impl Peekable for Function {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
         input.peek(IdentMark)
             && input.peek2(Paren)
-            && match input.parse::<Ident>() {
+            && match input.fork().parse::<Ident>() {
                 Ok(ident) => match ident.to_string().as_str() {
                     "average" | "max" | "min" | "count" | "distinct" | "abs" | "contact" => true,
                     _ => false,

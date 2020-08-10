@@ -45,7 +45,7 @@ impl SubqueryExpression {
     pub fn peek_in<'a>(input: &'a ParseBuffer<'a>) -> bool {
         if input.peek(IdentMark) {
             match input.fork().parse::<Ident>() {
-                Ok(ident) => ident == "in",
+                Ok(ident) => ident.to_string().to_lowercase() == "in",
                 _ => false,
             }
         } else {
@@ -63,11 +63,50 @@ impl SubqueryExpression {
 
         input.parse::<Ident>()?;
 
+        println!("{}", input);
+
         let value = input.parse::<Value>()?;
 
         Ok(Expression::SubqueryExpr(Self::In(
             Box::new(left),
             Box::new(value),
         )))
+    }
+}
+
+#[test]
+fn test_in() {
+    use crate::query::MathematicalExpression;
+    use syn::Lit;
+    let expr: Expression = syn::parse_quote! {
+        any(a.test + 200) IN @query
+    };
+
+    if let Expression::SubqueryExpr(SubqueryExpression::In(expr, value)) = expr {
+        if let Expression::MathematicalExpr(MathematicalExpression::Add(add_left, add_right)) =
+            *expr
+        {
+            if let Expression::IdentExpr(ident) = *add_left {
+                assert_eq!(ident.segments, vec!["a".to_string(), "test".to_string()]);
+            } else {
+                panic!("A ident");
+            }
+
+            if let Expression::Value(Value::Lit(Lit::Int(lit))) = *add_right {
+                assert_eq!(lit.base10_parse::<i32>().unwrap(), 200);
+            } else {
+                panic!("lit");
+            }
+        } else {
+            panic!("expr");
+        }
+
+        if let Value::ExternalValue(ident) = *value {
+            assert_eq!(ident, "query");
+        } else {
+            panic!("value");
+        }
+    } else {
+        panic!("in");
     }
 }
