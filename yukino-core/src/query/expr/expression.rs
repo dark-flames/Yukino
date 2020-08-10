@@ -23,6 +23,8 @@ impl Parse for Expression {
             if BinaryOperator::peek(input) {
                 result =
                     MathematicalExpression::parse_operator_and_right_expression(input, result)?;
+            } else if SubqueryExpression::peek_in(input) {
+                result = SubqueryExpression::parse_right_and_operator(input, result)?;
             } else {
                 return Err(Error::new(Span::call_site(), "Unexpected expression part"));
             }
@@ -45,6 +47,8 @@ impl Expression {
             input.parse().map(Expression::MathematicalExpr)
         } else if Function::peek(input) {
             input.parse().map(Expression::Function)
+        } else if SubqueryExpression::peek(input) {
+            input.parse().map(Expression::SubqueryExpr)
         } else if IdentExpression::peek(input) {
             input.parse().map(Expression::IdentExpr)
         } else if Value::peek(input) {
