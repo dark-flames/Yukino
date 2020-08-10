@@ -79,7 +79,7 @@ fn test_in() {
     use crate::query::MathematicalExpression;
     use syn::Lit;
     let expr: Expression = syn::parse_quote! {
-        any(a.test + 200) IN @query
+        a.test + 200 IN @query
     };
 
     if let Expression::SubqueryExpr(SubqueryExpression::In(expr, value)) = expr {
