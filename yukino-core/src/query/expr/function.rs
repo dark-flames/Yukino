@@ -1,16 +1,16 @@
-use crate::query::{Expression, Peekable};
+use crate::query::{ExpressionStructure, Peekable};
 use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error, Ident as IdentMark};
 
 pub enum Function {
-    Average(Box<Expression>),
-    Max(Box<Expression>),
-    Min(Box<Expression>),
-    Count(Box<Expression>),
-    Distinct(Box<Expression>),
-    Abs(Box<Expression>),
-    Contact(Vec<Expression>),
+    Average(Box<ExpressionStructure>),
+    Max(Box<ExpressionStructure>),
+    Min(Box<ExpressionStructure>),
+    Count(Box<ExpressionStructure>),
+    Distinct(Box<ExpressionStructure>),
+    Abs(Box<ExpressionStructure>),
+    Contact(Vec<ExpressionStructure>),
 }
 
 impl Parse for Function {
@@ -18,7 +18,7 @@ impl Parse for Function {
         let ident: Ident = input.parse::<Ident>()?;
         let content;
         parenthesized!(content in input);
-        let expr = Box::new(content.parse::<Expression>()?);
+        let expr = Box::new(content.parse::<ExpressionStructure>()?);
         match ident.to_string().to_lowercase().as_str() {
             "average" => Ok(Function::Average(expr)),
             "max" => Ok(Function::Max(expr)),

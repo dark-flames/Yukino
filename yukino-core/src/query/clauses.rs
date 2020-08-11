@@ -1,11 +1,14 @@
 use crate::mapping::DatabaseValue;
-use crate::query::expr::Expression;
+use crate::query::expr::ExpressionStructure;
 use syn::export::fmt::Display;
 
 pub enum SelectItem {
     All,
-    Item(Expression),
-    AliasItem { expr: Expression, alias: String },
+    Item(ExpressionStructure),
+    AliasItem {
+        expr: ExpressionStructure,
+        alias: String,
+    },
 }
 
 pub struct AssignmentItem {
@@ -28,7 +31,7 @@ pub enum Order {
 }
 
 pub struct OrderByItem {
-    pub expr: Expression,
+    pub expr: ExpressionStructure,
     pub order: Order,
 }
 
@@ -40,11 +43,11 @@ pub enum JoinType {
 
 pub struct JoinClause {
     pub alias: String,
-    pub condition: Expression,
+    pub condition: ExpressionStructure,
 }
 
 #[allow(dead_code)]
 pub struct GroupByClause {
-    items: Vec<Expression>,
-    filter: Vec<Expression>,
+    items: Vec<ExpressionStructure>,
+    filter: Vec<ExpressionStructure>,
 }

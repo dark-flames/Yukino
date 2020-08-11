@@ -6,10 +6,12 @@ use syn::{Error, Lit, Token};
 /// ValueExpression
 /// Lit: literal like string or number ...
 /// ExternalValue: rust ident start with `@`
+/// SubqueryValue: rust ident start with `#`
 #[derive(Eq, PartialEq, Debug)]
 pub enum Value {
     Lit(Lit),
     ExternalValue(Ident),
+    Subquery(Ident),
 }
 
 impl Parse for Value {
@@ -18,6 +20,9 @@ impl Parse for Value {
         if ahead.peek(Token![@]) {
             input.parse::<Token![@]>()?;
             Ok(Value::ExternalValue(input.parse()?))
+        } else if ahead.peek(Token![#]) {
+            input.parse::<Token![#]>()?;
+            Ok(Value::Subquery(input.parse()?))
         } else if ahead.peek(Lit) {
             Ok(Value::Lit(input.parse()?))
         } else {
@@ -28,7 +33,7 @@ impl Parse for Value {
 
 impl Peekable for Value {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        input.peek(Lit) || input.peek(Token![@])
+        input.peek(Lit) || input.peek(Token![@]) || input.peek(Token![#])
     }
 }
 

@@ -1,10 +1,10 @@
-use crate::query::{Expression, Peekable, Value};
+use crate::query::{ExpressionStructure, Peekable, Value};
 use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error, Ident as IdentMark};
 
 pub enum SubqueryExpression {
-    In(Box<Expression>, Box<Value>),
+    In(Box<ExpressionStructure>, Box<Value>),
     Any(Box<Value>),
     Some(Box<Value>),
     ALL(Box<Value>),
@@ -55,8 +55,8 @@ impl SubqueryExpression {
 
     pub fn parse_right_and_operator<'a>(
         input: &'a ParseBuffer<'a>,
-        left: Expression,
-    ) -> Result<Expression, Error> {
+        left: ExpressionStructure,
+    ) -> Result<ExpressionStructure, Error> {
         if !Self::peek_in(input) {
             return Err(Error::new(Span::call_site(), "Can not find operator 'IN'"));
         }
@@ -67,7 +67,7 @@ impl SubqueryExpression {
 
         let value = input.parse::<Value>()?;
 
-        Ok(Expression::SubqueryExpr(Self::In(
+        Ok(ExpressionStructure::SubqueryExpr(Self::In(
             Box::new(left),
             Box::new(value),
         )))
@@ -78,21 +78,23 @@ impl SubqueryExpression {
 fn test_in() {
     use crate::query::MathematicalExpression;
     use syn::Lit;
-    let expr: Expression = syn::parse_quote! {
+    let expr: ExpressionStructure = syn::parse_quote! {
         a.test + 200 IN @query
     };
 
-    if let Expression::SubqueryExpr(SubqueryExpression::In(expr, value)) = expr {
-        if let Expression::MathematicalExpr(MathematicalExpression::Add(add_left, add_right)) =
-            *expr
+    if let ExpressionStructure::SubqueryExpr(SubqueryExpression::In(expr, value)) = expr {
+        if let ExpressionStructure::MathematicalExpr(MathematicalExpression::Add(
+            add_left,
+            add_right,
+        )) = *expr
         {
-            if let Expression::IdentExpr(ident) = *add_left {
+            if let ExpressionStructure::IdentExpr(ident) = *add_left {
                 assert_eq!(ident.segments, vec!["a".to_string(), "test".to_string()]);
             } else {
                 panic!("A ident");
             }
 
-            if let Expression::Value(Value::Lit(Lit::Int(lit))) = *add_right {
+            if let ExpressionStructure::Value(Value::Lit(Lit::Int(lit))) = *add_right {
                 assert_eq!(lit.base10_parse::<i32>().unwrap(), 200);
             } else {
                 panic!("lit");

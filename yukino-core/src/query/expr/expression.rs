@@ -7,7 +7,7 @@ use syn::parse::{Parse, ParseBuffer};
 use syn::token::Paren;
 use syn::{parenthesized, Error};
 
-pub enum Expression {
+pub enum ExpressionStructure {
     MathematicalExpr(MathematicalExpression),
     SubqueryExpr(SubqueryExpression),
     IdentExpr(IdentExpression),
@@ -15,7 +15,7 @@ pub enum Expression {
     Value(Value),
 }
 
-impl Parse for Expression {
+impl Parse for ExpressionStructure {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         let mut result = Self::parse_item(input)?;
 
@@ -35,8 +35,8 @@ impl Parse for Expression {
 }
 
 #[allow(dead_code)]
-impl Expression {
-    pub fn parse_item<'a>(input: &'a ParseBuffer<'a>) -> Result<Expression, Error> {
+impl ExpressionStructure {
+    pub fn parse_item<'a>(input: &'a ParseBuffer<'a>) -> Result<ExpressionStructure, Error> {
         if input.peek(Paren) {
             let content;
 
@@ -44,15 +44,15 @@ impl Expression {
 
             content.parse()
         } else if UnaryOperator::peek(input) {
-            input.parse().map(Expression::MathematicalExpr)
+            input.parse().map(ExpressionStructure::MathematicalExpr)
         } else if Function::peek(input) {
-            input.parse().map(Expression::Function)
+            input.parse().map(ExpressionStructure::Function)
         } else if SubqueryExpression::peek(input) {
-            input.parse().map(Expression::SubqueryExpr)
+            input.parse().map(ExpressionStructure::SubqueryExpr)
         } else if IdentExpression::peek(input) {
-            input.parse().map(Expression::IdentExpr)
+            input.parse().map(ExpressionStructure::IdentExpr)
         } else if Value::peek(input) {
-            input.parse().map(Expression::Value)
+            input.parse().map(ExpressionStructure::Value)
         } else {
             Err(Error::new(Span::call_site(), "Unexpected expression item"))
         }

@@ -1,5 +1,5 @@
 use crate::mapping::DefinitionManager;
-use crate::query::expr::Expression;
+use crate::query::expr::ExpressionStructure;
 use crate::query::{GroupByClause, JoinClause, OrderByItem, QueryError, SelectItem};
 use crate::Entity;
 use std::any::type_name;
@@ -10,7 +10,7 @@ pub struct SelectQueryBuilder {
     select_items: Vec<SelectItem>,
     alias: HashMap<String, String>,
     join_clauses: Vec<JoinClause>,
-    where_clauses: Vec<Expression>,
+    where_clauses: Vec<ExpressionStructure>,
     group_by_clauses: Option<GroupByClause>,
     order_by_items: Vec<OrderByItem>,
     limit: Option<usize>,
@@ -94,7 +94,7 @@ impl SelectQueryBuilder {
         Ok(self)
     }
 
-    pub fn where_and(&mut self, mut exprs: Vec<Expression>) -> &mut Self {
+    pub fn where_and(&mut self, mut exprs: Vec<ExpressionStructure>) -> &mut Self {
         self.where_clauses.append(&mut exprs);
 
         self

@@ -1,30 +1,30 @@
-use crate::query::{Expression, IdentExpression, Peekable, Value};
+use crate::query::{ExpressionStructure, IdentExpression, Peekable, Value};
 use proc_macro2::{Ident, Span};
 use syn::parse::{Parse, ParseBuffer};
 use syn::{token, Error, Ident as IdentMark, Token};
 
 pub enum MathematicalExpression {
-    BitInverse(Box<Expression>),
-    BitXor(Box<Expression>, Box<Expression>),
-    Multi(Box<Expression>, Box<Expression>),
-    Mod(Box<Expression>, Box<Expression>),
-    Div(Box<Expression>, Box<Expression>),
-    Add(Box<Expression>, Box<Expression>),
-    Sub(Box<Expression>, Box<Expression>),
-    BitLeftShift(Box<Expression>, Box<Expression>),
-    BitRightShift(Box<Expression>, Box<Expression>),
-    BitAnd(Box<Expression>, Box<Expression>),
-    BitOr(Box<Expression>, Box<Expression>),
-    GT(Box<Expression>, Box<Expression>),
-    LT(Box<Expression>, Box<Expression>),
-    GTE(Box<Expression>, Box<Expression>),
-    LTE(Box<Expression>, Box<Expression>),
-    EQ(Box<Expression>, Box<Expression>),
-    NEQ(Box<Expression>, Box<Expression>),
-    And(Box<Expression>, Box<Expression>),
-    Or(Box<Expression>, Box<Expression>),
-    Xor(Box<Expression>, Box<Expression>),
-    Not(Box<Expression>),
+    BitInverse(Box<ExpressionStructure>),
+    BitXor(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Multi(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Mod(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Div(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Add(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Sub(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    BitLeftShift(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    BitRightShift(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    BitAnd(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    BitOr(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    GT(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    LT(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    GTE(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    LTE(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    EQ(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    NEQ(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    And(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Or(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Xor(Box<ExpressionStructure>, Box<ExpressionStructure>),
+    Not(Box<ExpressionStructure>),
 }
 
 #[derive(Debug)]
@@ -182,7 +182,11 @@ impl Peekable for UnaryOperator {
 }
 
 impl BinaryOperator {
-    pub fn construct_expr(&self, left: Expression, right: Expression) -> MathematicalExpression {
+    pub fn construct_expr(
+        &self,
+        left: ExpressionStructure,
+        right: ExpressionStructure,
+    ) -> MathematicalExpression {
         let left_box = Box::new(left);
         let right_box = Box::new(right);
         match self {
@@ -238,7 +242,7 @@ impl BinaryOperator {
 }
 
 impl UnaryOperator {
-    pub fn construct_expr(&self, expr: Expression) -> MathematicalExpression {
+    pub fn construct_expr(&self, expr: ExpressionStructure) -> MathematicalExpression {
         let boxed_expr = Box::new(expr);
 
         match self {
@@ -318,21 +322,21 @@ impl MathematicalExpression {
     pub fn parse_right_expression<'a>(
         input: &'a ParseBuffer<'a>,
         operator_precedence: Precedence,
-    ) -> Result<Expression, Error> {
+    ) -> Result<ExpressionStructure, Error> {
         let result = if input.peek(token::Paren) {
-            Expression::parse_item(input)
+            ExpressionStructure::parse_item(input)
         } else if UnaryOperator::peek(input) {
             let unary_operator: UnaryOperator = input.parse()?;
             let right = Self::parse_right_expression(input, unary_operator.precedence())?;
-            Ok(Expression::MathematicalExpr(
+            Ok(ExpressionStructure::MathematicalExpr(
                 unary_operator.construct_expr(right),
             ))
         } else if Value::peek(input) {
             let value = input.parse()?;
-            Ok(Expression::Value(value))
+            Ok(ExpressionStructure::Value(value))
         } else if IdentExpression::peek(input) {
             let ident = input.parse()?;
-            Ok(Expression::IdentExpr(ident))
+            Ok(ExpressionStructure::IdentExpr(ident))
         } else {
             Err(Error::new(
                 Span::call_site(),
@@ -347,7 +351,7 @@ impl MathematicalExpression {
                 let operator = input.parse::<BinaryOperator>()?;
                 let next_expr = Self::parse_right_expression(input, operator.precedence())?;
 
-                Ok(Expression::MathematicalExpr(
+                Ok(ExpressionStructure::MathematicalExpr(
                     operator.construct_expr(result, next_expr),
                 ))
             }
@@ -357,8 +361,8 @@ impl MathematicalExpression {
 
     pub fn parse_operator_and_right_expression<'a>(
         input: &'a ParseBuffer<'a>,
-        left: Expression,
-    ) -> Result<Expression, Error> {
+        left: ExpressionStructure,
+    ) -> Result<ExpressionStructure, Error> {
         let mut result = left;
 
         while !input.is_empty() {
@@ -368,7 +372,7 @@ impl MathematicalExpression {
                 break;
             };
 
-            result = Expression::MathematicalExpr(operator.construct_expr(
+            result = ExpressionStructure::MathematicalExpr(operator.construct_expr(
                 result,
                 Self::parse_right_expression(input, operator.precedence())?,
             ))
@@ -377,7 +381,9 @@ impl MathematicalExpression {
         Ok(result)
     }
 
-    pub fn parse_into_expression<'a>(input: &'a ParseBuffer<'a>) -> Result<Expression, Error> {
+    pub fn parse_into_expression<'a>(
+        input: &'a ParseBuffer<'a>,
+    ) -> Result<ExpressionStructure, Error> {
         Self::parse_operator_and_right_expression(
             input,
             Self::parse_right_expression(input, Precedence::None)?,
@@ -390,7 +396,7 @@ impl Parse for MathematicalExpression {
         let left = Self::parse_right_expression(input, Precedence::None)?;
 
         match Self::parse_operator_and_right_expression(input, left)? {
-            Expression::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
+            ExpressionStructure::MathematicalExpr(mathematical_expr) => Ok(mathematical_expr),
             _ => Err(Error::new(
                 Span::call_site(),
                 "Not a mathematical expression",
@@ -409,32 +415,36 @@ impl Peekable for MathematicalExpression {
 fn test_expr() {
     use crate::query::Function;
     use syn::Lit;
-    let expr: Expression = syn::parse_quote! {
+    let expr: ExpressionStructure = syn::parse_quote! {
         1 + @value * 10 > ~10 % (average(foo.bar) / 3)
     };
 
-    if let Expression::MathematicalExpr(MathematicalExpression::GT(gt_left, gt_right)) = expr {
-        if let Expression::MathematicalExpr(MathematicalExpression::Add(add_left, add_right)) =
-            *gt_left
+    if let ExpressionStructure::MathematicalExpr(MathematicalExpression::GT(gt_left, gt_right)) =
+        expr
+    {
+        if let ExpressionStructure::MathematicalExpr(MathematicalExpression::Add(
+            add_left,
+            add_right,
+        )) = *gt_left
         {
-            if let Expression::Value(Value::Lit(Lit::Int(lit))) = *add_left {
+            if let ExpressionStructure::Value(Value::Lit(Lit::Int(lit))) = *add_left {
                 assert_eq!(lit.base10_parse::<i32>().unwrap(), 1)
             } else {
                 panic!("Add left value")
             }
 
-            if let Expression::MathematicalExpr(MathematicalExpression::Multi(
+            if let ExpressionStructure::MathematicalExpr(MathematicalExpression::Multi(
                 multi_left,
                 multi_right,
             )) = *add_right
             {
-                if let Expression::Value(Value::ExternalValue(ident)) = *multi_left {
+                if let ExpressionStructure::Value(Value::ExternalValue(ident)) = *multi_left {
                     assert_eq!(ident.to_string(), "value".to_string())
                 } else {
                     panic!("multi left")
                 }
 
-                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *multi_right {
+                if let ExpressionStructure::Value(Value::Lit(Lit::Int(lit))) = *multi_right {
                     assert_eq!(lit.base10_parse::<i32>().unwrap(), 10);
                 } else {
                     panic!("multi right")
@@ -444,13 +454,16 @@ fn test_expr() {
             panic!("Add");
         }
 
-        if let Expression::MathematicalExpr(MathematicalExpression::Mod(mod_left, mod_right)) =
-            *gt_right
+        if let ExpressionStructure::MathematicalExpr(MathematicalExpression::Mod(
+            mod_left,
+            mod_right,
+        )) = *gt_right
         {
-            if let Expression::MathematicalExpr(MathematicalExpression::BitInverse(inverse)) =
-                *mod_left
+            if let ExpressionStructure::MathematicalExpr(MathematicalExpression::BitInverse(
+                inverse,
+            )) = *mod_left
             {
-                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *inverse {
+                if let ExpressionStructure::Value(Value::Lit(Lit::Int(lit))) = *inverse {
                     assert_eq!(lit.base10_parse::<i32>().unwrap(), 10)
                 } else {
                     panic!("Inverse value");
@@ -459,11 +472,13 @@ fn test_expr() {
                 panic!("Inverse")
             }
 
-            if let Expression::MathematicalExpr(MathematicalExpression::Div(div_left, div_right)) =
-                *mod_right
+            if let ExpressionStructure::MathematicalExpr(MathematicalExpression::Div(
+                div_left,
+                div_right,
+            )) = *mod_right
             {
-                if let Expression::Function(Function::Average(aver)) = *div_left {
-                    if let Expression::IdentExpr(ident) = *aver {
+                if let ExpressionStructure::Function(Function::Average(aver)) = *div_left {
+                    if let ExpressionStructure::IdentExpr(ident) = *aver {
                         assert_eq!(ident.segments, vec!["foo".to_string(), "bar".to_string()]);
                     } else {
                         panic!("Ident");
@@ -472,7 +487,7 @@ fn test_expr() {
                     panic!("Function");
                 }
 
-                if let Expression::Value(Value::Lit(Lit::Int(lit))) = *div_right {
+                if let ExpressionStructure::Value(Value::Lit(Lit::Int(lit))) = *div_right {
                     assert_eq!(lit.base10_parse::<i32>().unwrap(), 3);
                 } else {
                     panic!("Div right");
@@ -491,38 +506,45 @@ fn test_expr() {
 #[test]
 fn test_logical() {
     use syn::Lit;
-    let expr: Expression = syn::parse_quote! {
+    let expr: ExpressionStructure = syn::parse_quote! {
         a.ratio > 20 AND (NOT b.ratio <= @value)
     };
 
-    if let Expression::MathematicalExpr(MathematicalExpression::And(and_left, and_right)) = expr {
-        if let Expression::MathematicalExpr(MathematicalExpression::GT(gt_left, gt_right)) =
-            *and_left
+    if let ExpressionStructure::MathematicalExpr(MathematicalExpression::And(and_left, and_right)) =
+        expr
+    {
+        if let ExpressionStructure::MathematicalExpr(MathematicalExpression::GT(
+            gt_left,
+            gt_right,
+        )) = *and_left
         {
-            if let Expression::IdentExpr(ident) = *gt_left {
+            if let ExpressionStructure::IdentExpr(ident) = *gt_left {
                 assert_eq!(ident.segments, vec!["a".to_string(), "ratio".to_string()]);
             } else {
                 panic!("A ident");
             }
 
-            if let Expression::Value(Value::Lit(Lit::Int(lit))) = *gt_right {
+            if let ExpressionStructure::Value(Value::Lit(Lit::Int(lit))) = *gt_right {
                 assert_eq!(lit.base10_parse::<i32>().unwrap(), 20);
             } else {
                 panic!("lit");
             }
         }
 
-        if let Expression::MathematicalExpr(MathematicalExpression::Not(not)) = *and_right {
-            if let Expression::MathematicalExpr(MathematicalExpression::LTE(lte_left, lte_right)) =
-                *not
+        if let ExpressionStructure::MathematicalExpr(MathematicalExpression::Not(not)) = *and_right
+        {
+            if let ExpressionStructure::MathematicalExpr(MathematicalExpression::LTE(
+                lte_left,
+                lte_right,
+            )) = *not
             {
-                if let Expression::IdentExpr(ident) = *lte_left {
+                if let ExpressionStructure::IdentExpr(ident) = *lte_left {
                     assert_eq!(ident.segments, vec!["b".to_string(), "ratio".to_string()]);
                 } else {
                     panic!("B ident");
                 }
 
-                if let Expression::Value(Value::ExternalValue(ident)) = *lte_right {
+                if let ExpressionStructure::Value(Value::ExternalValue(ident)) = *lte_right {
                     assert_eq!(ident.to_string(), "value".to_string());
                 } else {
                     panic!("external value");
