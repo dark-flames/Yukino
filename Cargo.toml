@@ -1,9 +1,11 @@
-[workspace]
+[package]
+name = "yukino"
+version = "0.1.0"
+authors = ["dark-flames <dark_flames@outlook.com>"]
+edition = "2018"
 
+[lib]
+
+[workspace]
 members = [
-    "yukino",
-    "yukino-core",
-    "yukino-cli",
-    "yukino-derive",
-    "yukino-test"
 ]
