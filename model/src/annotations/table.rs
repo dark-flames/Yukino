@@ -4,29 +4,29 @@ use std::collections::HashMap;
 /// a Field, we don't need to be concerned about how it is mapped to a Column;the framework will map
 /// the operations on the Field to the Column in the appropriate way.
 
-/// Annotation of Table
-/// Declare a struct to be a table of database
+/// Annotation of Model.
+/// Declare a struct to be a model.
 #[derive(Annotation, Clone)]
-pub struct Table {
-    /// Table name. If empty, it will be generated based on the name of the struct(
-    /// `CamelCase` style struct name will be convert into `snake_case`)
+pub struct Model {
+    /// Model name. If empty, it will be generated based on the name of the struct(
+    /// `CamelCase` style struct name will be convert into `snake_case`).
     pub name: Option<String>,
-    /// Index annotations of table, mapped by index name
-    pub indexes: Option<HashMap<String, Index>>,
+    /// Index annotations of Model, mapped by index name.
+    pub indexes: Option<HashMap<String, Index>>
 }
 
 /// Annotation of Index
-/// Define a index in table
+/// Define a index in model
 #[derive(Annotation, Clone)]
 pub struct Index {
-    /// Name of fields contained in the index
+    /// Name of fields contained in the index.
     pub fields: Vec<String>,
-    /// Index method. default to be `b_tree`
+    /// Index method. default to be `b_tree`.
     #[field(enum_value = true, default = "b_tree")]
     pub method: IndexMethod,
-    /// Is unique index. default to be false
+    /// Is unique index. default to be false.
     #[field(default = false)]
-    pub unique: bool,
+    pub unique: bool
 }
 
 /// Index Method enum
@@ -46,5 +46,5 @@ pub enum IndexMethod {
     #[cfg(any(feature = "postgre-sql"))]
     Gist,
     #[cfg(any(feature = "postgre-sql"))]
-    Brin,
+    Brin
 }
