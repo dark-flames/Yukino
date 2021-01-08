@@ -1,3 +1,4 @@
+#[doc(hidden)]
 use annotation_rs::Annotation;
 use std::collections::HashMap;
 

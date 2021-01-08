@@ -1,8 +1,12 @@
+#[doc(hidden)]
 use iroha::ToTokens;
+#[doc(hidden)]
 use serde_json::Value;
+#[doc(hidden)]
 #[cfg(any(feature = "data-time"))]
 use time::{Date, PrimitiveDateTime, Time};
 
+/// Field type in Yukino, may be different depends on platform or feature configuration
 #[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
 pub enum DatabaseType {
     SmallInteger,
@@ -37,8 +41,10 @@ pub enum DatabaseType {
     Json,
 }
 
+/// Binary data, type alias of `Vec<u8>`
 pub type Binary = Vec<u8>;
 
+/// Raw data of database. It can be automatically converted to and from variables in the Model.
 #[derive(Debug, Clone)]
 pub enum DatabaseValue {
     SmallInteger(i16),
@@ -72,4 +78,3 @@ pub enum DatabaseValue {
     #[cfg(any(feature = "json"))]
     Json(Value),
 }
-

@@ -1,3 +1,4 @@
+#[doc(hidden)]
 use annotation_rs::{Annotation, AnnotationEnumValue};
 use std::collections::HashMap;
 /// In Yukino model, every field will be mapping into several column in database. When we work with
