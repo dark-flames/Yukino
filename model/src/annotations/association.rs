@@ -49,7 +49,7 @@ pub struct InverseAssociation {
 /// Association reference action type
 /// The implementation may different depending on the platform and configuration, may be implemented
 /// by framework trigger, or the functionality of the database platform.
-#[derive(AnnotationEnumValue, Clone, Eq, Debug)]
+#[derive(AnnotationEnumValue, Clone, Debug)]
 pub enum ReferenceAction {
     /// Do nothing
     NoAction,
