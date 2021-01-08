@@ -12,7 +12,7 @@ pub struct Model {
     /// `CamelCase` style struct name will be convert into `snake_case`).
     pub name: Option<String>,
     /// Index annotations of Model, mapped by index name.
-    pub indexes: Option<HashMap<String, Index>>
+    pub indexes: Option<HashMap<String, Index>>,
 }
 
 /// Annotation of Index
@@ -26,7 +26,7 @@ pub struct Index {
     pub method: IndexMethod,
     /// Is unique index. default to be false.
     #[field(default = false)]
-    pub unique: bool
+    pub unique: bool,
 }
 
 /// Index Method enum
@@ -46,5 +46,5 @@ pub enum IndexMethod {
     #[cfg(any(feature = "postgre-sql"))]
     Gist,
     #[cfg(any(feature = "postgre-sql"))]
-    Brin
+    Brin,
 }

@@ -8,6 +8,20 @@ edition = "2018"
 
 [dependencies]
 annotation-rs = { version = "0.1" }
+rust_decimal = { version = "1.6", optional = true }
+time = { version = "0.2", optional = true }
+serde = { version = "1.0", optional = true }
+serde_json = { version = "1.0", optional = true }
+iroha = "0.1.3"
 quote = "1.0"
 syn = "1.0"
 proc-macro2 = "1.0"
+
+[features]
+default = ["mysql", "decimal", "json", "data-time"]
+mysql = []
+postgre-sql = []
+sqlite = []
+json = ["serde_json", "serde"]
+decimal = ["rust_decimal"]
+data-time = ["time"]

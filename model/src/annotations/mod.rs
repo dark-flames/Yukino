@@ -1,7 +1,7 @@
-mod model;
-mod column;
 mod association;
+mod column;
+mod model;
 
-pub use model::*;
-pub use column::*;
 pub use association::*;
+pub use column::*;
+pub use model::*;

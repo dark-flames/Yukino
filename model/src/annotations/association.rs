@@ -24,7 +24,7 @@ pub struct Association {
 
     /// Association reference action on deleting, default to be `Cascade`
     #[field(enum_value = true, default = "cascade")]
-    pub delete_action: ReferenceAction
+    pub delete_action: ReferenceAction,
 }
 
 /// Annotation of InverseAssociation.
@@ -43,7 +43,7 @@ pub struct InverseAssociation {
 
     /// Association reference action on deleting, default to be `Cascade`
     #[field(enum_value = true, default = "cascade")]
-    pub delete_action: ReferenceAction
+    pub delete_action: ReferenceAction,
 }
 
 /// Association reference action type

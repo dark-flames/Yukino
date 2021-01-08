@@ -23,7 +23,7 @@ pub struct Field {
     #[field(default = false)]
     pub auto_increase: bool,
     /// Optional config.
-    pub options: Option<HashMap<String, String>>
+    pub options: Option<HashMap<String, String>>,
 }
 
 /// Ignore field of struct.
