@@ -13,7 +13,7 @@ pub struct ID;
 /// If a field doesn't have a Field annotation, it will be generate automatically.
 #[derive(Annotation, Clone)]
 pub struct Field {
-    /// Field name. If empty, it will be generated based on the name of the field(
+    /// Column name(maybe prefix). If empty, it will be generated based on the name of the field(
     /// `CamelCase` style struct name will be convert into `snake_case`).
     pub name: Option<String>,
     /// Is unique field. default to be false.

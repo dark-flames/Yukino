@@ -8,7 +8,7 @@ use std::collections::HashMap;
 /// Declare a struct to be a model.
 #[derive(Annotation, Clone)]
 pub struct Model {
-    /// Model name. If empty, it will be generated based on the name of the struct(
+    /// target Table name(and prefix of attached tables). If empty, it will be generated based on the name of the struct(
     /// `CamelCase` style struct name will be convert into `snake_case`).
     pub name: Option<String>,
     /// Index annotations of Model, mapped by index name.
