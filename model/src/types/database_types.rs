@@ -44,7 +44,7 @@ pub enum DatabaseType {
 /// Binary data, type alias of `Vec<u8>`
 pub type Binary = Vec<u8>;
 
-/// Raw data of database. It can be automatically converted to and from variables in the Model.
+/// Raw data of database. It can be automatically converted to and from variables in the entity.
 #[derive(Debug, Clone)]
 pub enum DatabaseValue {
     SmallInteger(i16),
