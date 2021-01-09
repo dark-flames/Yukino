@@ -1,7 +1,7 @@
 mod association;
 mod column;
-mod model;
+mod entity;
 
 pub use association::*;
 pub use column::*;
-pub use model::*;
+pub use entity::*;
