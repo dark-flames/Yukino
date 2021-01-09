@@ -1,8 +1,8 @@
-use crate::resolver::{EntityResolver, FieldResolver};
-use std::collections::HashMap;
-use syn::{DeriveInput, Error as SynError, Data, Fields};
 use crate::annotations::Entity;
+use crate::resolver::{EntityResolver, FieldResolver};
 use annotation_rs::AnnotationStructure;
+use std::collections::HashMap;
+use syn::{Data, DeriveInput, Error as SynError, Fields};
 
 pub type EntityPath = String;
 pub type FieldName = String;
@@ -31,17 +31,20 @@ impl SchemaResolver {
     }
 
     pub fn parse(&mut self, input: DeriveInput, mod_path: &'static str) -> Result<(), SynError> {
-        let entity_annotation = match input.attrs.iter().filter_map(
-            |attr| if attr.path == Entity::get_path() {
-                Some(attr.parse_meta().and_then(
-                    |meta| Entity::from_meta(&meta)
-                ))
-            } else {
-                None
-            }
-        ).next() {
+        let entity_annotation = match input
+            .attrs
+            .iter()
+            .filter_map(|attr| {
+                if attr.path == Entity::get_path() {
+                    Some(attr.parse_meta().and_then(|meta| Entity::from_meta(&meta)))
+                } else {
+                    None
+                }
+            })
+            .next()
+        {
             Some(annotation) => Some(annotation?),
-            None => None
+            None => None,
         };
 
         if let Data::Struct(data_struct) = &input.data {
@@ -50,7 +53,7 @@ impl SchemaResolver {
                     input.ident.clone(),
                     mod_path,
                     data_struct.fields.len(),
-                    entity_annotation
+                    entity_annotation,
                 );
                 self.append_entity_resolver(entity_resolver);
                 Ok(())
@@ -68,7 +71,5 @@ impl SchemaResolver {
         }
     }
 
-    fn append_entity_resolver(&mut self, _resolver: EntityResolver) {
-
-    }
+    fn append_entity_resolver(&mut self, _resolver: EntityResolver) {}
 }

@@ -1,6 +1,6 @@
-use proc_macro2::{Ident};
 use crate::annotations::Entity;
 use heck::SnakeCase;
+use proc_macro2::Ident;
 use std::collections::HashMap;
 
 pub enum EntityResolveStatus {
@@ -16,7 +16,7 @@ pub struct EntityResolver {
     mod_path: &'static str,
     ident: Ident,
     field_count: usize,
-    annotation: Entity
+    annotation: Entity,
 }
 
 impl EntityResolver {
@@ -24,7 +24,7 @@ impl EntityResolver {
         ident: Ident,
         mod_path: &'static str,
         field_count: usize,
-        annotation: Option<Entity>
+        annotation: Option<Entity>,
     ) -> Self {
         EntityResolver {
             status: EntityResolveStatus::Unresolved,
@@ -33,8 +33,8 @@ impl EntityResolver {
             field_count,
             annotation: annotation.unwrap_or(Entity {
                 name: Some(ident.to_string().to_snake_case()),
-                indexes: Some(HashMap::new())
-            })
+                indexes: Some(HashMap::new()),
+            }),
         }
     }
 }
