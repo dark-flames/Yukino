@@ -1,8 +1,10 @@
 use crate::annotations::Entity;
+use crate::resolver::EntityPath;
 use heck::SnakeCase;
 use proc_macro2::Ident;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub enum EntityResolveStatus {
     Achieved,
     Finished,
@@ -36,5 +38,13 @@ impl EntityResolver {
                 indexes: Some(HashMap::new()),
             }),
         }
+    }
+
+    pub fn entity_name(&self) -> EntityPath {
+        format!("{}::{}", &self.mod_path, &self.ident)
+    }
+
+    pub fn status(&self) -> EntityResolveStatus {
+        self.status.clone()
     }
 }

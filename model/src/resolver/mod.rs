@@ -1,4 +1,5 @@
 mod entity_resolver;
+mod error;
 mod field_resolver;
 mod schema_resolver;
 

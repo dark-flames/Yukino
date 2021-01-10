@@ -1,6 +1,8 @@
 use crate::annotations::Entity;
-use crate::resolver::{EntityResolver, FieldResolver};
+use crate::resolver::error::ResolveError;
+use crate::resolver::{EntityResolveStatus, EntityResolver, FieldResolver};
 use annotation_rs::AnnotationStructure;
+use proc_macro2::Ident;
 use std::collections::HashMap;
 use syn::{Data, DeriveInput, Error as SynError, Fields};
 
@@ -49,27 +51,60 @@ impl SchemaResolver {
 
         if let Data::Struct(data_struct) = &input.data {
             if let Fields::Named(_) = &data_struct.fields {
-                let entity_resolver = EntityResolver::new(
+                self.append_entity_resolver(
                     input.ident.clone(),
                     mod_path,
                     data_struct.fields.len(),
                     entity_annotation,
-                );
-                self.append_entity_resolver(entity_resolver);
+                )?;
+
                 Ok(())
             } else {
-                Err(SynError::new_spanned(
-                    &input,
-                    "Field of struct must be named field",
-                ))
+                Err(ResolveError::UnsupportedEntityStructType.into_syn_error(&input))
             }
         } else {
-            Err(SynError::new_spanned(
-                &input,
-                "Enum or Union are not supported",
-            ))
+            Err(ResolveError::UnsupportedEntityStructure.into_syn_error(&input))
         }
     }
 
-    fn append_entity_resolver(&mut self, _resolver: EntityResolver) {}
+    fn execute_field_resolver(&mut self, _path: &FieldPath) {}
+
+    fn update_entity_resolver_status(&mut self, name: EntityPath) -> Result<(), SynError> {
+        let resolver = self
+            .entity_resolver
+            .get(&name)
+            .ok_or_else(|| ResolveError::EntityResolverNotFound(name.clone()).into_syn_error(""))?;
+
+        if let EntityResolveStatus::Finished = resolver.status() {
+            let empty = vec![];
+
+            let paths = self
+                .waiting_entity
+                .get(&name)
+                .unwrap_or_else(|| empty.as_ref())
+                .clone();
+
+            for path in paths.iter() {
+                self.execute_field_resolver(path)
+            }
+        }
+
+        Ok(())
+    }
+
+    fn append_entity_resolver(
+        &mut self,
+        ident: Ident,
+        mod_path: &'static str,
+        field_count: usize,
+        annotation: Option<Entity>,
+    ) -> Result<(), SynError> {
+        let resolver = EntityResolver::new(ident, mod_path, field_count, annotation);
+        let entity_name = resolver.entity_name();
+
+        self.entity_resolver
+            .insert(resolver.entity_name(), resolver);
+
+        self.update_entity_resolver_status(entity_name)
+    }
 }
