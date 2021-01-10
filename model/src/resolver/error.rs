@@ -1,4 +1,4 @@
-use crate::resolver::EntityPath;
+use crate::resolver::{EntityPath, FieldName};
 use quote::ToTokens;
 use syn::Error;
 use thiserror::Error;
@@ -9,8 +9,10 @@ pub enum ResolveError {
     UnsupportedEntityStructure,
     #[error("UnsupportedEntityStructType: Field of entity struct must be named field")]
     UnsupportedEntityStructType,
-    #[error("EntityResolverNotFound: EntityResolver of {0} is not found")]
+    #[error("EntityResolverNotFound: EntityResolver for {0} is not found")]
     EntityResolverNotFound(EntityPath),
+    #[error("FieldResolverNotFound: FieldResolver for {0} in {1} is not found")]
+    FieldResolverNotFound(EntityPath, FieldName),
 }
 
 impl ResolveError {

@@ -56,7 +56,8 @@ impl SchemaResolver {
                     mod_path,
                     data_struct.fields.len(),
                     entity_annotation,
-                )?;
+                )
+                .map_err(|err| err.into_syn_error(&input))?;
 
                 Ok(())
             } else {
@@ -67,27 +68,65 @@ impl SchemaResolver {
         }
     }
 
-    fn execute_field_resolver(&mut self, _path: &FieldPath) {}
+    fn get_field_resolver_mut(
+        &mut self,
+        field_path: &FieldPath,
+    ) -> Result<&mut ResolverBox, ResolveError> {
+        self.field_resolver
+            .get_mut(&field_path.0)
+            .map(|map| map.get_mut(&field_path.1))
+            .flatten()
+            .ok_or_else(|| {
+                ResolveError::FieldResolverNotFound(field_path.1.clone(), field_path.0.clone())
+            })
+    }
 
-    fn update_entity_resolver_status(&mut self, name: EntityPath) -> Result<(), SynError> {
-        let resolver = self
-            .entity_resolver
-            .get(&name)
-            .ok_or_else(|| ResolveError::EntityResolverNotFound(name.clone()).into_syn_error(""))?;
+    fn remove_field_resolver(
+        &mut self,
+        field_path: &FieldPath,
+    ) -> Result<ResolverBox, ResolveError> {
+        let field_map = self.field_resolver.get_mut(&field_path.0).ok_or_else(|| {
+            ResolveError::FieldResolverNotFound(field_path.1.clone(), field_path.0.clone())
+        })?;
 
-        if let EntityResolveStatus::Finished = resolver.status() {
+        field_map.remove(&field_path.1).ok_or_else(|| {
+            ResolveError::FieldResolverNotFound(field_path.1.clone(), field_path.0.clone())
+        })
+    }
+
+    fn update_entity_resolver_status(
+        &mut self,
+        entity_path: EntityPath,
+        status: EntityResolveStatus,
+    ) -> Result<(), ResolveError> {
+        if let EntityResolveStatus::Finished = status {
             let empty = vec![];
 
             let paths = self
                 .waiting_entity
-                .get(&name)
+                .get(&entity_path)
                 .unwrap_or_else(|| empty.as_ref())
                 .clone();
 
-            for path in paths.iter() {
-                self.execute_field_resolver(path)
+            for field_path in paths.iter() {
+                let mut resolver = self.remove_field_resolver(field_path)?;
+
+                let entity_resolver = self
+                    .entity_resolver
+                    .get(&entity_path)
+                    .ok_or_else(|| ResolveError::EntityResolverNotFound(entity_path.clone()))?;
+
+                resolver.resolve_by_waiting_entity(entity_resolver)?;
+
+                self.append_field_resolver(resolver)?;
             }
         }
+
+        Ok(())
+    }
+
+    fn update_field_resolver_status(&mut self, field_path: &FieldPath) -> Result<(), ResolveError> {
+        let _resolver = self.get_field_resolver_mut(field_path)?;
 
         Ok(())
     }
@@ -98,13 +137,28 @@ impl SchemaResolver {
         mod_path: &'static str,
         field_count: usize,
         annotation: Option<Entity>,
-    ) -> Result<(), SynError> {
+    ) -> Result<(), ResolveError> {
         let resolver = EntityResolver::new(ident, mod_path, field_count, annotation);
         let entity_name = resolver.entity_name();
+        let status = resolver.status();
 
         self.entity_resolver
             .insert(resolver.entity_name(), resolver);
 
-        self.update_entity_resolver_status(entity_name)
+        self.update_entity_resolver_status(entity_name, status)
+    }
+
+    fn append_field_resolver(&mut self, resolver: ResolverBox) -> Result<(), ResolveError> {
+        let field_path = resolver.field_path();
+
+        if let Some(map) = self.field_resolver.get_mut(&field_path.0) {
+            map.insert(field_path.1.clone(), resolver);
+        } else {
+            let mut map = HashMap::new();
+            map.insert(field_path.1.clone(), resolver);
+            self.field_resolver.insert(field_path.0.clone(), map);
+        };
+
+        self.update_field_resolver_status(&field_path)
     }
 }
