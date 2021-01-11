@@ -1,6 +1,6 @@
 use crate::annotations::Entity;
 use crate::resolver::error::ResolveError;
-use crate::resolver::{EntityPath, FieldName, ResolverBox};
+use crate::resolver::{EntityPath, FieldName, FieldResolverBox};
 use heck::SnakeCase;
 use proc_macro2::Ident;
 use std::collections::HashMap;
@@ -26,7 +26,7 @@ pub struct EntityResolver {
     ident: Ident,
     field_count: usize,
     annotation: Entity,
-    field_resolvers: HashMap<FieldName, ResolverBox>,
+    field_resolvers: HashMap<FieldName, FieldResolverBox>,
     primary_keys: Vec<String>,
 }
 
@@ -51,7 +51,7 @@ impl EntityResolver {
         }
     }
 
-    pub fn entity_name(&self) -> EntityPath {
+    pub fn entity_path(&self) -> EntityPath {
         format!("{}::{}", &self.mod_path, &self.ident)
     }
 
@@ -59,15 +59,15 @@ impl EntityResolver {
         self.status.clone()
     }
 
-    pub fn get_field_resolver(&self, field: &str) -> Result<&ResolverBox, ResolveError> {
+    pub fn get_field_resolver(&self, field: &str) -> Result<&FieldResolverBox, ResolveError> {
         self.field_resolvers.get(field).ok_or_else(|| {
-            ResolveError::FieldResolverNotFound(self.entity_name(), field.to_string())
+            ResolveError::FieldResolverNotFound(self.entity_path(), field.to_string())
         })
     }
 
     pub fn assemble_field(
         &mut self,
-        field: ResolverBox,
+        field: FieldResolverBox,
     ) -> Result<EntityResolveStatus, ResolveError> {
         if field.status().is_finished() {
             let mut primary_key_column_names = field.primary_key_column_names()?;

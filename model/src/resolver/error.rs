@@ -21,6 +21,8 @@ pub enum ResolveError {
     FieldResolverIsNotFinished(EntityPath, FieldName),
     #[error("FieldResolverStillSeed: Unexpect resolver status: Seed")]
     FieldResolverStillSeed,
+    #[error("NotSuitableResolverSeedsFound: No suitable resolver seeds found for {1} in {0}")]
+    NotSuitableResolverSeedsFound(EntityPath, FieldName),
 }
 
 impl ResolveError {

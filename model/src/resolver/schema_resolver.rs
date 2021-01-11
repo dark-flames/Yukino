@@ -1,4 +1,4 @@
-use crate::annotations::Entity;
+use crate::annotations::{Entity, FieldAnnotation};
 use crate::resolver::error::ResolveError;
 use crate::resolver::{EntityResolveStatus, EntityResolver, FieldResolver, FieldResolverStatus};
 use annotation_rs::AnnotationStructure;
@@ -10,19 +10,19 @@ pub type EntityPath = String;
 pub type FieldName = String;
 pub type FieldPath = (EntityPath, FieldName);
 
-pub(crate) type ResolverBox = Box<dyn FieldResolver>;
+pub type FieldResolverBox = Box<dyn FieldResolver>;
 
 #[allow(dead_code)]
 pub struct SchemaResolver {
-    field_resolver_seeds: Vec<ResolverBox>,
-    field_resolver: HashMap<EntityPath, HashMap<FieldName, ResolverBox>>,
+    field_resolver_seeds: Vec<FieldResolverBox>,
+    field_resolver: HashMap<EntityPath, HashMap<FieldName, FieldResolverBox>>,
     entity_resolver: HashMap<EntityPath, EntityResolver>,
     waiting_fields: HashMap<FieldPath, Vec<FieldPath>>,
     waiting_entity: HashMap<EntityPath, Vec<FieldPath>>,
 }
 
 impl SchemaResolver {
-    pub fn new(seeds: Vec<ResolverBox>) -> Self {
+    pub fn new(seeds: Vec<FieldResolverBox>) -> Self {
         SchemaResolver {
             field_resolver_seeds: seeds,
             field_resolver: HashMap::new(),
@@ -50,14 +50,50 @@ impl SchemaResolver {
         };
 
         if let Data::Struct(data_struct) = &input.data {
-            if let Fields::Named(_named_fields) = &data_struct.fields {
-                self.append_entity_resolver(
-                    input.ident.clone(),
-                    mod_path,
-                    data_struct.fields.len(),
-                    entity_annotation,
-                )
-                .map_err(|err| err.into_syn_error(&input))?;
+            if let Fields::Named(named_fields) = &data_struct.fields {
+                let entity_path = self
+                    .append_entity_resolver(
+                        input.ident.clone(),
+                        mod_path,
+                        data_struct.fields.len(),
+                        entity_annotation,
+                    )
+                    .map_err(|err| err.into_syn_error(&input))?;
+
+                for field in named_fields.named.iter() {
+                    let field_annotations = field
+                        .attrs
+                        .iter()
+                        .map(|attr| FieldAnnotation::from_attr(attr))
+                        .collect::<Result<Vec<FieldAnnotation>, SynError>>()?;
+                    let field_name = field.ident.as_ref().unwrap().to_string();
+                    let field_resolver = self
+                        .field_resolver_seeds
+                        .iter()
+                        .fold(
+                            Err(ResolveError::NotSuitableResolverSeedsFound(
+                                entity_path.clone(),
+                                field_name,
+                            )),
+                            |result, seed| {
+                                if result.is_err()
+                                    && seed.match_field(&field_annotations, &field.ty)
+                                {
+                                    seed.breed(
+                                        entity_path.clone(),
+                                        field.ident.as_ref().unwrap(),
+                                        &field_annotations,
+                                        &field.ty,
+                                    )
+                                } else {
+                                    result
+                                }
+                            },
+                        )
+                        .map_err(|e| e.into_syn_error(field))?;
+
+                    self.append_field_resolver(field_resolver);
+                }
 
                 Ok(())
             } else {
@@ -68,7 +104,7 @@ impl SchemaResolver {
         }
     }
 
-    fn get_field_resolver(&self, field_path: &FieldPath) -> Result<&ResolverBox, ResolveError> {
+    fn get_field_resolver(&self, field_path: &FieldPath) -> Result<&FieldResolverBox, ResolveError> {
         self.field_resolver
             .get(&field_path.0)
             .map(|map| map.get(&field_path.1))
@@ -102,7 +138,7 @@ impl SchemaResolver {
     fn remove_field_resolver(
         &mut self,
         field_path: &FieldPath,
-    ) -> Result<ResolverBox, ResolveError> {
+    ) -> Result<FieldResolverBox, ResolveError> {
         let field_map = self.field_resolver.get_mut(&field_path.0).ok_or_else(|| {
             ResolveError::FieldResolverNotFound(field_path.0.clone(), field_path.1.clone())
         })?;
@@ -122,7 +158,7 @@ impl SchemaResolver {
             let resolvers = fields
                 .iter()
                 .map(|path| self.get_field_resolver(path))
-                .collect::<Result<Vec<&ResolverBox>, ResolveError>>()?;
+                .collect::<Result<Vec<&FieldResolverBox>, ResolveError>>()?;
 
             if resolvers.iter().all(|item| item.status().is_finished()) {
                 resolver.resolve_by_waiting_fields(resolvers).map(Some)
@@ -274,18 +310,20 @@ impl SchemaResolver {
         mod_path: &'static str,
         field_count: usize,
         annotation: Option<Entity>,
-    ) -> Result<(), ResolveError> {
+    ) -> Result<EntityPath, ResolveError> {
         let resolver = EntityResolver::new(ident, mod_path, field_count, annotation);
-        let entity_name = resolver.entity_name();
+        let entity_path = resolver.entity_path();
         let status = resolver.status();
 
         self.entity_resolver
-            .insert(resolver.entity_name(), resolver);
+            .insert(resolver.entity_path(), resolver);
 
-        self.update_entity_resolver_status(&entity_name, status)
+        self.update_entity_resolver_status(&entity_path, status)?;
+
+        Ok(entity_path)
     }
 
-    fn append_field_resolver(&mut self, resolver: ResolverBox) {
+    fn append_field_resolver(&mut self, resolver: FieldResolverBox) {
         let field_path = resolver.field_path();
 
         if let Some(map) = self.field_resolver.get_mut(&field_path.0) {
