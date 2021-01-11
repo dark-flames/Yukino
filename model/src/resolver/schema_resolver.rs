@@ -50,7 +50,7 @@ impl SchemaResolver {
         };
 
         if let Data::Struct(data_struct) = &input.data {
-            if let Fields::Named(_) = &data_struct.fields {
+            if let Fields::Named(_named_fields) = &data_struct.fields {
                 self.append_entity_resolver(
                     input.ident.clone(),
                     mod_path,
