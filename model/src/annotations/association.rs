@@ -13,6 +13,7 @@ use annotation_rs::Annotation;
 /// `InverseAssociation` field, but if it conflicts with the type of the `Association` field, an
 /// error will be thrown.
 #[derive(Annotation, Clone)]
+#[mod_path = "yukino::annotations"]
 pub struct Association {
     /// Field names of attachment side entity. Specifies how the object will be mapped, using the
     /// primary key of the target object by default.
@@ -25,6 +26,7 @@ pub struct Association {
 /// in the database. `InverseAssociation` field is optional, if you don't need to get the owning side
 /// entity by the attachment side entity, then you don't need to add a `InverseAssociation` field.
 #[derive(Annotation, Clone)]
+#[mod_path = "yukino::annotations"]
 pub struct InverseAssociation {
     /// Owning side field name.
     pub inversed_by: String,
