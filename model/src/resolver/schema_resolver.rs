@@ -104,7 +104,10 @@ impl SchemaResolver {
         }
     }
 
-    fn get_field_resolver(&self, field_path: &FieldPath) -> Result<&FieldResolverBox, ResolveError> {
+    fn get_field_resolver(
+        &self,
+        field_path: &FieldPath,
+    ) -> Result<&FieldResolverBox, ResolveError> {
         self.field_resolver
             .get(&field_path.0)
             .map(|map| map.get(&field_path.1))
