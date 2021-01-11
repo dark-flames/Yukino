@@ -24,6 +24,8 @@ pub trait FieldResolver {
 
     fn field_path(&self) -> FieldPath;
 
+    fn entity_path(&self) -> EntityPath;
+
     fn resolve_by_waiting_entity(
         &mut self,
         resolver: &EntityResolver,
@@ -33,4 +35,23 @@ pub trait FieldResolver {
         &mut self,
         resolvers: Vec<&ResolverBox>,
     ) -> Result<FieldResolverStatus, ResolveError>;
+
+    fn assemble(
+        &mut self,
+        entity_resolver: &EntityResolver,
+    ) -> Result<FieldResolverStatus, ResolveError>;
+
+    fn column_names(&self) -> Result<Vec<String>, ResolveError>;
+
+    fn primary_key_column_names(&self) -> Result<Vec<String>, ResolveError> {
+        if self.status().is_finished() {
+            Ok(vec![])
+        } else {
+            let field_path = self.field_path();
+            Err(ResolveError::FieldResolverIsNotFinished(
+                field_path.0.clone(),
+                field_path.1,
+            ))
+        }
+    }
 }

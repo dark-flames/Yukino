@@ -11,8 +11,16 @@ pub enum ResolveError {
     UnsupportedEntityStructType,
     #[error("EntityResolverNotFound: EntityResolver for {0} is not found")]
     EntityResolverNotFound(EntityPath),
-    #[error("FieldResolverNotFound: FieldResolver for {0} in {1} is not found")]
+    #[error("FieldResolverNotFound: FieldResolver for {1} in {0} is not found")]
     FieldResolverNotFound(EntityPath, FieldName),
+    #[error("FailToAssembleField: Fail to assemble field {1} in {0} is not found")]
+    FailToAssembleField(EntityPath, FieldName),
+    #[error("UnfinishedFieldCanNotAssembleToEntity: Unfinished field({1} in {0}) can not assemble to entity resolver")]
+    UnfinishedFieldCanNotAssembleToEntity(EntityPath, FieldName),
+    #[error("FieldResolverIsNotFinished: Field resolver for {1} in {0} is not finished")]
+    FieldResolverIsNotFinished(EntityPath, FieldName),
+    #[error("FieldResolverStillSeed: Unexpect resolver status: Seed")]
+    FieldResolverStillSeed,
 }
 
 impl ResolveError {

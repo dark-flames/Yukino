@@ -1,5 +1,6 @@
 use crate::annotations::Entity;
-use crate::resolver::EntityPath;
+use crate::resolver::error::ResolveError;
+use crate::resolver::{EntityPath, FieldName, ResolverBox};
 use heck::SnakeCase;
 use proc_macro2::Ident;
 use std::collections::HashMap;
@@ -12,6 +13,12 @@ pub enum EntityResolveStatus {
     Unresolved,
 }
 
+impl EntityResolveStatus {
+    pub fn is_finished(&self) -> bool {
+        matches!(&self, EntityResolveStatus::Finished)
+    }
+}
+
 #[allow(dead_code)]
 pub struct EntityResolver {
     status: EntityResolveStatus,
@@ -19,6 +26,8 @@ pub struct EntityResolver {
     ident: Ident,
     field_count: usize,
     annotation: Entity,
+    field_resolvers: HashMap<FieldName, ResolverBox>,
+    primary_keys: Vec<String>,
 }
 
 impl EntityResolver {
@@ -37,6 +46,8 @@ impl EntityResolver {
                 name: Some(ident.to_string().to_snake_case()),
                 indexes: Some(HashMap::new()),
             }),
+            field_resolvers: HashMap::new(),
+            primary_keys: vec![],
         }
     }
 
@@ -46,5 +57,38 @@ impl EntityResolver {
 
     pub fn status(&self) -> EntityResolveStatus {
         self.status.clone()
+    }
+
+    pub fn get_field_resolver(&self, field: &str) -> Result<&ResolverBox, ResolveError> {
+        self.field_resolvers.get(field).ok_or_else(|| {
+            ResolveError::FieldResolverNotFound(self.entity_name(), field.to_string())
+        })
+    }
+
+    pub fn assemble_field(
+        &mut self,
+        field: ResolverBox,
+    ) -> Result<EntityResolveStatus, ResolveError> {
+        if field.status().is_finished() {
+            let mut primary_key_column_names = field.primary_key_column_names()?;
+
+            self.primary_keys.append(&mut primary_key_column_names);
+
+            self.field_resolvers.insert(field.field_path().1, field);
+
+            self.status = if self.field_resolvers.len() == self.field_count {
+                EntityResolveStatus::Finished
+            } else {
+                EntityResolveStatus::Assemble
+            };
+
+            Ok(self.status.clone())
+        } else {
+            let field_path = field.field_path();
+            Err(ResolveError::UnfinishedFieldCanNotAssembleToEntity(
+                field_path.0.clone(),
+                field_path.1,
+            ))
+        }
     }
 }
