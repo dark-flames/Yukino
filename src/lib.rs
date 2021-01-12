@@ -1,1 +1,1 @@
-pub use model::*;
+pub use entity::*;

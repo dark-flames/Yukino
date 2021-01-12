@@ -158,10 +158,6 @@ impl EntityResolver {
             })
         }
     }
-
-    pub fn get_definitions(&self) -> Vec<TableDefinition> {
-        vec![]
-    }
 }
 
 pub struct AchievedEntityResolver {
