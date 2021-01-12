@@ -1,6 +1,10 @@
 use crate::annotations::{Entity, FieldAnnotation};
+use crate::definitions::TableDefinition;
 use crate::resolver::error::ResolveError;
-use crate::resolver::{EntityResolveStatus, EntityResolver, FieldResolver, FieldResolverStatus};
+use crate::resolver::{
+    AchievedEntityResolver, AchievedFieldResolver, EntityResolveStatus, EntityResolver,
+    FieldResolverBox, FieldResolverSeedBox, FieldResolverStatus,
+};
 use annotation_rs::AnnotationStructure;
 use proc_macro2::Ident;
 use std::collections::HashMap;
@@ -10,11 +14,9 @@ pub type EntityPath = String;
 pub type FieldName = String;
 pub type FieldPath = (EntityPath, FieldName);
 
-pub type FieldResolverBox = Box<dyn FieldResolver>;
-
 #[allow(dead_code)]
 pub struct SchemaResolver {
-    field_resolver_seeds: Vec<FieldResolverBox>,
+    field_resolver_seeds: Vec<FieldResolverSeedBox>,
     field_resolver: HashMap<EntityPath, HashMap<FieldName, FieldResolverBox>>,
     entity_resolver: HashMap<EntityPath, EntityResolver>,
     waiting_fields: HashMap<FieldPath, Vec<FieldPath>>,
@@ -22,7 +24,7 @@ pub struct SchemaResolver {
 }
 
 impl SchemaResolver {
-    pub fn new(seeds: Vec<FieldResolverBox>) -> Self {
+    pub fn new(seeds: Vec<FieldResolverSeedBox>) -> Self {
         SchemaResolver {
             field_resolver_seeds: seeds,
             field_resolver: HashMap::new(),
@@ -71,7 +73,7 @@ impl SchemaResolver {
                         .field_resolver_seeds
                         .iter()
                         .fold(
-                            Err(ResolveError::NotSuitableResolverSeedsFound(
+                            Err(ResolveError::NoSuitableResolverSeedsFound(
                                 entity_path.clone(),
                                 field_name,
                             )),
@@ -104,20 +106,38 @@ impl SchemaResolver {
         }
     }
 
-    fn get_field_resolver(
+    pub fn achieve(self) -> Result<ImmutableSchemaResolver, SynError> {
+        if let Some(map) = self.field_resolver.values().next() {
+            if let Some(resolver) = map.values().next() {
+                let field_path = resolver.field_path();
+                return Err(ResolveError::FieldResolverIsNotFinished(
+                    field_path.0.clone(),
+                    field_path.1,
+                )
+                .into_syn_error(""));
+            }
+        }
+
+        let resolvers = self
+            .entity_resolver
+            .into_iter()
+            .map(|(path, resolver)| resolver.achieve().map(|achieved| (path, achieved)))
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.into_syn_error(""))?;
+
+        Ok(ImmutableSchemaResolver {
+            resolvers: resolvers.into_iter().collect(),
+        })
+    }
+
+    fn get_achieved_field_resolver(
         &self,
         field_path: &FieldPath,
-    ) -> Result<&FieldResolverBox, ResolveError> {
-        self.field_resolver
+    ) -> Result<&AchievedFieldResolver, ResolveError> {
+        self.entity_resolver
             .get(&field_path.0)
-            .map(|map| map.get(&field_path.1))
+            .map(|entity_resolver| entity_resolver.get_field_resolver(&field_path.1).ok())
             .flatten()
-            .or_else(|| {
-                self.entity_resolver
-                    .get(&field_path.0)
-                    .map(|entity_resolver| entity_resolver.get_field_resolver(&field_path.1).ok())
-                    .flatten()
-            })
             .ok_or_else(|| {
                 ResolveError::FieldResolverNotFound(field_path.0.clone(), field_path.1.clone())
             })
@@ -146,9 +166,15 @@ impl SchemaResolver {
             ResolveError::FieldResolverNotFound(field_path.0.clone(), field_path.1.clone())
         })?;
 
-        field_map.remove(&field_path.1).ok_or_else(|| {
+        let result = field_map.remove(&field_path.1).ok_or_else(|| {
             ResolveError::FieldResolverNotFound(field_path.0.clone(), field_path.1.clone())
-        })
+        });
+
+        if field_map.is_empty() {
+            self.field_resolver.remove(&field_path.0);
+        }
+
+        result
     }
 
     fn try_to_resolve_by_fields(
@@ -157,24 +183,25 @@ impl SchemaResolver {
     ) -> Result<Option<FieldResolverStatus>, ResolveError> {
         let mut resolver = self.remove_field_resolver(field_path)?;
 
-        if let FieldResolverStatus::WaitingForFields(fields) = resolver.status() {
-            let resolvers = fields
+        let result = if let FieldResolverStatus::WaitingForFields(fields) = resolver.status() {
+            let resolvers: Vec<_> = fields
                 .iter()
-                .map(|path| self.get_field_resolver(path))
-                .collect::<Result<Vec<&FieldResolverBox>, ResolveError>>()?;
+                .map(|path| (path.clone(), self.get_achieved_field_resolver(path).ok()))
+                .collect();
 
-            if resolvers.iter().all(|item| item.status().is_finished()) {
-                resolver.resolve_by_waiting_fields(resolvers).map(Some)
+            if resolvers.iter().any(|(_, resolver)| resolver.is_none()) {
+                resolver
+                    .resolve_by_waiting_fields(
+                        resolvers
+                            .into_iter()
+                            .filter_map(|(_, resolver)| resolver)
+                            .collect(),
+                    )
+                    .map(Some)
             } else {
                 let paths: Vec<_> = resolvers
                     .into_iter()
-                    .filter_map(|item| {
-                        if !item.status().is_finished() {
-                            Some(item.field_path())
-                        } else {
-                            None
-                        }
-                    })
+                    .filter_map(|(name, item)| item.map(|_| name))
                     .collect();
                 for path in paths {
                     if let Some(list) = self.waiting_fields.get_mut(&path) {
@@ -189,7 +216,11 @@ impl SchemaResolver {
             }
         } else {
             Ok(None)
-        }
+        };
+
+        self.append_field_resolver(resolver);
+
+        result
     }
 
     fn update_entity_resolver_status(
@@ -230,20 +261,19 @@ impl SchemaResolver {
         status: FieldResolverStatus,
     ) -> Result<(), ResolveError> {
         if let Some(new_status) = match status {
-            FieldResolverStatus::Finished => {
-                let default = Vec::new();
-                let waiting_list = self.waiting_fields.remove(&field_path).unwrap_or(default);
+            FieldResolverStatus::WaitingAssemble => {
+                let mut resolver = self.remove_field_resolver(field_path)?;
+                let entity_path = resolver.entity_path();
+                let entity_resolver = self.get_entity_resolver(&entity_path)?;
 
-                for field in waiting_list {
-                    self.try_to_resolve_by_fields(&field)?;
-                }
+                let achieved = resolver.assemble(entity_resolver)?;
 
                 let resolver = self.remove_field_resolver(field_path)?;
                 let entity_path = resolver.entity_path();
 
                 if let EntityResolveStatus::Finished = self
                     .get_entity_resolver_mut(&entity_path)?
-                    .assemble_field(resolver)?
+                    .assemble_field(achieved)?
                 {
                     self.update_entity_resolver_status(
                         &entity_path,
@@ -251,29 +281,14 @@ impl SchemaResolver {
                     )?;
                 }
 
+                let default = Vec::new();
+                let waiting_list = self.waiting_fields.remove(&field_path).unwrap_or(default);
+
+                for field in waiting_list {
+                    self.try_to_resolve_by_fields(&field)?;
+                }
+
                 None
-            }
-            FieldResolverStatus::WaitingAssemble => {
-                let mut resolver = self.remove_field_resolver(field_path)?;
-                let entity_path = resolver.entity_path();
-                let entity_resolver = self.get_entity_resolver(&entity_path)?;
-
-                match resolver.assemble(entity_resolver) {
-                    Ok(status) if !status.is_finished() => {
-                        Err(ResolveError::FieldResolverNotFound(
-                            field_path.0.clone(),
-                            field_path.1.clone(),
-                        ))
-                    }
-                    Ok(_) => Ok(()),
-                    e => e.map(|_| ()),
-                }?;
-
-                let result = resolver.status();
-
-                self.append_field_resolver(resolver);
-
-                Some(result)
             }
             FieldResolverStatus::WaitingForEntity(entity_path) => {
                 let mut resolver = self.remove_field_resolver(field_path)?;
@@ -299,7 +314,6 @@ impl SchemaResolver {
             FieldResolverStatus::WaitingForFields(_) => {
                 self.try_to_resolve_by_fields(field_path)?
             }
-            FieldResolverStatus::Seed => return Err(ResolveError::FieldResolverStillSeed),
         } {
             self.update_field_resolver_status(&field_path, new_status)?;
         }
@@ -336,5 +350,19 @@ impl SchemaResolver {
             map.insert(field_path.1.clone(), resolver);
             self.field_resolver.insert(field_path.0.clone(), map);
         };
+    }
+}
+
+pub struct ImmutableSchemaResolver {
+    resolvers: HashMap<EntityPath, AchievedEntityResolver>,
+}
+
+impl ImmutableSchemaResolver {
+    pub fn get_definitions(&self) -> Vec<TableDefinition> {
+        self.resolvers
+            .values()
+            .map(|resolver| resolver.definitions.clone())
+            .flatten()
+            .collect()
     }
 }

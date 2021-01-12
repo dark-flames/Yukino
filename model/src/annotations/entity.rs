@@ -36,7 +36,7 @@ pub struct Index {
 /// Variants may change depending on the platform
 /// * "hash" is not support on `sqlite`
 /// * "gin", "sp_gin", "gist", "brin" is only available on `postgre-sql`
-#[derive(AnnotationEnumValue, Clone, Debug)]
+#[derive(AnnotationEnumValue, Copy, Clone, Debug)]
 #[mod_path = "yukino::annotations"]
 pub enum IndexMethod {
     BTree,

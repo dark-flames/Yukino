@@ -1,28 +1,26 @@
 use crate::annotations::FieldAnnotation;
+use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::resolver::error::ResolveError;
-use crate::resolver::{EntityPath, EntityResolver, FieldPath, FieldResolverBox};
+use crate::resolver::{EntityPath, EntityResolver, FieldPath};
 use proc_macro2::Ident;
 use syn::Type;
 
 pub enum FieldResolverStatus {
-    Seed,
     WaitingForFields(Vec<FieldPath>),
     WaitingForEntity(EntityPath),
     WaitingAssemble,
-    Finished,
 }
 
 impl FieldResolverStatus {
     pub fn is_waiting_for_entity(&self, entity_path: &str) -> bool {
         matches!(self, FieldResolverStatus::WaitingForEntity(path) if path == entity_path)
     }
-
-    pub fn is_finished(&self) -> bool {
-        matches!(self, FieldResolverStatus::Finished)
-    }
 }
 
-pub trait FieldResolver {
+pub type FieldResolverBox = Box<dyn FieldResolver>;
+pub type FieldResolverSeedBox = Box<dyn FieldResolverSeed>;
+
+pub trait FieldResolverSeed {
     fn breed(
         &self,
         entity_path: EntityPath,
@@ -32,7 +30,9 @@ pub trait FieldResolver {
     ) -> Result<FieldResolverBox, ResolveError>;
 
     fn match_field(&self, annotations: &[FieldAnnotation], field_type: &Type) -> bool;
+}
 
+pub trait FieldResolver {
     fn status(&self) -> FieldResolverStatus;
 
     fn field_path(&self) -> FieldPath;
@@ -46,25 +46,40 @@ pub trait FieldResolver {
 
     fn resolve_by_waiting_fields(
         &mut self,
-        resolvers: Vec<&FieldResolverBox>,
+        resolvers: Vec<&AchievedFieldResolver>,
     ) -> Result<FieldResolverStatus, ResolveError>;
 
     fn assemble(
         &mut self,
         entity_resolver: &EntityResolver,
-    ) -> Result<FieldResolverStatus, ResolveError>;
+    ) -> Result<AchievedFieldResolver, ResolveError>;
+}
 
-    fn column_names(&self) -> Result<Vec<String>, ResolveError>;
+pub struct AchievedFieldResolver {
+    pub field_path: FieldPath,
+    pub columns: Vec<ColumnDefinition>,
+    pub joined_table: Vec<TableDefinition>,
+    pub foreign_keys: Vec<ForeignKeyDefinition>,
+}
 
-    fn primary_key_column_names(&self) -> Result<Vec<String>, ResolveError> {
-        if self.status().is_finished() {
-            Ok(vec![])
-        } else {
-            let field_path = self.field_path();
-            Err(ResolveError::FieldResolverIsNotFinished(
-                field_path.0.clone(),
-                field_path.1,
-            ))
-        }
+impl AchievedFieldResolver {
+    pub fn primary_key_column_names(&self) -> Vec<String> {
+        self.columns
+            .iter()
+            .filter_map(|column| {
+                if column.primary_key {
+                    Some(column.name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn column_names(&self) -> Vec<String> {
+        self.columns
+            .iter()
+            .map(|column| column.name.clone())
+            .collect()
     }
 }
