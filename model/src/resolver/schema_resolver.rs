@@ -228,7 +228,7 @@ impl SchemaResolver {
         entity_path: &str,
         status: EntityResolveStatus,
     ) -> Result<(), ResolveError> {
-        if let EntityResolveStatus::Finished = status {
+        if EntityResolveStatus::Finished == status {
             let empty = vec![];
 
             let paths = self
@@ -271,9 +271,10 @@ impl SchemaResolver {
                 let resolver = self.remove_field_resolver(field_path)?;
                 let entity_path = resolver.entity_path();
 
-                if let EntityResolveStatus::Finished = self
-                    .get_entity_resolver_mut(&entity_path)?
-                    .assemble_field(achieved)?
+                if EntityResolveStatus::Finished
+                    == self
+                        .get_entity_resolver_mut(&entity_path)?
+                        .assemble_field(achieved)?
                 {
                     self.update_entity_resolver_status(
                         &entity_path,
@@ -294,7 +295,7 @@ impl SchemaResolver {
                 let mut resolver = self.remove_field_resolver(field_path)?;
                 let entity_resolver = self.get_entity_resolver(&entity_path)?;
 
-                let result = if let EntityResolveStatus::Finished = entity_resolver.status() {
+                let result = if EntityResolveStatus::Finished == entity_resolver.status() {
                     Some(resolver.resolve_by_waiting_entity(entity_resolver)?)
                 } else {
                     if let Some(fields) = self.waiting_entity.get_mut(&entity_path) {
