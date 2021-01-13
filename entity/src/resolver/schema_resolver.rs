@@ -7,7 +7,8 @@ use crate::resolver::{
 };
 use crate::CompileError;
 use annotation_rs::AnnotationStructure;
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
+use quote::ToTokens;
 use std::collections::HashMap;
 use syn::{Data, DeriveInput, Error as SynError, Fields};
 
@@ -366,5 +367,16 @@ impl ImmutableSchemaResolver {
             .map(|resolver| resolver.definitions.clone())
             .flatten()
             .collect()
+    }
+
+    pub fn get_implements(&mut self) -> TokenStream {
+        self.resolvers
+            .values()
+            .map(|resolver| &resolver.implement)
+            .fold(TokenStream::new(), |mut previous, current| {
+                current.to_tokens(&mut previous);
+
+                previous
+            })
     }
 }

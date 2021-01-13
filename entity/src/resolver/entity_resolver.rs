@@ -7,9 +7,11 @@ use crate::resolver::{AchievedFieldResolver, EntityPath, FieldName};
 use crate::types::DatabaseType;
 use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
+use quote::{format_ident, quote};
 use std::collections::HashMap;
+use std::str::FromStr;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum EntityResolveStatus {
     Finished,
     Assemble,
@@ -62,7 +64,7 @@ impl EntityResolver {
     }
 
     pub fn status(&self) -> EntityResolveStatus {
-        self.status.clone()
+        self.status
     }
 
     pub fn get_field_resolver(&self, field: &str) -> Result<&AchievedFieldResolver, ResolveError> {
@@ -88,7 +90,7 @@ impl EntityResolver {
             EntityResolveStatus::Assemble
         };
 
-        Ok(self.status.clone())
+        Ok(self.status)
     }
 
     pub fn achieve(mut self) -> Result<AchievedEntityResolver, ResolveError> {
@@ -153,9 +155,92 @@ impl EntityResolver {
             });
 
             Ok(AchievedEntityResolver {
-                definitions: tables,
-                implement: Default::default(),
+                definitions: tables.clone(),
+                implement: self.get_implement_token_stream(tables),
             })
+        }
+    }
+
+    fn get_implement_token_stream(&self, definitions: Vec<TableDefinition>) -> TokenStream {
+        assert_eq!(self.status(), EntityResolveStatus::Assemble);
+        let ident = TokenStream::from_str(self.entity_path().as_str()).unwrap();
+
+        let converters: Vec<_> = self
+            .field_resolvers
+            .values()
+            .into_iter()
+            .map(|resolver| resolver.data_converter_token_stream.clone())
+            .collect();
+
+        let temp_values: Vec<_> = self
+            .field_resolvers
+            .values()
+            .map(|resolver| {
+                let method = resolver.data_converter_getter_ident();
+
+                let field_ident = format_ident!("{}", &resolver.field_path.1);
+
+                quote::quote! {
+                    let #field_ident = Self::#method().to_value(result)?
+                }
+            })
+            .collect();
+
+        let fields: Vec<_> = self
+            .field_resolvers
+            .values()
+            .map(|resolver| format_ident!("{}", &resolver.field_path.1))
+            .collect();
+
+        let inserts: Vec<_> = self
+            .field_resolvers
+            .values()
+            .map(|resolver| {
+                let method = resolver.data_converter_getter_ident();
+
+                let field_ident = format_ident!("{}", &resolver.field_path.1);
+
+                quote::quote! {
+                    map.extend(Self::#method().to_database_value_by_ref(&self.#field_ident)?)
+                }
+            })
+            .collect();
+
+        quote! {
+            impl #ident {
+                #(#converters)*
+            }
+
+            impl yukino::Entity for #ident {
+                fn from_database_value(
+                    result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>
+                ) -> Result<Box<Self>, yukino::ParseError> {
+                    use yukino::mapping::resolver::ValueConverter;
+
+                    #(#temp_values;)*
+
+                    Ok(Box::new(
+                        #ident {
+                            #(#fields),*
+                        }
+                    ))
+                }
+
+                fn to_database_value(&self)
+                    -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError> {
+                    let mut map = std::collections::HashMap::new();
+                    use yukino::mapping::resolver::ValueConverter;
+                    #(#inserts;)*
+
+                    Ok(map)
+                }
+
+                fn get_definitions() -> Vec<yukino::mapping::definition::TableDefinition> {
+                    vec![
+                        #(#definitions),*
+                    ]
+                }
+            }
         }
     }
 }

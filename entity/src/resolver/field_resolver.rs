@@ -2,7 +2,7 @@ use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::resolver::error::ResolveError;
 use crate::resolver::{EntityPath, EntityResolver, FieldPath};
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use syn::Type;
 
 pub enum FieldResolverStatus {
@@ -60,6 +60,7 @@ pub struct AchievedFieldResolver {
     pub columns: Vec<ColumnDefinition>,
     pub joined_table: Vec<TableDefinition>,
     pub foreign_keys: Vec<ForeignKeyDefinition>,
+    pub data_converter_token_stream: TokenStream,
 }
 
 impl AchievedFieldResolver {
@@ -81,5 +82,9 @@ impl AchievedFieldResolver {
             .iter()
             .map(|column| column.name.clone())
             .collect()
+    }
+
+    pub fn data_converter_getter_ident(&self) -> Ident {
+        quote::format_ident!("get_{}_converter", &self.field_path.1)
     }
 }
