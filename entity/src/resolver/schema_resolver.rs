@@ -5,6 +5,7 @@ use crate::resolver::{
     AchievedEntityResolver, AchievedFieldResolver, EntityResolveStatus, EntityResolver,
     FieldResolverBox, FieldResolverSeedBox, FieldResolverStatus,
 };
+use crate::CompileError;
 use annotation_rs::AnnotationStructure;
 use proc_macro2::Ident;
 use std::collections::HashMap;
