@@ -1,5 +1,5 @@
 mod entity_resolver;
-mod error;
+pub mod error;
 mod field_resolver;
 mod schema_resolver;
 

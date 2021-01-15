@@ -20,7 +20,13 @@ impl FieldResolverStatus {
 pub type FieldResolverBox = Box<dyn FieldResolver>;
 pub type FieldResolverSeedBox = Box<dyn FieldResolverSeed>;
 
-pub trait FieldResolverSeed {
+pub trait ConstructableFieldResolverSeed {
+    fn new() -> Self
+    where
+        Self: Sized;
+}
+
+pub trait FieldResolverSeed: ConstructableFieldResolverSeed {
     fn breed(
         &self,
         entity_path: EntityPath,

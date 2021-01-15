@@ -1,4 +1,3 @@
-use crate::interface::CompileError;
 use crate::resolver::{EntityPath, FieldName};
 use quote::ToTokens;
 use syn::Error;
@@ -28,8 +27,8 @@ pub enum ResolveError {
     NoSuitableResolverSeedsFound(EntityPath, FieldName),
 }
 
-impl CompileError for ResolveError {
-    fn into_syn_error<T: ToTokens>(self, tokens: T) -> Error {
+impl ResolveError {
+    pub fn into_syn_error<T: ToTokens>(self, tokens: T) -> Error {
         Error::new_spanned(tokens, self)
     }
 }
