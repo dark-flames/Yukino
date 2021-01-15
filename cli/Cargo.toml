@@ -1,0 +1,16 @@
+[package]
+name = "yukino-cli"
+version = "0.1.0"
+authors = ["dark-flames <dark_flames@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cmd_lib = "0.8.5"
+clap = { version = "2.33.3" }
+entity = { package = "yukino-entity", path = "../entity", version = "0.1.0" }
+quote = "1.0"
+syn = { version = "1.0", features = ["derive", "parsing", "printing", "clone-impls", "proc-macro", "extra-traits", "full"]}
+thiserror = "1.0"
+proc-macro2 = "1.0"
