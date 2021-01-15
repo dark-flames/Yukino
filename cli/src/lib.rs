@@ -17,12 +17,13 @@ macro_rules! cli_entry {
     ) => {
         use yukino::resolver::onstructableFieldResolverSeed;
         use yukino::CommandLineEntry;
+        use std::collections::HashMap;
         pub fn main() {
             let crate_path = env!("CARGO_MANIFEST_DIR");
             CommandLineEntry::new(
-                vec![$(Box::new($resolver::get_seed())),*],
+                vec![$(Box::new($resolver::new())),*],
                 {
-                    let mut map = std::collections::HashMap::new();
+                    let mut map = HashMap::new();
                     $(
                         map.insert($mod_path, format!("{}/{}", crate_path, $file));
                     )*
