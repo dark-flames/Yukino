@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cmd_lib = "0.8.5"
+cmd_lib = "0.7.8"
 clap = { version = "2.33.3" }
 entity = { package = "yukino-entity", path = "../entity", version = "0.1.0" }
 quote = "1.0"

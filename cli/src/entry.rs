@@ -60,7 +60,7 @@ impl CommandLineEntry {
         self.resolver.resolve()?.write_result()?;
 
         for cmd in cmd_list {
-            run_cmd(cmd.to_string())?
+            run_cmd(cmd)?
         }
 
         Ok(())

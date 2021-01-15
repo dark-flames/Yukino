@@ -214,8 +214,8 @@ impl EntityResolver {
             impl yukino::Entity for #ident {
                 fn from_database_value(
                     result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>
-                ) -> Result<Box<Self>, yukino::ParseError> {
-                    use yukino::mapping::resolver::ValueConverter;
+                ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
+                    use yukino::resolver::ValueConverter;
 
                     #(#temp_values;)*
 
@@ -227,15 +227,18 @@ impl EntityResolver {
                 }
 
                 fn to_database_value(&self)
-                    -> Result<std::collections::HashMap<String, yukino::mapping::DatabaseValue>, yukino::ParseError> {
+                    -> Result<
+                        std::collections::HashMap<String, yukino::types::DatabaseValue>,
+                        yukino::DataConvertError
+                    > {
                     let mut map = std::collections::HashMap::new();
-                    use yukino::mapping::resolver::ValueConverter;
+                    use yukino::resolver::ValueConverter;
                     #(#inserts;)*
 
                     Ok(map)
                 }
 
-                fn get_definitions() -> Vec<yukino::mapping::definition::TableDefinition> {
+                fn get_definitions() -> Vec<yukino::definitions::TableDefinition> {
                     vec![
                         #(#definitions),*
                     ]
