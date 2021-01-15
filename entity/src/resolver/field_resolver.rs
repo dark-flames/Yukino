@@ -1,8 +1,11 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
-use crate::resolver::error::ResolveError;
+use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityPath, EntityResolver, FieldPath};
+use crate::types::DatabaseValue;
 use proc_macro2::{Ident, TokenStream};
+use quote::ToTokens;
+use std::collections::HashMap;
 use syn::Type;
 
 pub enum FieldResolverStatus {
@@ -59,6 +62,22 @@ pub trait FieldResolver {
         &mut self,
         entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError>;
+}
+
+pub trait ValueConverter<T>: ToTokens {
+    fn to_value(&self, values: &HashMap<String, DatabaseValue>) -> Result<T, DataConvertError>;
+
+    fn to_database_value(
+        &self,
+        value: T,
+    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+        self.to_database_value_by_ref(&value)
+    }
+
+    fn to_database_value_by_ref(
+        &self,
+        value: &T,
+    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
 }
 
 pub struct AchievedFieldResolver {

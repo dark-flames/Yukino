@@ -32,3 +32,6 @@ impl ResolveError {
         Error::new_spanned(tokens, self)
     }
 }
+
+#[derive(Error, Debug)]
+pub enum DataConvertError {}

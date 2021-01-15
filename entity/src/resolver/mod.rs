@@ -1,3 +1,4 @@
+mod default_resolver;
 mod entity_resolver;
 pub mod error;
 mod field_resolver;

@@ -1,6 +1,6 @@
 use crate::definitions::TableDefinition;
+use crate::resolver::error::DataConvertError;
 use crate::types::DatabaseValue;
-use crate::DataConvertError;
 use std::collections::HashMap;
 
 pub trait Entity {
