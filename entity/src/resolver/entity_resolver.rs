@@ -144,7 +144,7 @@ impl EntityResolver {
                         unique: index.unique,
                     })
                 })
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, ResolveError>>()?;
 
             tables.push(TableDefinition {
                 name: self.annotation.name.clone().unwrap(),
@@ -176,7 +176,7 @@ impl EntityResolver {
             .field_resolvers
             .values()
             .map(|resolver| {
-                let method = resolver.data_converter_getter_ident();
+                let method = resolver.converter_getter_ident.clone();
 
                 let field_ident = format_ident!("{}", &resolver.field_path.1);
 
@@ -196,7 +196,7 @@ impl EntityResolver {
             .field_resolvers
             .values()
             .map(|resolver| {
-                let method = resolver.data_converter_getter_ident();
+                let method = resolver.converter_getter_ident.clone();
 
                 let field_ident = format_ident!("{}", &resolver.field_path.1);
 

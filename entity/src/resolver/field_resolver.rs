@@ -30,15 +30,13 @@ pub trait ConstructableFieldResolverSeed {
 }
 
 pub trait FieldResolverSeed: ConstructableFieldResolverSeed {
-    fn breed(
+    fn try_breed(
         &self,
         entity_path: EntityPath,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
     ) -> Result<FieldResolverBox, ResolveError>;
-
-    fn match_field(&self, annotations: &[FieldAnnotation], field_type: &Type) -> bool;
 }
 
 pub trait FieldResolver {
@@ -86,6 +84,7 @@ pub struct AchievedFieldResolver {
     pub joined_table: Vec<TableDefinition>,
     pub foreign_keys: Vec<ForeignKeyDefinition>,
     pub data_converter_token_stream: TokenStream,
+    pub converter_getter_ident: Ident,
 }
 
 impl AchievedFieldResolver {
@@ -107,9 +106,5 @@ impl AchievedFieldResolver {
             .iter()
             .map(|column| column.name.clone())
             .collect()
-    }
-
-    pub fn data_converter_getter_ident(&self) -> Ident {
-        quote::format_ident!("get_{}_converter", &self.field_path.1)
     }
 }

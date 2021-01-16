@@ -25,6 +25,8 @@ pub enum ResolveError {
     FieldResolverStillSeed,
     #[error("NoSuitableResolverSeedsFound: No suitable resolver seeds found for {1} in {0}")]
     NoSuitableResolverSeedsFound(EntityPath, FieldName),
+    #[error("{0}")]
+    Others(String),
 }
 
 impl ResolveError {
@@ -34,4 +36,15 @@ impl ResolveError {
 }
 
 #[derive(Error, Debug)]
-pub enum DataConvertError {}
+pub enum DataConvertError {
+    #[error("UnexpectedDatabaseValue: Unexpected DatabaseValue on field({1} in {0})")]
+    UnexpectedDatabaseValue(EntityPath, FieldName),
+    #[error("UnsupportedFieldType: \"{0}\" type is not supported by {1}")]
+    UnsupportedFieldType(String, &'static str),
+}
+
+impl From<DataConvertError> for ResolveError {
+    fn from(e: DataConvertError) -> Self {
+        ResolveError::Others(e.to_string())
+    }
+}

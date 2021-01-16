@@ -79,10 +79,8 @@ impl SchemaResolver {
                                 field_name,
                             )),
                             |result, seed| {
-                                if result.is_err()
-                                    && seed.match_field(&field_annotations, &field.ty)
-                                {
-                                    seed.breed(
+                                if result.is_err() {
+                                    seed.try_breed(
                                         entity_path.clone(),
                                         field.ident.as_ref().unwrap(),
                                         &field_annotations,
