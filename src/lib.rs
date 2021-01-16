@@ -1,3 +1,4 @@
 pub use entity::*;
 
-pub use cli::CommandLineEntry;
+pub use cli::*;
+pub use proc_macro::Yukino;

@@ -19,11 +19,11 @@ impl CommandLineEntry {
         model_files_path: HashMap<ModePath, String>,
         output_file_path: String,
         after_resolve: Vec<&'static str>,
-    ) -> Result<Self, CLIError> {
-        Ok(CommandLineEntry {
-            resolver: Resolver::new(seeds, model_files_path, output_file_path)?,
+    ) -> Self {
+        CommandLineEntry {
+            resolver: Self::handle_result(Resolver::new(seeds, model_files_path, output_file_path)),
             after_setup: after_resolve,
-        })
+        }
     }
 
     pub fn process(self) {

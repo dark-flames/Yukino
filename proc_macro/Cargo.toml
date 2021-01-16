@@ -1,0 +1,16 @@
+[package]
+name = "yukino-proc-macro"
+version = "0.1.0"
+authors = ["dark-flames <dark_flames@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+entity = { package = "yukino-entity", path="../entity", version = "0.1.0" }
+quote = "1.0"
+syn = "1.0"
+proc-macro2 = "1.0"
+
+[lib]
+proc-macro=true

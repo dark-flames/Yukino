@@ -92,8 +92,12 @@ impl SchemaResolver {
                             },
                         )
                         .map_err(|e| e.into_syn_error(field))?;
+                    let status = field_resolver.status();
+                    let field_path = field_resolver.field_path();
 
                     self.append_field_resolver(field_resolver);
+                    self.update_field_resolver_status(&field_path, status)
+                        .map_err(|e| e.into_syn_error(field))?;
                 }
 
                 Ok(())
@@ -266,10 +270,6 @@ impl SchemaResolver {
                 let entity_resolver = self.get_entity_resolver(&entity_path)?;
 
                 let achieved = resolver.assemble(entity_resolver)?;
-
-                let resolver = self.remove_field_resolver(field_path)?;
-                let entity_path = resolver.entity_path();
-
                 if EntityResolveStatus::Finished
                     == self
                         .get_entity_resolver_mut(&entity_path)?

@@ -1,9 +1,10 @@
 mod entry;
 mod error;
-pub mod resolver;
+mod resolver;
 
 pub use entry::*;
 pub use error::*;
+pub use resolver::*;
 
 #[macro_export]
 macro_rules! cli_entry {
@@ -15,7 +16,7 @@ macro_rules! cli_entry {
         },
         output_file = $output_path: literal
     ) => {
-        use yukino::resolver::onstructableFieldResolverSeed;
+        use yukino::resolver::ConstructableFieldResolverSeed;
         use yukino::CommandLineEntry;
         use std::collections::HashMap;
         pub fn main() {

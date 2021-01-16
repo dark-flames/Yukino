@@ -162,7 +162,7 @@ impl EntityResolver {
     }
 
     fn get_implement_token_stream(&self, definitions: Vec<TableDefinition>) -> TokenStream {
-        assert_eq!(self.status(), EntityResolveStatus::Assemble);
+        assert_eq!(self.status(), EntityResolveStatus::Finished);
         let ident = TokenStream::from_str(self.entity_path().as_str()).unwrap();
 
         let converters: Vec<_> = self
@@ -213,7 +213,7 @@ impl EntityResolver {
 
             impl yukino::Entity for #ident {
                 fn from_database_value(
-                    result: &std::collections::HashMap<String, yukino::mapping::DatabaseValue>
+                    result: &std::collections::HashMap<String, yukino::types::DatabaseValue>
                 ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
                     use yukino::resolver::ValueConverter;
 
@@ -229,7 +229,7 @@ impl EntityResolver {
                 fn to_database_value(&self)
                     -> Result<
                         std::collections::HashMap<String, yukino::types::DatabaseValue>,
-                        yukino::DataConvertError
+                        yukino::resolver::error::DataConvertError
                     > {
                     let mut map = std::collections::HashMap::new();
                     use yukino::resolver::ValueConverter;

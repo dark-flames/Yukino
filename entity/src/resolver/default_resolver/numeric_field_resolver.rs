@@ -2,9 +2,8 @@ use crate::annotations::{Field, FieldAnnotation};
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
-    AchievedFieldResolver, ConstructableFieldResolverSeed, EntityPath, EntityResolver, FieldName,
-    FieldPath, FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus,
-    ValueConverter,
+    AchievedFieldResolver, ConstructableFieldResolverSeed, EntityPath, EntityResolver, FieldPath,
+    FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter,
 };
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
@@ -286,8 +285,8 @@ macro_rules! impl_converter {
         #[Iroha(mod_path = "yukino::resolver::default_resolver")]
         pub struct $ident {
             column_name: String,
-            entity_path: EntityPath,
-            field_name: FieldName,
+            entity_path: String,
+            field_name: String,
         }
 
         impl ValueConverter<$output_type> for $ident {
