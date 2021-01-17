@@ -1,1 +1,2 @@
 mod entities;
+mod schema;
