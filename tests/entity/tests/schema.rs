@@ -1,14 +1,11 @@
 use std::collections::HashMap;
-use yukino_test_entity::entities::Foo;
 use yukino::types::DatabaseValue;
 use yukino::Entity;
+use yukino_test_entity::entities::Foo;
 
 #[test]
 pub fn test_foo() {
-    let key = [
-        "integer".to_string(),
-        "int16".to_string()
-    ];
+    let key = ["integer".to_string(), "int16".to_string()];
 
     let mut raw_data = HashMap::new();
     raw_data.insert(key[0].clone(), DatabaseValue::UnsignedInteger(114514));

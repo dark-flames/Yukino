@@ -8,7 +8,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+  test-all:
     name: Cargo test
     runs-on: ${{matrix.os}}-latest
     strategy:
@@ -17,9 +17,26 @@ jobs:
         os: [ubuntu, windows]
     steps:
       - uses: actions/checkout@v2
-      - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo run --package yukino-test-entity --bin cli setup
-      - run: cargo test --all-features
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt, clippy
+          override: true
+      - name: Generate schema file
+        uses: actions-rs/cargo@v1
+        with:
+          command: run
+          args: --package yukino-test-entity --bin cli setup
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --all-features
+      - name: Run test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
 
   clippy:
     name: Clippy

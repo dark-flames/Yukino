@@ -9,6 +9,10 @@ edition = "2018"
 [dependencies]
 yukino = { path = "../../", version = "0.1.0" }
 
+[dev-dependencies]
+
+
+
 [lib]
 path = "src/lib.rs"
 
