@@ -1,4 +1,4 @@
-use crate::annotations::FieldAnnotation;
+use crate::annotations::{Field, FieldAnnotation};
 use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityPath, EntityResolver, FieldPath};
@@ -38,6 +38,37 @@ pub trait FieldResolverSeed: ConstructableFieldResolverSeed {
         annotations: &[FieldAnnotation],
         field_type: &Type,
     ) -> Result<FieldResolverBox, ResolveError>;
+
+    fn default_annotations(annotations: &[FieldAnnotation]) -> Field
+    where
+        Self: Sized,
+    {
+        let default_annotation = Field {
+            name: None,
+            unique: false,
+            auto_increase: false,
+            options: None,
+        };
+
+        annotations
+            .iter()
+            .filter_map(|attr| match attr {
+                FieldAnnotation::Field(field_annotation) => Some(field_annotation),
+                _ => None,
+            })
+            .next()
+            .cloned()
+            .unwrap_or(default_annotation)
+    }
+
+    fn is_primary_key(annotations: &[FieldAnnotation]) -> bool
+    where
+        Self: Sized,
+    {
+        annotations
+            .iter()
+            .any(|attr| matches!(attr, FieldAnnotation::ID(_)))
+    }
 }
 
 pub trait FieldResolver {

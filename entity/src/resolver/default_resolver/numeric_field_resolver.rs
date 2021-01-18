@@ -1,4 +1,4 @@
-use crate::annotations::{Field, FieldAnnotation};
+use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
@@ -178,25 +178,7 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
             )
         })?;
 
-        let primary_key = annotations
-            .iter()
-            .any(|attr| matches!(attr, FieldAnnotation::ID(_)));
-
-        let default_annotation = Field {
-            name: None,
-            unique: false,
-            auto_increase: false,
-            options: None,
-        };
-
-        let field = annotations
-            .iter()
-            .filter_map(|attr| match attr {
-                FieldAnnotation::Field(field_annotation) => Some(field_annotation),
-                _ => None,
-            })
-            .next()
-            .unwrap_or(&default_annotation);
+        let field = Self::default_annotations(annotations);
 
         let definition = ColumnDefinition {
             name: field
@@ -208,7 +190,7 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
             data_type: ty.database_type(),
             unique: field.unique,
             auto_increase: field.auto_increase,
-            primary_key,
+            primary_key: Self::is_primary_key(annotations),
         };
 
         Ok(Box::new(NumericFieldResolver {
