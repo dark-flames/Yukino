@@ -24,20 +24,18 @@ impl FieldResolverStatus {
 pub type FieldResolverBox = Box<dyn FieldResolver>;
 pub type FieldResolverSeedBox = Box<dyn FieldResolverSeed>;
 
-pub trait ConstructableFieldResolverSeed {
+pub trait FieldResolverSeed {
     fn new() -> Self
     where
         Self: Sized;
-}
 
-pub trait FieldResolverSeed: ConstructableFieldResolverSeed {
     fn try_breed(
         &self,
         entity_path: EntityPath,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-    ) -> Result<FieldResolverBox, ResolveError>;
+    ) -> Option<Result<FieldResolverBox, ResolveError>>;
 
     fn default_annotations(annotations: &[FieldAnnotation]) -> Field
     where
@@ -92,6 +90,10 @@ pub trait FieldResolver {
         &mut self,
         entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError>;
+
+    fn default_converter_getter_ident(&self) -> Ident {
+        quote::format_ident!("get_{}_converter", &self.field_path().1)
+    }
 }
 
 pub trait ValueConverter<T>: ToTokens {

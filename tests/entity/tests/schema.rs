@@ -1,3 +1,4 @@
+use serde_json::json;
 use std::collections::HashMap;
 use yukino::types::DatabaseValue;
 use yukino::Entity;
@@ -5,23 +6,51 @@ use yukino_test_entity::entities::Foo;
 
 #[test]
 pub fn test_foo() {
-    let key = ["integer".to_string(), "int16".to_string()];
+    let data = [
+        ("integer", DatabaseValue::UnsignedInteger(114514)),
+        ("int16", DatabaseValue::SmallInteger(1919)),
+        ("list", DatabaseValue::Json(json!(["114515", "1919"]))),
+        (
+            "map",
+            DatabaseValue::Json(json!({
+                "114": "514",
+                "1919": "810"
+            })),
+        ),
+    ];
 
     let mut raw_data = HashMap::new();
-    raw_data.insert(key[0].clone(), DatabaseValue::UnsignedInteger(114514));
-    raw_data.insert(key[1].clone(), DatabaseValue::SmallInteger(1919));
+
+    for (key, value) in data.iter() {
+        raw_data.insert(key.to_string(), value.clone());
+    }
 
     let object = *Foo::from_database_value(&raw_data).unwrap();
 
-    let raw_data = object.to_database_value().unwrap();
+    let result = object.to_database_value().unwrap();
 
-    match raw_data.get(&key[0]).unwrap() {
+    match result.get(data[0].0).unwrap() {
         DatabaseValue::UnsignedInteger(value) => assert_eq!(value.clone(), 114514),
         _ => panic!(),
     }
 
-    match raw_data.get(&key[1]).unwrap() {
+    match result.get(data[1].0).unwrap() {
         DatabaseValue::SmallInteger(value) => assert_eq!(value.clone(), 1919),
+        _ => panic!(),
+    }
+    match result.get(data[2].0).unwrap() {
+        DatabaseValue::Json(value) => assert_eq!(value.clone(), json!(["114515", "1919"])),
+        _ => panic!(),
+    }
+
+    match result.get(data[3].0).unwrap() {
+        DatabaseValue::Json(value) => assert_eq!(
+            value.clone(),
+            json!({
+                "114": "514",
+                "1919": "810"
+            })
+        ),
         _ => panic!(),
     }
 }

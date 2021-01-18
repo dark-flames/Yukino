@@ -86,6 +86,7 @@ impl SchemaResolver {
                                         &field_annotations,
                                         &field.ty,
                                     )
+                                    .unwrap_or(result)
                                 } else {
                                     result
                                 }

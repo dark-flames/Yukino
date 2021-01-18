@@ -16,7 +16,7 @@ macro_rules! cli_entry {
         },
         output_file = $output_path: literal
     ) => {
-        use yukino::resolver::ConstructableFieldResolverSeed;
+        use yukino::resolver::FieldResolverSeed;
         use yukino::CommandLineEntry;
         use std::collections::HashMap;
         pub fn main() {

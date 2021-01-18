@@ -2,8 +2,8 @@ use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
-    AchievedFieldResolver, ConstructableFieldResolverSeed, EntityPath, EntityResolver, FieldPath,
-    FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter,
+    AchievedFieldResolver, EntityPath, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
+    FieldResolverSeed, FieldResolverStatus, ValueConverter,
 };
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
@@ -147,36 +147,27 @@ impl NumericType {
 
 pub struct NumericFieldResolverSeed;
 
-impl ConstructableFieldResolverSeed for NumericFieldResolverSeed {
+impl FieldResolverSeed for NumericFieldResolverSeed {
     fn new() -> Self
     where
         Self: Sized,
     {
         NumericFieldResolverSeed
     }
-}
-
-impl FieldResolverSeed for NumericFieldResolverSeed {
     fn try_breed(
         &self,
         entity_path: EntityPath,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-    ) -> Result<FieldResolverBox, ResolveError> {
+    ) -> Option<Result<FieldResolverBox, ResolveError>> {
         let ty = match field_type {
             Type::Path(type_path) => match type_path.path.segments.first() {
                 Some(first_segment) => NumericType::from_ident(&first_segment.ident),
                 None => None,
             },
             _ => None,
-        }
-        .ok_or_else(|| {
-            DataConvertError::UnsupportedFieldType(
-                field_type.to_token_stream().to_string(),
-                "NumericFieldResolverSeed",
-            )
-        })?;
+        }?;
 
         let field = Self::default_annotations(annotations);
 
@@ -193,11 +184,11 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
             primary_key: Self::is_primary_key(annotations),
         };
 
-        Ok(Box::new(NumericFieldResolver {
+        Some(Ok(Box::new(NumericFieldResolver {
             field_path: (entity_path, ident.to_string()),
             ty,
             definition,
-        }))
+        })))
     }
 }
 
@@ -238,7 +229,7 @@ impl FieldResolver for NumericFieldResolver {
         &mut self,
         _entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError> {
-        let method_name = quote::format_ident!("get_{}_converter", &self.field_path().1);
+        let method_name = self.default_converter_getter_ident();
         let output_type = self.ty.converter_name();
         let converter = self
             .ty
@@ -278,7 +269,7 @@ macro_rules! impl_converter {
             ) -> Result<$output_type, DataConvertError> {
                 match values.get(&self.column_name) {
                     Some(DatabaseValue::$database_value(value)) => Ok(*value),
-                    _ => Err(DataConvertError::UnexpectedDatabaseValue(
+                    _ => Err(DataConvertError::UnexpectedDatabaseValueType(
                         self.entity_path.clone(),
                         self.field_name.clone(),
                     )),

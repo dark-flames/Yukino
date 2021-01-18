@@ -37,10 +37,12 @@ impl ResolveError {
 
 #[derive(Error, Debug)]
 pub enum DataConvertError {
-    #[error("UnexpectedDatabaseValue: Unexpected DatabaseValue on field({1} in {0})")]
-    UnexpectedDatabaseValue(EntityPath, FieldName),
+    #[error("UnexpectedDatabaseValueType: Unexpected type of DatabaseValue on field({1} in {0})")]
+    UnexpectedDatabaseValueType(EntityPath, FieldName),
     #[error("UnsupportedFieldType: \"{0}\" type is not supported by {1}")]
     UnsupportedFieldType(String, &'static str),
+    #[error("DatabaseValueConvertError: Error({0}) occur while converting field({2} in {1})")]
+    DatabaseValueConvertError(String, EntityPath, FieldName),
 }
 
 impl From<DataConvertError> for ResolveError {
