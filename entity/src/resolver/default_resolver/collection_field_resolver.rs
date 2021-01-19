@@ -135,10 +135,6 @@ impl FieldResolver for CollectionFieldResolver {
         self.field_path.clone()
     }
 
-    fn entity_path(&self) -> EntityPath {
-        self.field_path.0.clone()
-    }
-
     fn resolve_by_waiting_entity(
         &mut self,
         _resolver: &EntityResolver,

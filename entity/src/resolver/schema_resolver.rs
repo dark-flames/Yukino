@@ -266,7 +266,7 @@ impl SchemaResolver {
         if let Some(new_status) = match status {
             FieldResolverStatus::WaitingAssemble => {
                 let mut resolver = self.remove_field_resolver(field_path)?;
-                let entity_path = resolver.entity_path();
+                let entity_path = resolver.field_path().0;
                 let entity_resolver = self.get_entity_resolver(&entity_path)?;
 
                 let achieved = resolver.assemble(entity_resolver)?;

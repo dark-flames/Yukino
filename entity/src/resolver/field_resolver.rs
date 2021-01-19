@@ -74,8 +74,6 @@ pub trait FieldResolver {
 
     fn field_path(&self) -> FieldPath;
 
-    fn entity_path(&self) -> EntityPath;
-
     fn resolve_by_waiting_entity(
         &mut self,
         resolver: &EntityResolver,
