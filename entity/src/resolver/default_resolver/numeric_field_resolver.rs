@@ -40,53 +40,62 @@ impl NumericType {
         &self,
         column_name: String,
         field_path: FieldPath,
+        is_primary_key: bool,
     ) -> TokenStream {
         let field_name = field_path.1.clone();
         let entity_path = field_path.0;
         match self {
             NumericType::Integer(16) => (SmallIntegerValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::Integer(32) => (IntegerValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::Integer(64) => (BigIntegerValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(16) => (UnsignedSmallIntegerValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(32) => (UnsignedIntegerValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(64) => (UnsignedBigIntegerValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::Float(32) => (FloatValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
             })
             .to_token_stream(),
             NumericType::Float(64) => (DoubleValueConverter {
+                is_primary_key,
                 column_name,
                 field_name,
                 entity_path,
@@ -229,9 +238,11 @@ impl FieldResolver for NumericFieldResolver {
     ) -> Result<AchievedFieldResolver, ResolveError> {
         let method_name = self.default_converter_getter_ident();
         let output_type = self.ty.converter_name();
-        let converter = self
-            .ty
-            .converter_token_stream(self.definition.name.clone(), self.field_path.clone());
+        let converter = self.ty.converter_token_stream(
+            self.definition.name.clone(),
+            self.field_path.clone(),
+            self.definition.primary_key,
+        );
 
         let data_converter_token_stream = quote::quote! {
             pub fn #method_name() -> #output_type {
@@ -255,13 +266,14 @@ macro_rules! impl_converter {
         #[derive(ToTokens)]
         #[Iroha(mod_path = "yukino::resolver::default_resolver")]
         pub struct $ident {
+            is_primary_key: bool,
             column_name: String,
             entity_path: String,
             field_name: String,
         }
 
         impl ValueConverter<$output_type> for $ident {
-            fn to_value(
+            fn to_field_value(
                 &self,
                 values: &HashMap<String, DatabaseValue>,
             ) -> Result<$output_type, DataConvertError> {
@@ -274,17 +286,28 @@ macro_rules! impl_converter {
                 }
             }
 
-            fn to_database_value_by_ref(
+            fn to_database_values_by_ref(
                 &self,
                 value: &$output_type,
             ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
-                let mut map = std::collections::HashMap::new();
+                let mut map = HashMap::new();
                 map.insert(
                     self.column_name.clone(),
                     DatabaseValue::$database_value(*value),
                 );
 
                 Ok(map)
+            }
+
+            fn primary_column_values_by_ref(
+                &self,
+                value: &$output_type,
+            ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+                if self.is_primary_key {
+                    self.to_database_values_by_ref(value)
+                } else {
+                    Ok(HashMap::new())
+                }
             }
         }
     };

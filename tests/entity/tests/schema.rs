@@ -28,7 +28,7 @@ pub fn test_foo() {
 
     let object = *Foo::from_database_value(&raw_data).unwrap();
 
-    let result = object.to_database_value().unwrap();
+    let result = object.to_database_values().unwrap();
 
     match result.get(data[0].0).unwrap() {
         DatabaseValue::UnsignedInteger(value) => assert_eq!(value.clone(), 114514),

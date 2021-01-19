@@ -97,16 +97,24 @@ pub trait FieldResolver {
 }
 
 pub trait ValueConverter<T>: ToTokens {
-    fn to_value(&self, values: &HashMap<String, DatabaseValue>) -> Result<T, DataConvertError>;
+    fn to_field_value(
+        &self,
+        values: &HashMap<String, DatabaseValue>,
+    ) -> Result<T, DataConvertError>;
 
-    fn to_database_value(
+    fn to_database_values(
         &self,
         value: T,
     ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
-        self.to_database_value_by_ref(&value)
+        self.to_database_values_by_ref(&value)
     }
 
-    fn to_database_value_by_ref(
+    fn to_database_values_by_ref(
+        &self,
+        value: &T,
+    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
+
+    fn primary_column_values_by_ref(
         &self,
         value: &T,
     ) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;

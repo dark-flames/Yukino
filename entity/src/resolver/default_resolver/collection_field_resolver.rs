@@ -192,7 +192,7 @@ impl<T> ValueConverter<Vec<T>> for ListValueConverter
 where
     T: Serialize + DeserializeOwned,
 {
-    fn to_value(
+    fn to_field_value(
         &self,
         values: &HashMap<String, DatabaseValue>,
     ) -> Result<Vec<T>, DataConvertError> {
@@ -212,7 +212,7 @@ where
         }
     }
 
-    fn to_database_value_by_ref(
+    fn to_database_values_by_ref(
         &self,
         value: &Vec<T>,
     ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
@@ -232,6 +232,13 @@ where
 
         Ok(result)
     }
+
+    fn primary_column_values_by_ref(
+        &self,
+        _value: &Vec<T>,
+    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+        Ok(HashMap::new())
+    }
 }
 
 #[derive(ToTokens)]
@@ -247,7 +254,7 @@ where
     K: Eq + Hash + Serialize + DeserializeOwned,
     V: Serialize + DeserializeOwned,
 {
-    fn to_value(
+    fn to_field_value(
         &self,
         values: &HashMap<String, DatabaseValue>,
     ) -> Result<HashMap<K, V>, DataConvertError> {
@@ -267,7 +274,7 @@ where
         }
     }
 
-    fn to_database_value_by_ref(
+    fn to_database_values_by_ref(
         &self,
         value: &HashMap<K, V>,
     ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
@@ -286,5 +293,12 @@ where
         result.insert(key, DatabaseValue::Json(json_value));
 
         Ok(result)
+    }
+
+    fn primary_column_values_by_ref(
+        &self,
+        _value: &HashMap<K, V>,
+    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+        Ok(HashMap::new())
     }
 }

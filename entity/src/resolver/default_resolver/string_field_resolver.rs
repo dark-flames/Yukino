@@ -99,6 +99,7 @@ impl FieldResolver for StringFieldResolver {
         let (entity_path, field_name) = self.field_path();
 
         let converter = StringValueConverter {
+            is_primary_key: self.definition.primary_key,
             entity_path,
             field_name,
             column_name: self.definition.name.clone(),
@@ -124,13 +125,14 @@ impl FieldResolver for StringFieldResolver {
 #[derive(ToTokens)]
 #[Iroha(mod_path = "yukino::resolver::default_resolver")]
 pub struct StringValueConverter {
+    is_primary_key: bool,
     entity_path: String,
     field_name: String,
     column_name: String,
 }
 
 impl ValueConverter<String> for StringValueConverter {
-    fn to_value(
+    fn to_field_value(
         &self,
         values: &HashMap<String, DatabaseValue>,
     ) -> Result<String, DataConvertError> {
@@ -143,7 +145,7 @@ impl ValueConverter<String> for StringValueConverter {
         }
     }
 
-    fn to_database_value_by_ref(
+    fn to_database_values_by_ref(
         &self,
         value: &String,
     ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
@@ -154,5 +156,16 @@ impl ValueConverter<String> for StringValueConverter {
         );
 
         Ok(map)
+    }
+
+    fn primary_column_values_by_ref(
+        &self,
+        value: &String,
+    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+        if self.is_primary_key {
+            self.to_database_values_by_ref(value)
+        } else {
+            Ok(HashMap::new())
+        }
     }
 }

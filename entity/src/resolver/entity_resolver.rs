@@ -180,7 +180,7 @@ impl EntityResolver {
                 let field_ident = format_ident!("{}", &resolver.field_path.1);
 
                 quote::quote! {
-                    let #field_ident = Self::#method().to_value(result)?
+                    let #field_ident = Self::#method().to_field_value(result)?
                 }
             })
             .collect();
@@ -200,10 +200,37 @@ impl EntityResolver {
                 let field_ident = format_ident!("{}", &resolver.field_path.1);
 
                 quote::quote! {
-                    map.extend(Self::#method().to_database_value_by_ref(&self.#field_ident)?)
+                    map.extend(Self::#method().to_database_values_by_ref(&self.#field_ident)?)
                 }
             })
             .collect();
+
+        let primary_key_inserts: Vec<_> = self
+            .field_resolvers
+            .values()
+            .filter_map(|resolver| {
+                if !resolver.primary_key_column_names().is_empty() {
+                    let method = resolver.converter_getter_ident.clone();
+
+                    let field_ident = format_ident!("{}", &resolver.field_path.1);
+
+                    Some(quote::quote! {
+                        map.extend(Self::#method().primary_key_values_by_ref(&self.#field_ident)?)
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let (mut_token, use_tokens) = if primary_key_inserts.is_empty() {
+            (TokenStream::new(), TokenStream::new())
+        } else {
+            (
+                quote::quote! {mut},
+                quote::quote! {use yukino::resolver::ValueConverter},
+            )
+        };
 
         quote! {
             impl #ident {
@@ -225,7 +252,7 @@ impl EntityResolver {
                     ))
                 }
 
-                fn to_database_value(&self)
+                fn to_database_values(&self)
                     -> Result<
                         std::collections::HashMap<String, yukino::types::DatabaseValue>,
                         yukino::resolver::error::DataConvertError
@@ -233,6 +260,17 @@ impl EntityResolver {
                     let mut map = std::collections::HashMap::new();
                     use yukino::resolver::ValueConverter;
                     #(#inserts;)*
+
+                    Ok(map)
+                }
+
+                fn primary_key_values(&self) -> Result<
+                        std::collections::HashMap<String, yukino::types::DatabaseValue>,
+                        yukino::resolver::error::DataConvertError
+                    > {
+                    let #mut_token map = std::collections::HashMap::new();
+                    #use_tokens;
+                    #(#primary_key_inserts;)*
 
                     Ok(map)
                 }
