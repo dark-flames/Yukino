@@ -18,7 +18,6 @@ pub enum EntityResolveStatus {
     Unresolved,
 }
 
-#[allow(dead_code)]
 pub struct EntityResolver {
     status: EntityResolveStatus,
     mod_path: &'static str,

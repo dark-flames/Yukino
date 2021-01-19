@@ -15,7 +15,6 @@ pub type EntityPath = String;
 pub type FieldName = String;
 pub type FieldPath = (EntityPath, FieldName);
 
-#[allow(dead_code)]
 pub struct SchemaResolver {
     field_resolver_seeds: Vec<FieldResolverSeedBox>,
     field_resolver: HashMap<EntityPath, HashMap<FieldName, FieldResolverBox>>,

@@ -22,7 +22,6 @@ enum CollectionType {
     Map,
 }
 
-#[allow(dead_code)]
 impl CollectionType {
     pub fn from_last_segment(segment: &PathSegment) -> Option<Self> {
         let ident_string = segment.ident.to_string();
@@ -69,7 +68,6 @@ impl CollectionType {
 
 pub struct CollectionFieldResolverSeed;
 
-#[allow(dead_code)]
 impl FieldResolverSeed for CollectionFieldResolverSeed {
     fn new() -> Self
     where
@@ -128,7 +126,6 @@ pub struct CollectionFieldResolver {
     definition: ColumnDefinition,
 }
 
-#[allow(dead_code)]
 impl FieldResolver for CollectionFieldResolver {
     fn status(&self) -> FieldResolverStatus {
         FieldResolverStatus::WaitingAssemble
