@@ -1,11 +1,4 @@
 impl crate::entities::Foo {
-    pub fn get_list_converter() -> yukino::resolver::default_resolver::ListValueConverter {
-        yukino::resolver::default_resolver::ListValueConverter::new(
-            "crate::entities::Foo".to_string(),
-            "list".to_string(),
-            "list".to_string(),
-        )
-    }
     pub fn get_int16_converter() -> yukino::resolver::default_resolver::SmallIntegerValueConverter {
         yukino::resolver::default_resolver::SmallIntegerValueConverter::new(
             "int16".to_string(),
@@ -13,11 +6,25 @@ impl crate::entities::Foo {
             "int16".to_string(),
         )
     }
+    pub fn get_string_converter() -> yukino::resolver::default_resolver::StringValueConverter {
+        yukino::resolver::default_resolver::StringValueConverter::new(
+            "crate::entities::Foo".to_string(),
+            "string".to_string(),
+            "string".to_string(),
+        )
+    }
     pub fn get_map_converter() -> yukino::resolver::default_resolver::MapValueConverter {
         yukino::resolver::default_resolver::MapValueConverter::new(
             "crate::entities::Foo".to_string(),
             "map".to_string(),
             "map".to_string(),
+        )
+    }
+    pub fn get_list_converter() -> yukino::resolver::default_resolver::ListValueConverter {
+        yukino::resolver::default_resolver::ListValueConverter::new(
+            "crate::entities::Foo".to_string(),
+            "list".to_string(),
+            "list".to_string(),
         )
     }
     pub fn get_integer_converter(
@@ -34,14 +41,16 @@ impl yukino::Entity for crate::entities::Foo {
         result: &std::collections::HashMap<String, yukino::types::DatabaseValue>,
     ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
         use yukino::resolver::ValueConverter;
-        let list = Self::get_list_converter().to_value(result)?;
         let int16 = Self::get_int16_converter().to_value(result)?;
+        let string = Self::get_string_converter().to_value(result)?;
         let map = Self::get_map_converter().to_value(result)?;
+        let list = Self::get_list_converter().to_value(result)?;
         let integer = Self::get_integer_converter().to_value(result)?;
         Ok(Box::new(crate::entities::Foo {
-            list,
             int16,
+            string,
             map,
+            list,
             integer,
         }))
     }
@@ -53,9 +62,10 @@ impl yukino::Entity for crate::entities::Foo {
     > {
         let mut map = std::collections::HashMap::new();
         use yukino::resolver::ValueConverter;
-        map.extend(Self::get_list_converter().to_database_value_by_ref(&self.list)?);
         map.extend(Self::get_int16_converter().to_database_value_by_ref(&self.int16)?);
+        map.extend(Self::get_string_converter().to_database_value_by_ref(&self.string)?);
         map.extend(Self::get_map_converter().to_database_value_by_ref(&self.map)?);
+        map.extend(Self::get_list_converter().to_database_value_by_ref(&self.list)?);
         map.extend(Self::get_integer_converter().to_database_value_by_ref(&self.integer)?);
         Ok(map)
     }
@@ -73,14 +83,6 @@ impl yukino::Entity for crate::entities::Foo {
                     true,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "list".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("list".to_string()),
-                    yukino::types::DatabaseType::Json,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::definitions::ColumnDefinition::new(
                     "int16".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("int16".to_string()),
                     yukino::types::DatabaseType::SmallInteger,
@@ -89,8 +91,26 @@ impl yukino::Entity for crate::entities::Foo {
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
+                    "string".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn(
+                        "crate::entities::Foo".to_string(),
+                    ),
+                    yukino::types::DatabaseType::String,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
                     "map".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    yukino::types::DatabaseType::Json,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
+                    "list".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("list".to_string()),
                     yukino::types::DatabaseType::Json,
                     false,
                     false,

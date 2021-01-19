@@ -174,8 +174,6 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
         let definition = ColumnDefinition {
             name: field
                 .name
-                .as_ref()
-                .cloned()
                 .unwrap_or_else(|| ident.to_string().to_snake_case()),
             ty: ColumnType::NormalColumn(ident.to_string()),
             data_type: ty.database_type(),

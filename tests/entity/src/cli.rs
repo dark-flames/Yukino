@@ -1,10 +1,13 @@
 use yukino::cli_entry;
-use yukino::resolver::default_resolver::{CollectionFieldResolverSeed, NumericFieldResolverSeed};
+use yukino::resolver::default_resolver::{
+    CollectionFieldResolverSeed, NumericFieldResolverSeed, StringFieldResolverSeed,
+};
 
 cli_entry!(
     resolver = [
         NumericFieldResolverSeed,
-        CollectionFieldResolverSeed
+        CollectionFieldResolverSeed,
+        StringFieldResolverSeed
     ],
     after_setup = [
         "cargo fmt"

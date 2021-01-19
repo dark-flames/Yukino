@@ -9,4 +9,5 @@ pub struct Foo {
     pub(crate) int16: i16,
     pub(crate) list: Vec<String>,
     pub(crate) map: HashMap<String, String>,
+    pub(crate) string: String,
 }

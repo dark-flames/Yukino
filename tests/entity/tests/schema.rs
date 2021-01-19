@@ -17,6 +17,7 @@ pub fn test_foo() {
                 "1919": "810"
             })),
         ),
+        ("string", DatabaseValue::String("田所浩二".to_string())),
     ];
 
     let mut raw_data = HashMap::new();
@@ -51,6 +52,11 @@ pub fn test_foo() {
                 "1919": "810"
             })
         ),
+        _ => panic!(),
+    }
+
+    match result.get(data[4].0).unwrap() {
+        DatabaseValue::String(value) => assert_eq!(value.clone(), "田所浩二".to_string()),
         _ => panic!(),
     }
 }
