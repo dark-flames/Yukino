@@ -1,9 +1,7 @@
-use crate::Entity;
+use crate::{Entity, EntityUniqueID};
 use rand::random;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
-
-pub type EntityUniqueID = usize;
 
 pub struct EntityPool<E: Entity> {
     entities: HashMap<EntityUniqueID, E>,

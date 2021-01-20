@@ -64,6 +64,7 @@ impl SchemaResolver {
                         mod_path,
                         data_struct.fields.len(),
                         entity_annotation,
+                        input.clone(),
                     )
                     .map_err(|err| err.into_syn_error(&input))?;
 
@@ -332,6 +333,7 @@ impl SchemaResolver {
         mod_path: &'static str,
         field_count: usize,
         annotation: Option<Entity>,
+        derive_input: DeriveInput,
     ) -> Result<EntityPath, ResolveError> {
         let resolver = EntityResolver::new(
             ident,
@@ -342,6 +344,7 @@ impl SchemaResolver {
                 .iter()
                 .map(|item| item.boxed())
                 .collect(),
+            derive_input,
         );
         let entity_path = resolver.entity_path();
         let status = resolver.status();

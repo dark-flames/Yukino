@@ -9,11 +9,7 @@ cli_entry!(
         CollectionFieldResolverSeed,
         StringFieldResolverSeed
     ],
-    after_setup = [
-        "cargo fmt"
-    ],
-    entity_files = {
-        "crate::entities" -> "src/entities.rs"
-    },
+    after_setup = ["cargo fmt"],
+    entity_files = { "schema/entities.rs" },
     output_file = "src/schema.rs"
 );

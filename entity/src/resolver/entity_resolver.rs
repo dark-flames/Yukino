@@ -9,7 +9,7 @@ use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use std::collections::HashMap;
-use std::str::FromStr;
+use syn::DeriveInput;
 
 pub trait EntityResolverPass {
     fn new() -> Self
@@ -18,22 +18,13 @@ pub trait EntityResolverPass {
 
     fn boxed(&self) -> Box<dyn EntityResolverPass>;
 
-    fn get_methods_token_stream(
-        &self,
-        _entity_path: String,
-        _ident: &Ident,
-        _definitions: &[TableDefinition],
-        _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
-    ) -> Option<Vec<TokenStream>> {
-        None
-    }
-
     fn get_implement_token_stream(
         &self,
         _entity_path: String,
         _ident: &Ident,
         _definitions: &[TableDefinition],
         _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
+        _derive_input: &DeriveInput,
     ) -> Option<TokenStream> {
         None
     }
@@ -55,6 +46,7 @@ pub struct EntityResolver {
     field_resolvers: HashMap<FieldName, AchievedFieldResolver>,
     primary_keys: Vec<String>,
     resolver_passes: Vec<Box<dyn EntityResolverPass>>,
+    derive_input: DeriveInput,
 }
 
 impl EntityResolver {
@@ -64,6 +56,7 @@ impl EntityResolver {
         field_count: usize,
         annotation: Option<Entity>,
         resolver_passes: Vec<Box<dyn EntityResolverPass>>,
+        derive_input: DeriveInput,
     ) -> Self {
         let mut resolved_annotation = annotation.unwrap_or(Entity {
             name: None,
@@ -86,6 +79,7 @@ impl EntityResolver {
             field_resolvers: HashMap::new(),
             primary_keys: vec![],
             resolver_passes,
+            derive_input,
         }
     }
 
@@ -184,22 +178,6 @@ impl EntityResolver {
                 foreign_keys,
             });
 
-            let methods = self
-                .resolver_passes
-                .iter()
-                .filter_map(|pass| {
-                    pass.get_methods_token_stream(
-                        self.entity_path(),
-                        &self.ident,
-                        &tables,
-                        &self.field_resolvers,
-                    )
-                })
-                .fold(vec![], |mut carry, mut current| {
-                    carry.append(&mut current);
-                    carry
-                });
-
             let implements = self
                 .resolver_passes
                 .iter()
@@ -209,6 +187,7 @@ impl EntityResolver {
                         &self.ident,
                         &tables,
                         &self.field_resolvers,
+                        &self.derive_input,
                     )
                 })
                 .fold(TokenStream::new(), |mut previous, current| {
@@ -217,15 +196,9 @@ impl EntityResolver {
                     previous
                 });
 
-            let entity_ident = TokenStream::from_str(self.entity_path().as_str()).unwrap();
-
             Ok(AchievedEntityResolver {
                 definitions: tables,
                 implement: quote! {
-                    impl #entity_ident {
-                        #(#methods)*
-                    }
-
                     #implements
                 },
             })

@@ -4,6 +4,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use std::collections::HashMap;
 use std::str::FromStr;
+use syn::DeriveInput;
 
 pub struct EntityImplementResolverPass;
 
@@ -25,6 +26,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
         _ident: &Ident,
         definitions: &[TableDefinition],
         field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
+        _derive_input: &DeriveInput,
     ) -> Option<TokenStream> {
         let ident = TokenStream::from_str(entity_path.as_str()).unwrap();
 

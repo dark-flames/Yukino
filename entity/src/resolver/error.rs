@@ -25,6 +25,8 @@ pub enum ResolveError {
     FieldResolverStillSeed,
     #[error("NoSuitableResolverSeedsFound: No suitable resolver seeds found for {1} in {0}")]
     NoSuitableResolverSeedsFound(EntityPath, FieldName),
+    #[error("GlobInPathIsNotSupported: Glob in path({0}) is not supported")]
+    GlobInPathIsNotSupported(String),
     #[error("{0}")]
     Others(String),
 }
