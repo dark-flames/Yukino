@@ -57,10 +57,10 @@ impl CollectionType {
     pub fn converter_name(&self) -> TokenStream {
         match self {
             CollectionType::List => quote::quote! {
-                yukino::resolver::default_resolver::ListValueConverter
+                yukino::resolver::field_resolver_seeds::ListValueConverter
             },
             CollectionType::Map => quote::quote! {
-                yukino::resolver::default_resolver::MapValueConverter
+                yukino::resolver::field_resolver_seeds::MapValueConverter
             },
         }
     }
@@ -182,7 +182,7 @@ impl FieldResolver for CollectionFieldResolver {
 }
 
 #[derive(ToTokens)]
-#[Iroha(mod_path = "yukino::resolver::default_resolver")]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
 pub struct ListValueConverter {
     entity_name: String,
     field_name: String,
@@ -243,7 +243,7 @@ where
 }
 
 #[derive(ToTokens)]
-#[Iroha(mod_path = "yukino::resolver::default_resolver")]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
 pub struct MapValueConverter {
     entity_name: String,
     field_name: String,

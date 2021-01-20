@@ -1,10 +1,10 @@
-use crate::resolver::default_resolver::{
-    CollectionFieldResolverSeed, NumericFieldResolverSeed, StringFieldResolverSeed,
-};
 use crate::resolver::entity_resolver_passes::{
     EntityImplementResolverPass, EntityProxyResolverPass, EntityStructResolverPass,
 };
 use crate::resolver::error::ResolveError;
+use crate::resolver::field_resolver_seeds::{
+    CollectionFieldResolverSeed, NumericFieldResolverSeed, StringFieldResolverSeed,
+};
 use crate::resolver::{
     EntityResolverPass, EntityResolverPassBox, FieldResolverSeed, FieldResolverSeedBox,
     ImmutableSchemaResolver, SchemaResolver, TypePathResolver,

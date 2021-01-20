@@ -106,7 +106,7 @@ impl FieldResolver for StringFieldResolver {
         };
 
         let data_converter_token_stream = quote::quote! {
-            pub fn #method_name() -> yukino::resolver::default_resolver::StringValueConverter {
+            pub fn #method_name() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
                 #converter
             }
         };
@@ -123,7 +123,7 @@ impl FieldResolver for StringFieldResolver {
 }
 
 #[derive(ToTokens)]
-#[Iroha(mod_path = "yukino::resolver::default_resolver")]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
 pub struct StringValueConverter {
     is_primary_key: bool,
     entity_name: String,

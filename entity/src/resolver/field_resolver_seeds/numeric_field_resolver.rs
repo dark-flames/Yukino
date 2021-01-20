@@ -107,7 +107,7 @@ impl NumericType {
 
     pub fn converter_name(&self) -> TokenStream {
         let prefix = quote::quote! {
-            yukino::resolver::default_resolver
+            yukino::resolver::field_resolver_seeds
         };
 
         match self {
@@ -265,7 +265,7 @@ impl FieldResolver for NumericFieldResolver {
 macro_rules! impl_converter {
     ($ident: ident, $output_type: ty, $database_value: ident) => {
         #[derive(ToTokens)]
-        #[Iroha(mod_path = "yukino::resolver::default_resolver")]
+        #[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
         pub struct $ident {
             is_primary_key: bool,
             column_name: String,
