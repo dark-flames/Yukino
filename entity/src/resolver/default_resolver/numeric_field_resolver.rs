@@ -1,7 +1,10 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter, TypePathResolver, FieldResolverSeedBox};
+use crate::resolver::{
+    AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
+    FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, ValueConverter,
+};
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -17,8 +20,10 @@ enum NumericType {
 }
 
 impl NumericType {
-    pub fn from_ident(ident: &str) -> Option<Self> {
-        match ident {
+    pub fn from_ident(ident: &Ident) -> Option<Self> {
+        let ident_string = ident.to_string();
+
+        match ident_string.as_str() {
             "i16" => Some(NumericType::Integer(16)),
             "i32" => Some(NumericType::Integer(32)),
             "i64" => Some(NumericType::Integer(64)),
@@ -169,11 +174,10 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         let ty = match field_type {
-            Type::Path(type_path) => match type_path_resolver.get_full_path(type_path).iter().rev().next() {
-                Some(last_segment) => NumericType::from_ident(last_segment),
+            Type::Path(type_path) => match type_path.path.segments.first() {
+                Some(first_segment) => NumericType::from_ident(&first_segment.ident),
                 None => None,
             },
             _ => None,

@@ -1,7 +1,10 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter, TypePathResolver, FieldResolverSeedBox};
+use crate::resolver::{
+    AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
+    FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, ValueConverter,
+};
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -12,7 +15,7 @@ use serde::Serialize;
 use serde_json::{from_value, to_value};
 use std::collections::HashMap;
 use std::hash::Hash;
-use syn::Type;
+use syn::{PathSegment, Type};
 
 enum CollectionType {
     List,
@@ -20,8 +23,10 @@ enum CollectionType {
 }
 
 impl CollectionType {
-    pub fn from_last_segment(segment: &str) -> Option<Self> {
-        match segment {
+    pub fn from_last_segment(segment: &PathSegment) -> Option<Self> {
+        let ident_string = segment.ident.to_string();
+
+        match ident_string.as_str() {
             "Vec" => Some(CollectionType::List),
             "HashMap" => Some(CollectionType::Map),
             _ => None,
@@ -75,17 +80,15 @@ impl FieldResolverSeed for CollectionFieldResolverSeed {
         Box::new(CollectionFieldResolverSeed)
     }
 
-
     fn try_breed(
         &self,
         entity_name: EntityName,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         let ty = match field_type {
-            Type::Path(type_path) => match type_path_resolver.get_full_path(type_path).iter().rev().next() {
+            Type::Path(type_path) => match type_path.path.segments.iter().rev().next() {
                 Some(last_segment) => CollectionType::from_last_segment(&last_segment),
                 None => None,
             },

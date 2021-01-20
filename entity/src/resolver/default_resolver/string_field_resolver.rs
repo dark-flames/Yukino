@@ -1,7 +1,10 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter, TypePathResolver, FieldResolverSeedBox};
+use crate::resolver::{
+    AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
+    FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, ValueConverter,
+};
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -29,11 +32,10 @@ impl FieldResolverSeed for StringFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         if let Type::Path(type_path) = field_type {
-            if let Some(last_segment) = type_path_resolver.get_full_path(type_path).iter().rev().next() {
-                if last_segment == "String" {
+            if let Some(first_segment) = type_path.path.segments.first() {
+                if first_segment.ident == *"String" {
                     let field = Self::default_annotations(annotations);
                     Some(Ok(Box::new(StringFieldResolver {
                         field_path: (entity_name.clone(), ident.to_string()),

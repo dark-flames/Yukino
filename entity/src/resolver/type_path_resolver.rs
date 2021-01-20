@@ -1,9 +1,9 @@
 use crate::resolver::error::ResolveError;
+use proc_macro2::Ident;
 use std::collections::HashMap;
-use syn::__private::ToTokens;
-use syn::{ItemUse, TypePath, UseTree};
+use syn::{ItemUse, PathSegment, TypePath, UseTree};
 
-pub type FullPath = String;
+pub type FullPath = Vec<Ident>;
 pub type TypeName = String;
 
 pub struct TypePathResolver {
@@ -34,10 +34,13 @@ impl TypePathResolver {
     fn resolve_use_tree(tree: &UseTree) -> Result<Vec<(TypeName, FullPath)>, ResolveError> {
         Ok(match tree {
             UseTree::Name(use_name) => {
-                vec![(use_name.ident.to_string(), use_name.ident.to_string())]
+                vec![(use_name.ident.to_string(), vec![use_name.ident.clone()])]
             }
             UseTree::Rename(use_rename) => {
-                vec![(use_rename.rename.to_string(), use_rename.ident.to_string())]
+                vec![(
+                    use_rename.rename.to_string(),
+                    vec![use_rename.ident.clone()],
+                )]
             }
             UseTree::Path(use_path) => {
                 let current_segment = use_path.ident.to_string();
@@ -52,7 +55,10 @@ impl TypePathResolver {
                 })?;
 
                 next.into_iter()
-                    .map(|(full, name)| (name, format!("{}::{}", current_segment, full)))
+                    .map(|(name, mut full)| {
+                        full.push(use_path.ident.clone());
+                        (name, full)
+                    })
                     .collect()
             }
             UseTree::Group(use_group) => use_group.items.iter().map(Self::resolve_use_tree).fold(
@@ -76,18 +82,29 @@ impl TypePathResolver {
         })
     }
 
-    pub fn get_full_path(&self, ty: &TypePath) -> Vec<String> {
-        let mut segments: Vec<_> = ty
-            .path
-            .segments
-            .iter()
-            .map(|segment| segment.to_token_stream().to_string())
-            .collect();
+    pub fn get_full_path(&self, ty: TypePath) -> Option<TypePath> {
+        let first_segment = ty.path.segments.first().unwrap();
 
-        if let Some(full) = self.maps.get(segments.first().unwrap()) {
-            segments[0] = full.clone();
+        if let Some(full) = self.maps.get(first_segment.ident.to_string().as_str()) {
+            let mut result = ty;
+            let mut full_iter = full.iter();
+
+            if let Some(first) = result.path.segments.first_mut() {
+                if let Some(segment) = full_iter.next() {
+                    first.ident = segment.clone()
+                }
+            }
+
+            for ident in full_iter {
+                result
+                    .path
+                    .segments
+                    .insert(0, PathSegment::from(ident.clone()))
+            }
+
+            Some(result)
+        } else {
+            None
         }
-
-        segments
     }
 }

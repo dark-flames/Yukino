@@ -9,9 +9,9 @@ macro_rules! cli_entry {
     (
         resolver = [$($resolver: ident),*],
         after_setup = [$($after_setup: literal),*],
-        entity_files = {
-            $($mod_path: literal -> $file: literal),*
-        },
+        entity_files = [
+            $($file: literal),*
+        ],
         output_file = $output_path: literal
     ) => {
         use yukino::resolver::FieldResolverSeed;
@@ -22,13 +22,7 @@ macro_rules! cli_entry {
             CommandLineEntry::new(
                 vec![$(Box::new($resolver::new())),*],
                 vec![],
-                {
-                    let mut map = HashMap::new();
-                    $(
-                        map.insert($mod_path, format!("{}/{}", crate_path, $file));
-                    )*
-                    map
-                },
+                vec![$(format!("{}/{}", crate_path, $file)),*],
                 format!("{}/{}", crate_path, $output_path),
                 vec! [
                     $($after_setup),*

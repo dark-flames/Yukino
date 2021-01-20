@@ -1,10 +1,12 @@
 use crate::definitions::TableDefinition;
-use crate::resolver::{AchievedFieldResolver, EntityResolverPass, FieldName, EntityResolverPassBox};
-use proc_macro2::{Ident, TokenStream};
+use crate::resolver::error::ResolveError;
+use crate::resolver::{
+    AchievedFieldResolver, EntityResolverPass, EntityResolverPassBox, FieldName, TypePathResolver,
+};
+use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use std::str::FromStr;
-use syn::DeriveInput;
+use syn::ItemStruct;
 
 pub struct EntityImplementResolverPass;
 
@@ -23,12 +25,12 @@ impl EntityResolverPass for EntityImplementResolverPass {
     fn get_implement_token_stream(
         &self,
         entity_name: String,
-        _ident: &Ident,
         definitions: &[TableDefinition],
         field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
-        _derive_input: &DeriveInput,
-    ) -> Option<TokenStream> {
-        let ident = TokenStream::from_str(entity_name.as_str()).unwrap();
+        _input: &ItemStruct,
+        _type_path_resolver: &TypePathResolver,
+    ) -> Option<Result<TokenStream, ResolveError>> {
+        let ident = format_ident!("{}Inside", entity_name);
 
         let temp_values: Vec<_> = field_resolvers
             .values()
@@ -87,7 +89,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
             )
         };
 
-        Some(quote! {
+        Some(Ok(quote! {
             impl yukino::Entity for #ident {
                 fn from_database_value(
                     result: &std::collections::HashMap<String, yukino::types::DatabaseValue>
@@ -115,6 +117,12 @@ impl EntityResolverPass for EntityImplementResolverPass {
                     Ok(map)
                 }
 
+                fn get_definitions() -> Vec<yukino::definitions::TableDefinition> {
+                    vec![
+                        #(#definitions),*
+                    ]
+                }
+
                 fn primary_key_values(&self) -> Result<
                         std::collections::HashMap<String, yukino::types::DatabaseValue>,
                         yukino::resolver::error::DataConvertError
@@ -125,13 +133,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
 
                     Ok(map)
                 }
-
-                fn get_definitions() -> Vec<yukino::definitions::TableDefinition> {
-                    vec![
-                        #(#definitions),*
-                    ]
-                }
             }
-        })
+        }))
     }
 }

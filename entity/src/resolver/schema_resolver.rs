@@ -1,12 +1,16 @@
 use crate::annotations::{Entity, FieldAnnotation};
 use crate::definitions::TableDefinition;
 use crate::resolver::error::ResolveError;
-use crate::resolver::{AchievedEntityResolver, AchievedFieldResolver, EntityResolveStatus, EntityResolver, FieldResolverBox, FieldResolverSeedBox, FieldResolverStatus, EntityResolverPassBox, TypePathResolver};
+use crate::resolver::{
+    AchievedEntityResolver, AchievedFieldResolver, EntityResolveStatus, EntityResolver,
+    EntityResolverPassBox, FieldResolverBox, FieldResolverSeedBox, FieldResolverStatus,
+    TypePathResolver,
+};
 use annotation_rs::AnnotationStructure;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
-use syn::{Data, DeriveInput, Error as SynError, Fields};
+use syn::{Error as SynError, Fields, ItemStruct};
 
 pub type EntityName = String;
 pub type FieldName = String;
@@ -36,11 +40,7 @@ impl SchemaResolver {
         }
     }
 
-    pub fn parse(
-        &mut self,
-        input: DeriveInput,
-        type_path_resolver: &TypePathResolver
-    ) -> Result<(), SynError> {
+    pub fn parse(&mut self, input: ItemStruct) -> Result<(), SynError> {
         let entity_annotation = match input
             .attrs
             .iter()
@@ -57,66 +57,64 @@ impl SchemaResolver {
             None => None,
         };
 
-        if let Data::Struct(data_struct) = &input.data {
-            if let Fields::Named(named_fields) = &data_struct.fields {
-                let entity_name = self
-                    .append_entity_resolver(
-                        input.ident.clone(),
-                        data_struct.fields.len(),
-                        entity_annotation,
-                        input.clone(),
+        if let Fields::Named(named_fields) = &input.fields {
+            let entity_name = self
+                .append_entity_resolver(
+                    input.ident.clone(),
+                    input.fields.len(),
+                    entity_annotation,
+                    input.clone(),
+                )
+                .map_err(|err| err.into_syn_error(&input))?;
+
+            for field in named_fields.named.iter() {
+                let field_annotations = field
+                    .attrs
+                    .iter()
+                    .map(|attr| FieldAnnotation::from_attr(attr))
+                    .collect::<Result<Vec<FieldAnnotation>, SynError>>()?;
+                let field_name = field.ident.as_ref().unwrap().to_string();
+                let field_resolver = self
+                    .field_resolver_seeds
+                    .iter()
+                    .fold(
+                        Err(ResolveError::NoSuitableResolverSeedsFound(
+                            entity_name.clone(),
+                            field_name,
+                        )),
+                        |result, seed| {
+                            if result.is_err() {
+                                seed.try_breed(
+                                    entity_name.clone(),
+                                    field.ident.as_ref().unwrap(),
+                                    &field_annotations,
+                                    &field.ty,
+                                )
+                                .unwrap_or(result)
+                            } else {
+                                result
+                            }
+                        },
                     )
-                    .map_err(|err| err.into_syn_error(&input))?;
+                    .map_err(|e| e.into_syn_error(field))?;
+                let status = field_resolver.status();
+                let field_path = field_resolver.field_path();
 
-                for field in named_fields.named.iter() {
-                    let field_annotations = field
-                        .attrs
-                        .iter()
-                        .map(|attr| FieldAnnotation::from_attr(attr))
-                        .collect::<Result<Vec<FieldAnnotation>, SynError>>()?;
-                    let field_name = field.ident.as_ref().unwrap().to_string();
-                    let field_resolver = self
-                        .field_resolver_seeds
-                        .iter()
-                        .fold(
-                            Err(ResolveError::NoSuitableResolverSeedsFound(
-                                entity_name.clone(),
-                                field_name,
-                            )),
-                            |result, seed| {
-                                if result.is_err() {
-                                    seed.try_breed(
-                                        entity_name.clone(),
-                                        field.ident.as_ref().unwrap(),
-                                        &field_annotations,
-                                        &field.ty,
-                                        type_path_resolver
-                                    )
-                                    .unwrap_or(result)
-                                } else {
-                                    result
-                                }
-                            },
-                        )
-                        .map_err(|e| e.into_syn_error(field))?;
-                    let status = field_resolver.status();
-                    let field_path = field_resolver.field_path();
-
-                    self.append_field_resolver(field_resolver);
-                    self.update_field_resolver_status(&field_path, status)
-                        .map_err(|e| e.into_syn_error(field))?;
-                }
-
-                Ok(())
-            } else {
-                Err(ResolveError::UnsupportedEntityStructType.into_syn_error(&input))
+                self.append_field_resolver(field_resolver);
+                self.update_field_resolver_status(&field_path, status)
+                    .map_err(|e| e.into_syn_error(field))?;
             }
+
+            Ok(())
         } else {
-            Err(ResolveError::UnsupportedEntityStructure.into_syn_error(&input))
+            Err(ResolveError::UnsupportedEntityStructType.into_syn_error(&input))
         }
     }
 
-    pub fn achieve(self) -> Result<ImmutableSchemaResolver, SynError> {
+    pub fn achieve(
+        self,
+        type_path_resolver: &TypePathResolver,
+    ) -> Result<ImmutableSchemaResolver, SynError> {
         if let Some(map) = self.field_resolver.values().next() {
             if let Some(resolver) = map.values().next() {
                 let field_path = resolver.field_path();
@@ -131,7 +129,11 @@ impl SchemaResolver {
         let resolvers = self
             .entity_resolver
             .into_iter()
-            .map(|(path, resolver)| resolver.achieve().map(|achieved| (path, achieved)))
+            .map(|(path, resolver)| {
+                resolver
+                    .achieve(type_path_resolver)
+                    .map(|achieved| (path, achieved))
+            })
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| e.into_syn_error(""))?;
 
@@ -333,7 +335,7 @@ impl SchemaResolver {
         ident: Ident,
         field_count: usize,
         annotation: Option<Entity>,
-        derive_input: DeriveInput,
+        input: ItemStruct,
     ) -> Result<EntityName, ResolveError> {
         let resolver = EntityResolver::new(
             ident,
@@ -343,7 +345,7 @@ impl SchemaResolver {
                 .iter()
                 .map(|item| item.boxed())
                 .collect(),
-            derive_input,
+            input,
         );
         let entity_name = resolver.entity_name();
         let status = resolver.status();

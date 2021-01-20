@@ -1,7 +1,7 @@
 use crate::annotations::{Field, FieldAnnotation};
 use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
+use crate::resolver::{EntityName, EntityResolver, FieldPath};
 use crate::types::DatabaseValue;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
@@ -37,7 +37,6 @@ pub trait FieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>>;
 
     fn default_annotations(annotations: &[FieldAnnotation]) -> Field

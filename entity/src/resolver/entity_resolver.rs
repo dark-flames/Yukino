@@ -3,13 +3,13 @@ use crate::definitions::{
     ColumnDefinition, ColumnType, IndexDefinition, TableDefinition, TableType,
 };
 use crate::resolver::error::ResolveError;
-use crate::resolver::{AchievedFieldResolver, EntityName, FieldName};
+use crate::resolver::{AchievedFieldResolver, EntityName, FieldName, TypePathResolver};
 use crate::types::DatabaseType;
 use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
 use std::collections::HashMap;
-use syn::DeriveInput;
+use syn::ItemStruct;
 
 pub type EntityResolverPassBox = Box<dyn EntityResolverPass>;
 
@@ -23,11 +23,11 @@ pub trait EntityResolverPass {
     fn get_implement_token_stream(
         &self,
         _entity_name: String,
-        _ident: &Ident,
         _definitions: &[TableDefinition],
         _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
-        _derive_input: &DeriveInput,
-    ) -> Option<TokenStream> {
+        _input: &ItemStruct,
+        _type_path_resolver: &TypePathResolver,
+    ) -> Option<Result<TokenStream, ResolveError>> {
         None
     }
 }
@@ -47,7 +47,7 @@ pub struct EntityResolver {
     field_resolvers: HashMap<FieldName, AchievedFieldResolver>,
     primary_keys: Vec<String>,
     resolver_passes: Vec<Box<dyn EntityResolverPass>>,
-    derive_input: DeriveInput,
+    input: ItemStruct,
 }
 
 impl EntityResolver {
@@ -56,7 +56,7 @@ impl EntityResolver {
         field_count: usize,
         annotation: Option<Entity>,
         resolver_passes: Vec<Box<dyn EntityResolverPass>>,
-        derive_input: DeriveInput,
+        input: ItemStruct,
     ) -> Self {
         let mut resolved_annotation = annotation.unwrap_or(Entity {
             name: None,
@@ -78,7 +78,7 @@ impl EntityResolver {
             field_resolvers: HashMap::new(),
             primary_keys: vec![],
             resolver_passes,
-            derive_input,
+            input,
         }
     }
 
@@ -116,7 +116,10 @@ impl EntityResolver {
         Ok(self.status)
     }
 
-    pub fn achieve(mut self) -> Result<AchievedEntityResolver, ResolveError> {
+    pub fn achieve(
+        mut self,
+        type_path_resolver: &TypePathResolver,
+    ) -> Result<AchievedEntityResolver, ResolveError> {
         if self.status != EntityResolveStatus::Finished {
             Err(ResolveError::EntityResolverIsNotFinished(
                 self.entity_name(),
@@ -183,17 +186,25 @@ impl EntityResolver {
                 .filter_map(|pass| {
                     pass.get_implement_token_stream(
                         self.entity_name(),
-                        &self.ident,
                         &tables,
                         &self.field_resolvers,
-                        &self.derive_input,
+                        &self.input,
+                        type_path_resolver,
                     )
                 })
-                .fold(TokenStream::new(), |mut previous, current| {
-                    current.to_tokens(&mut previous);
+                .fold(Ok(TokenStream::new()), |carry_result, item_result| {
+                    if let Ok(mut carry) = carry_result {
+                        if let Ok(item) = item_result {
+                            item.to_tokens(&mut carry);
 
-                    previous
-                });
+                            Ok(carry)
+                        } else {
+                            item_result
+                        }
+                    } else {
+                        carry_result
+                    }
+                })?;
 
             Ok(AchievedEntityResolver {
                 definitions: tables,

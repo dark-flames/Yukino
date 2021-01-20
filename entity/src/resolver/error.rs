@@ -1,8 +1,8 @@
 use crate::resolver::{EntityName, FieldName};
 use quote::ToTokens;
+use std::io::Error as IOError;
 use syn::Error;
 use thiserror::Error;
-use std::io::Error as IOError;
 
 #[derive(Error, Debug)]
 pub enum ResolveError {
@@ -30,6 +30,12 @@ pub enum ResolveError {
     GlobInPathIsNotSupported(String),
     #[error("GlobInPathIsNotSupported: Schema file only support `struct` and `use` block")]
     UnsupportedSyntaxBlock,
+    #[error("GenericIsNotSupported: Generic is not supported on entity struct: {0}")]
+    GenericIsNotSupported(EntityName),
+    #[error("EntityVisibilityMustBePrivate: Visibility of entity({0}) must be private")]
+    EntityVisibilityMustBePrivate(EntityName),
+    #[error("EntityVisibilityMustBePrivate: Visibility of field({1} in {0}) must be private")]
+    FieldVisibilityMustBePrivate(EntityName, FieldName),
     #[error("IOError: {0}")]
     IOError(IOError),
     #[error("ParseError: {0}")]
