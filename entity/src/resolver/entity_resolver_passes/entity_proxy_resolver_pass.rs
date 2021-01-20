@@ -4,7 +4,9 @@ use crate::resolver::{
     AchievedFieldResolver, EntityResolverPass, EntityResolverPassBox, FieldName, TypePathResolver,
 };
 use proc_macro2::TokenStream;
+use quote::quote;
 use std::collections::HashMap;
+use std::str::FromStr;
 use syn::ItemStruct;
 
 pub struct EntityProxyResolverPass;
@@ -23,12 +25,16 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
     fn get_implement_token_stream(
         &self,
-        _entity_name: String,
+        entity_name: String,
         _definitions: &[TableDefinition],
         _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
         _input: &ItemStruct,
         _type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
-        unimplemented!()
+        let ident = TokenStream::from_str(&entity_name).unwrap();
+
+        Some(Ok(quote! {
+            yukino::impl_entity_proxy!(#ident);
+        }))
     }
 }

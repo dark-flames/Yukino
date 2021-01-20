@@ -1,12 +1,19 @@
 #![allow(unknown_lints)]
-struct FooInside {
+struct FooInner {
     integer: u32,
     int16: i16,
     list: Vec<String>,
     map: std::collections::HashMap<String, String>,
     string: String,
 }
-impl FooInside {
+impl FooInner {
+    pub fn get_map_converter() -> yukino::resolver::default_resolver::MapValueConverter {
+        yukino::resolver::default_resolver::MapValueConverter::new(
+            "Foo".to_string(),
+            "map".to_string(),
+            "map".to_string(),
+        )
+    }
     pub fn get_integer_converter(
     ) -> yukino::resolver::default_resolver::UnsignedIntegerValueConverter {
         yukino::resolver::default_resolver::UnsignedIntegerValueConverter::new(
@@ -14,13 +21,6 @@ impl FooInside {
             "integer".to_string(),
             "Foo".to_string(),
             "integer".to_string(),
-        )
-    }
-    pub fn get_list_converter() -> yukino::resolver::default_resolver::ListValueConverter {
-        yukino::resolver::default_resolver::ListValueConverter::new(
-            "Foo".to_string(),
-            "list".to_string(),
-            "list".to_string(),
         )
     }
     pub fn get_string_converter() -> yukino::resolver::default_resolver::StringValueConverter {
@@ -31,11 +31,11 @@ impl FooInside {
             "string".to_string(),
         )
     }
-    pub fn get_map_converter() -> yukino::resolver::default_resolver::MapValueConverter {
-        yukino::resolver::default_resolver::MapValueConverter::new(
+    pub fn get_list_converter() -> yukino::resolver::default_resolver::ListValueConverter {
+        yukino::resolver::default_resolver::ListValueConverter::new(
             "Foo".to_string(),
-            "map".to_string(),
-            "map".to_string(),
+            "list".to_string(),
+            "list".to_string(),
         )
     }
     pub fn get_int16_converter() -> yukino::resolver::default_resolver::SmallIntegerValueConverter {
@@ -47,21 +47,21 @@ impl FooInside {
         )
     }
 }
-impl yukino::Entity for FooInside {
+impl yukino::Entity for FooInner {
     fn from_database_value(
         result: &std::collections::HashMap<String, yukino::types::DatabaseValue>,
     ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
         use yukino::resolver::ValueConverter;
-        let integer = Self::get_integer_converter().to_field_value(result)?;
-        let list = Self::get_list_converter().to_field_value(result)?;
-        let string = Self::get_string_converter().to_field_value(result)?;
         let map = Self::get_map_converter().to_field_value(result)?;
+        let integer = Self::get_integer_converter().to_field_value(result)?;
+        let string = Self::get_string_converter().to_field_value(result)?;
+        let list = Self::get_list_converter().to_field_value(result)?;
         let int16 = Self::get_int16_converter().to_field_value(result)?;
-        Ok(Box::new(FooInside {
-            integer,
-            list,
-            string,
+        Ok(Box::new(FooInner {
             map,
+            integer,
+            string,
+            list,
             int16,
         }))
     }
@@ -73,10 +73,10 @@ impl yukino::Entity for FooInside {
     > {
         let mut map = std::collections::HashMap::new();
         use yukino::resolver::ValueConverter;
-        map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
-        map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
-        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
+        map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
+        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
+        map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
         map.extend(Self::get_int16_converter().to_database_values_by_ref(&self.int16)?);
         Ok(map)
     }
@@ -94,17 +94,17 @@ impl yukino::Entity for FooInside {
                     true,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "integer".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("integer".to_string()),
-                    yukino::types::DatabaseType::UnsignedInteger,
+                    "map".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    yukino::types::DatabaseType::Json,
                     false,
                     false,
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "list".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("list".to_string()),
-                    yukino::types::DatabaseType::Json,
+                    "integer".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("integer".to_string()),
+                    yukino::types::DatabaseType::UnsignedInteger,
                     false,
                     false,
                     false,
@@ -118,8 +118,8 @@ impl yukino::Entity for FooInside {
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "map".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    "list".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("list".to_string()),
                     yukino::types::DatabaseType::Json,
                     false,
                     false,
@@ -148,3 +148,4 @@ impl yukino::Entity for FooInside {
         Ok(map)
     }
 }
+yukino::impl_entity_proxy!(Foo);

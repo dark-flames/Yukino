@@ -2,7 +2,7 @@ use crate::resolver::default_resolver::{
     CollectionFieldResolverSeed, NumericFieldResolverSeed, StringFieldResolverSeed,
 };
 use crate::resolver::entity_resolver_passes::{
-    EntityImplementResolverPass, EntityStructResolverPass,
+    EntityImplementResolverPass, EntityProxyResolverPass, EntityStructResolverPass,
 };
 use crate::resolver::error::ResolveError;
 use crate::resolver::{
@@ -38,6 +38,7 @@ impl FileResolver {
         let mut default_passes: Vec<EntityResolverPassBox> = vec![
             Box::new(EntityStructResolverPass::new()),
             Box::new(EntityImplementResolverPass::new()),
+            Box::new(EntityProxyResolverPass::new()),
         ];
 
         customized_seeds.append(&mut default_seeds);

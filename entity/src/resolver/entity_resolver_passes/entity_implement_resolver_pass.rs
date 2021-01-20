@@ -30,7 +30,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
         _input: &ItemStruct,
         _type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
-        let ident = format_ident!("{}Inside", entity_name);
+        let ident = format_ident!("{}Inner", entity_name);
 
         let temp_values: Vec<_> = field_resolvers
             .values()
