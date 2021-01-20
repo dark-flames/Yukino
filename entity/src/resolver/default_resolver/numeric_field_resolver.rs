@@ -1,10 +1,7 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{
-    AchievedFieldResolver, EntityPath, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
-    FieldResolverSeed, FieldResolverStatus, ValueConverter,
-};
+use crate::resolver::{AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter, TypePathResolver, FieldResolverSeedBox};
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -20,10 +17,8 @@ enum NumericType {
 }
 
 impl NumericType {
-    pub fn from_ident(ident: &Ident) -> Option<Self> {
-        let ident_string = ident.to_string();
-
-        match ident_string.as_str() {
+    pub fn from_ident(ident: &str) -> Option<Self> {
+        match ident {
             "i16" => Some(NumericType::Integer(16)),
             "i32" => Some(NumericType::Integer(32)),
             "i64" => Some(NumericType::Integer(64)),
@@ -43,62 +38,62 @@ impl NumericType {
         is_primary_key: bool,
     ) -> TokenStream {
         let field_name = field_path.1.clone();
-        let entity_path = field_path.0;
+        let entity_name = field_path.0;
         match self {
             NumericType::Integer(16) => (SmallIntegerValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::Integer(32) => (IntegerValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::Integer(64) => (BigIntegerValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(16) => (UnsignedSmallIntegerValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(32) => (UnsignedIntegerValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(64) => (UnsignedBigIntegerValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::Float(32) => (FloatValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             NumericType::Float(64) => (DoubleValueConverter {
                 is_primary_key,
                 column_name,
                 field_name,
-                entity_path,
+                entity_name,
             })
             .to_token_stream(),
             _ => unreachable!(),
@@ -163,16 +158,22 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
     {
         NumericFieldResolverSeed
     }
+
+    fn boxed(&self) -> FieldResolverSeedBox {
+        Box::new(NumericFieldResolverSeed)
+    }
+
     fn try_breed(
         &self,
-        entity_path: EntityPath,
+        entity_name: EntityName,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         let ty = match field_type {
-            Type::Path(type_path) => match type_path.path.segments.first() {
-                Some(first_segment) => NumericType::from_ident(&first_segment.ident),
+            Type::Path(type_path) => match type_path_resolver.get_full_path(type_path).iter().rev().next() {
+                Some(last_segment) => NumericType::from_ident(last_segment),
                 None => None,
             },
             _ => None,
@@ -192,7 +193,7 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
         };
 
         Some(Ok(Box::new(NumericFieldResolver {
-            field_path: (entity_path, ident.to_string()),
+            field_path: (entity_name, ident.to_string()),
             ty,
             definition,
         })))
@@ -264,7 +265,7 @@ macro_rules! impl_converter {
         pub struct $ident {
             is_primary_key: bool,
             column_name: String,
-            entity_path: String,
+            entity_name: String,
             field_name: String,
         }
 
@@ -276,7 +277,7 @@ macro_rules! impl_converter {
                 match values.get(&self.column_name) {
                     Some(DatabaseValue::$database_value(value)) => Ok(*value),
                     _ => Err(DataConvertError::UnexpectedDatabaseValueType(
-                        self.entity_path.clone(),
+                        self.entity_name.clone(),
                         self.field_name.clone(),
                     )),
                 }

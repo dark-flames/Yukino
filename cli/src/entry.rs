@@ -1,28 +1,38 @@
 use crate::error::CLIError;
-use crate::resolver::Resolver;
 use clap::{crate_authors, crate_description, crate_version, App, SubCommand};
 use cmd_lib::run_cmd;
-use entity::resolver::FieldResolverSeedBox;
-use std::collections::HashMap;
+use entity::resolver::{FieldResolverSeedBox, FileResolver, EntityResolverPassBox};
 use std::process::exit;
+use proc_macro2::TokenStream;
+use quote::ToTokens;
+use std::fs::{File, remove_file};
+use std::path::Path;
+use std::io::Write;
 
 pub type Command = &'static str;
 pub type ModePath = &'static str;
 
 pub struct CommandLineEntry {
-    resolver: Resolver,
+    seeds: Vec<FieldResolverSeedBox>,
+    passes: Vec<EntityResolverPassBox>,
+    schema_file_paths: Vec<String>,
+    output_file_path: String,
     after_setup: Vec<Command>,
 }
 impl CommandLineEntry {
     pub fn new(
         seeds: Vec<FieldResolverSeedBox>,
-        model_files_path: HashMap<ModePath, String>,
+        passes: Vec<EntityResolverPassBox>,
+        schema_file_paths: Vec<String>,
         output_file_path: String,
         after_resolve: Vec<&'static str>,
     ) -> Self {
         CommandLineEntry {
-            resolver: Self::handle_result(Resolver::new(seeds, model_files_path, output_file_path)),
+            seeds,
+            passes,
             after_setup: after_resolve,
+            output_file_path,
+            schema_file_paths
         }
     }
 
@@ -57,7 +67,51 @@ impl CommandLineEntry {
     fn setup(self) -> Result<(), CLIError> {
         let cmd_list = self.after_setup.clone();
 
-        self.resolver.resolve()?.write_result()?;
+        let resolvers = self.schema_file_paths.iter().map(
+            |path| FileResolver::new(
+                self.seeds.iter().map(
+                    |item| item.boxed()
+                ).collect(),
+                self.passes.iter().map(
+                    |item| item.boxed()
+                ).collect(),
+                path.clone()
+            ).map_err(
+                |e| CLIError::ResolveError(e.to_string())
+            )
+        ).collect::<Result<Vec<_>, _>>()?;
+
+        let result = resolvers.into_iter().map(
+            |resolver| resolver.resolve().map_err(
+                |e| CLIError::ResolveError(e.to_string())
+            ).map(|result| result.get_result())
+        ).fold(
+            Ok(TokenStream::new()),
+            |carry_result, item_result| {
+                if let Ok(mut carry) = carry_result {
+                    if let Ok(item) = item_result {
+                        item.to_tokens(&mut carry);
+
+                        Ok(carry)
+                    } else {
+                        item_result
+                    }
+                } else {
+                    carry_result
+                }
+            }
+        )?.to_string();
+
+        let path = Path::new(&self.output_file_path);
+        if path.exists() {
+            remove_file(path)?
+        };
+
+        let mut output_file = File::create(&self.output_file_path)?;
+
+        output_file.write_all(result.as_bytes()).map_err(
+            CLIError::IOError
+        )?;
 
         for cmd in cmd_list {
             run_cmd(cmd)?

@@ -3,7 +3,7 @@ use crate::definitions::{
     ColumnDefinition, ColumnType, IndexDefinition, TableDefinition, TableType,
 };
 use crate::resolver::error::ResolveError;
-use crate::resolver::{AchievedFieldResolver, EntityPath, FieldName};
+use crate::resolver::{AchievedFieldResolver, EntityName, FieldName};
 use crate::types::DatabaseType;
 use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
@@ -11,16 +11,18 @@ use quote::{quote, ToTokens};
 use std::collections::HashMap;
 use syn::DeriveInput;
 
+pub type EntityResolverPassBox = Box<dyn EntityResolverPass>;
+
 pub trait EntityResolverPass {
     fn new() -> Self
     where
         Self: Sized;
 
-    fn boxed(&self) -> Box<dyn EntityResolverPass>;
+    fn boxed(&self) -> EntityResolverPassBox;
 
     fn get_implement_token_stream(
         &self,
-        _entity_path: String,
+        _entity_name: String,
         _ident: &Ident,
         _definitions: &[TableDefinition],
         _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
@@ -39,7 +41,6 @@ pub enum EntityResolveStatus {
 
 pub struct EntityResolver {
     status: EntityResolveStatus,
-    mod_path: &'static str,
     ident: Ident,
     field_count: usize,
     annotation: Entity,
@@ -52,7 +53,6 @@ pub struct EntityResolver {
 impl EntityResolver {
     pub fn new(
         ident: Ident,
-        mod_path: &'static str,
         field_count: usize,
         annotation: Option<Entity>,
         resolver_passes: Vec<Box<dyn EntityResolverPass>>,
@@ -72,7 +72,6 @@ impl EntityResolver {
 
         EntityResolver {
             status: EntityResolveStatus::Unresolved,
-            mod_path,
             ident,
             field_count,
             annotation: resolved_annotation,
@@ -83,8 +82,8 @@ impl EntityResolver {
         }
     }
 
-    pub fn entity_path(&self) -> EntityPath {
-        format!("{}::{}", &self.mod_path, &self.ident)
+    pub fn entity_name(&self) -> EntityName {
+        self.ident.to_string()
     }
 
     pub fn status(&self) -> EntityResolveStatus {
@@ -93,7 +92,7 @@ impl EntityResolver {
 
     pub fn get_field_resolver(&self, field: &str) -> Result<&AchievedFieldResolver, ResolveError> {
         self.field_resolvers.get(field).ok_or_else(|| {
-            ResolveError::FieldResolverNotFound(self.entity_path(), field.to_string())
+            ResolveError::FieldResolverNotFound(self.entity_name(), field.to_string())
         })
     }
 
@@ -120,7 +119,7 @@ impl EntityResolver {
     pub fn achieve(mut self) -> Result<AchievedEntityResolver, ResolveError> {
         if self.status != EntityResolveStatus::Finished {
             Err(ResolveError::EntityResolverIsNotFinished(
-                self.entity_path(),
+                self.entity_name(),
             ))
         } else {
             let mut columns = vec![];
@@ -172,7 +171,7 @@ impl EntityResolver {
 
             tables.push(TableDefinition {
                 name: self.annotation.name.clone().unwrap(),
-                ty: TableType::NormalEntityTable(self.entity_path()),
+                ty: TableType::NormalEntityTable(self.entity_name()),
                 columns,
                 indexes,
                 foreign_keys,
@@ -183,7 +182,7 @@ impl EntityResolver {
                 .iter()
                 .filter_map(|pass| {
                     pass.get_implement_token_stream(
-                        self.entity_path(),
+                        self.entity_name(),
                         &self.ident,
                         &tables,
                         &self.field_resolvers,

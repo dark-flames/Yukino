@@ -1,7 +1,8 @@
-use crate::resolver::{EntityPath, FieldName};
+use crate::resolver::{EntityName, FieldName};
 use quote::ToTokens;
 use syn::Error;
 use thiserror::Error;
+use std::io::Error as IOError;
 
 #[derive(Error, Debug)]
 pub enum ResolveError {
@@ -10,23 +11,29 @@ pub enum ResolveError {
     #[error("UnsupportedEntityStructType: Field of entity struct must be named field")]
     UnsupportedEntityStructType,
     #[error("EntityResolverNotFound: EntityResolver for {0} is not found")]
-    EntityResolverNotFound(EntityPath),
+    EntityResolverNotFound(EntityName),
     #[error("EntityResolverIsNotFinished: EntityResolver for {0} is not finished")]
-    EntityResolverIsNotFinished(EntityPath),
+    EntityResolverIsNotFinished(EntityName),
     #[error("FieldResolverNotFound: FieldResolver for {1} in {0} is not found")]
-    FieldResolverNotFound(EntityPath, FieldName),
+    FieldResolverNotFound(EntityName, FieldName),
     #[error("FailToAssembleField: Fail to assemble field {1} in {0} is not found")]
-    FailToAssembleField(EntityPath, FieldName),
+    FailToAssembleField(EntityName, FieldName),
     #[error("UnfinishedFieldCanNotAssembleToEntity: Unfinished field({1} in {0}) can not assemble to entity resolver")]
-    UnfinishedFieldCanNotAssembleToEntity(EntityPath, FieldName),
+    UnfinishedFieldCanNotAssembleToEntity(EntityName, FieldName),
     #[error("FieldResolverIsNotFinished: Field resolver for {1} in {0} is not finished")]
-    FieldResolverIsNotFinished(EntityPath, FieldName),
+    FieldResolverIsNotFinished(EntityName, FieldName),
     #[error("FieldResolverStillSeed: Unexpect resolver status: Seed")]
     FieldResolverStillSeed,
     #[error("NoSuitableResolverSeedsFound: No suitable resolver seeds found for {1} in {0}")]
-    NoSuitableResolverSeedsFound(EntityPath, FieldName),
+    NoSuitableResolverSeedsFound(EntityName, FieldName),
     #[error("GlobInPathIsNotSupported: Glob in path({0}) is not supported")]
     GlobInPathIsNotSupported(String),
+    #[error("GlobInPathIsNotSupported: Schema file only support `struct` and `use` block")]
+    UnsupportedSyntaxBlock,
+    #[error("IOError: {0}")]
+    IOError(IOError),
+    #[error("ParseError: {0}")]
+    ParseError(String),
     #[error("{0}")]
     Others(String),
 }
@@ -40,11 +47,11 @@ impl ResolveError {
 #[derive(Error, Debug)]
 pub enum DataConvertError {
     #[error("UnexpectedDatabaseValueType: Unexpected type of DatabaseValue on field({1} in {0})")]
-    UnexpectedDatabaseValueType(EntityPath, FieldName),
+    UnexpectedDatabaseValueType(EntityName, FieldName),
     #[error("UnsupportedFieldType: \"{0}\" type is not supported by {1}")]
     UnsupportedFieldType(String, &'static str),
     #[error("DatabaseValueConvertError: Error({0}) occur while converting field({2} in {1})")]
-    DatabaseValueConvertError(String, EntityPath, FieldName),
+    DatabaseValueConvertError(String, EntityName, FieldName),
 }
 
 impl From<DataConvertError> for ResolveError {

@@ -1,7 +1,7 @@
 use crate::annotations::{Field, FieldAnnotation};
 use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{EntityPath, EntityResolver, FieldPath};
+use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
 use crate::types::DatabaseValue;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
@@ -11,13 +11,13 @@ use syn::Type;
 #[derive(Debug)]
 pub enum FieldResolverStatus {
     WaitingForFields(Vec<FieldPath>),
-    WaitingForEntity(EntityPath),
+    WaitingForEntity(EntityName),
     WaitingAssemble,
 }
 
 impl FieldResolverStatus {
-    pub fn is_waiting_for_entity(&self, entity_path: &str) -> bool {
-        matches!(self, FieldResolverStatus::WaitingForEntity(path) if path == entity_path)
+    pub fn is_waiting_for_entity(&self, entity_name: &str) -> bool {
+        matches!(self, FieldResolverStatus::WaitingForEntity(path) if path == entity_name)
     }
 }
 
@@ -29,12 +29,15 @@ pub trait FieldResolverSeed {
     where
         Self: Sized;
 
+    fn boxed(&self) -> FieldResolverSeedBox;
+
     fn try_breed(
         &self,
-        entity_path: EntityPath,
+        entity_name: EntityName,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>>;
 
     fn default_annotations(annotations: &[FieldAnnotation]) -> Field

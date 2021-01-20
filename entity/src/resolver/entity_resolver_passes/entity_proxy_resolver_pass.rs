@@ -1,5 +1,5 @@
 use crate::definitions::TableDefinition;
-use crate::resolver::{AchievedFieldResolver, EntityResolverPass, FieldName};
+use crate::resolver::{AchievedFieldResolver, EntityResolverPass, FieldName, EntityResolverPassBox};
 use proc_macro2::{Ident, TokenStream};
 use std::collections::HashMap;
 use syn::DeriveInput;
@@ -14,13 +14,13 @@ impl EntityResolverPass for EntityProxyResolverPass {
         EntityProxyResolverPass
     }
 
-    fn boxed(&self) -> Box<dyn EntityResolverPass> {
+    fn boxed(&self) -> EntityResolverPassBox {
         Box::new(EntityProxyResolverPass)
     }
 
     fn get_implement_token_stream(
         &self,
-        _entity_path: String,
+        _entity_name: String,
         _ident: &Ident,
         _definitions: &[TableDefinition],
         _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,

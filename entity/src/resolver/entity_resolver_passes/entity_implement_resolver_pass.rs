@@ -1,5 +1,5 @@
 use crate::definitions::TableDefinition;
-use crate::resolver::{AchievedFieldResolver, EntityResolverPass, FieldName};
+use crate::resolver::{AchievedFieldResolver, EntityResolverPass, FieldName, EntityResolverPassBox};
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use std::collections::HashMap;
@@ -16,19 +16,19 @@ impl EntityResolverPass for EntityImplementResolverPass {
         EntityImplementResolverPass
     }
 
-    fn boxed(&self) -> Box<dyn EntityResolverPass> {
+    fn boxed(&self) -> EntityResolverPassBox {
         Box::new(EntityImplementResolverPass)
     }
 
     fn get_implement_token_stream(
         &self,
-        entity_path: String,
+        entity_name: String,
         _ident: &Ident,
         definitions: &[TableDefinition],
         field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
         _derive_input: &DeriveInput,
     ) -> Option<TokenStream> {
-        let ident = TokenStream::from_str(entity_path.as_str()).unwrap();
+        let ident = TokenStream::from_str(entity_name.as_str()).unwrap();
 
         let temp_values: Vec<_> = field_resolvers
             .values()

@@ -1,10 +1,7 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{
-    AchievedFieldResolver, EntityPath, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
-    FieldResolverSeed, FieldResolverStatus, ValueConverter,
-};
+use crate::resolver::{AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox, FieldResolverSeed, FieldResolverStatus, ValueConverter, TypePathResolver, FieldResolverSeedBox};
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -22,24 +19,29 @@ impl FieldResolverSeed for StringFieldResolverSeed {
         StringFieldResolverSeed
     }
 
+    fn boxed(&self) -> FieldResolverSeedBox {
+        Box::new(StringFieldResolverSeed)
+    }
+
     fn try_breed(
         &self,
-        entity_path: EntityPath,
+        entity_name: EntityName,
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        type_path_resolver: &TypePathResolver
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         if let Type::Path(type_path) = field_type {
-            if let Some(first_segment) = type_path.path.segments.first() {
-                if first_segment.ident == *"String" {
+            if let Some(last_segment) = type_path_resolver.get_full_path(type_path).iter().rev().next() {
+                if last_segment == "String" {
                     let field = Self::default_annotations(annotations);
                     Some(Ok(Box::new(StringFieldResolver {
-                        field_path: (entity_path.clone(), ident.to_string()),
+                        field_path: (entity_name.clone(), ident.to_string()),
                         definition: ColumnDefinition {
                             name: field
                                 .name
                                 .unwrap_or_else(|| ident.to_string().to_snake_case()),
-                            ty: ColumnType::NormalColumn(entity_path),
+                            ty: ColumnType::NormalColumn(entity_name),
                             data_type: DatabaseType::String,
                             unique: field.unique,
                             auto_increase: field.auto_increase,
@@ -92,11 +94,11 @@ impl FieldResolver for StringFieldResolver {
     ) -> Result<AchievedFieldResolver, ResolveError> {
         let method_name = self.default_converter_getter_ident();
 
-        let (entity_path, field_name) = self.field_path();
+        let (entity_name, field_name) = self.field_path();
 
         let converter = StringValueConverter {
             is_primary_key: self.definition.primary_key,
-            entity_path,
+            entity_name,
             field_name,
             column_name: self.definition.name.clone(),
         };
@@ -122,7 +124,7 @@ impl FieldResolver for StringFieldResolver {
 #[Iroha(mod_path = "yukino::resolver::default_resolver")]
 pub struct StringValueConverter {
     is_primary_key: bool,
-    entity_path: String,
+    entity_name: String,
     field_name: String,
     column_name: String,
 }
@@ -135,7 +137,7 @@ impl ValueConverter<String> for StringValueConverter {
         match values.get(&self.column_name) {
             Some(DatabaseValue::String(value)) => Ok(value.clone()),
             _ => Err(DataConvertError::UnexpectedDatabaseValueType(
-                self.entity_path.clone(),
+                self.entity_name.clone(),
                 self.field_name.clone(),
             )),
         }

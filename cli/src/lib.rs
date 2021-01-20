@@ -1,10 +1,8 @@
 mod entry;
 mod error;
-mod resolver;
 
 pub use entry::*;
 pub use error::*;
-pub use resolver::*;
 
 #[macro_export]
 macro_rules! cli_entry {
@@ -23,6 +21,7 @@ macro_rules! cli_entry {
             let crate_path = env!("CARGO_MANIFEST_DIR");
             CommandLineEntry::new(
                 vec![$(Box::new($resolver::new())),*],
+                vec![],
                 {
                     let mut map = HashMap::new();
                     $(

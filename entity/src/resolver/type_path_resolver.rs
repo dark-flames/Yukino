@@ -1,24 +1,26 @@
 use crate::resolver::error::ResolveError;
-use syn::{ItemUse, UseTree, TypePath};
 use std::collections::HashMap;
 use syn::__private::ToTokens;
+use syn::{ItemUse, TypePath, UseTree};
 
 pub type FullPath = String;
 pub type TypeName = String;
 
-pub struct TypeResolver {
+pub struct TypePathResolver {
     maps: HashMap<TypeName, FullPath>,
 }
 
-impl Default for TypeResolver {
+impl Default for TypePathResolver {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl TypeResolver {
-    pub fn new() -> TypeResolver {
-        TypeResolver { maps: HashMap::new() }
+impl TypePathResolver {
+    pub fn new() -> TypePathResolver {
+        TypePathResolver {
+            maps: HashMap::new(),
+        }
     }
 
     pub fn append_use_item(&mut self, item: &ItemUse) -> Result<(), ResolveError> {
@@ -35,7 +37,7 @@ impl TypeResolver {
                 vec![(use_name.ident.to_string(), use_name.ident.to_string())]
             }
             UseTree::Rename(use_rename) => {
-                vec![( use_rename.rename.to_string(), use_rename.ident.to_string())]
+                vec![(use_rename.rename.to_string(), use_rename.ident.to_string())]
             }
             UseTree::Path(use_path) => {
                 let current_segment = use_path.ident.to_string();
@@ -74,15 +76,18 @@ impl TypeResolver {
         })
     }
 
-    pub fn get_full_path(&self, ty: &TypePath) -> String {
-        let mut segments: Vec<_> = ty.path.segments.iter().map(
-            |segment| segment.to_token_stream().to_string()
-        ).collect();
+    pub fn get_full_path(&self, ty: &TypePath) -> Vec<String> {
+        let mut segments: Vec<_> = ty
+            .path
+            .segments
+            .iter()
+            .map(|segment| segment.to_token_stream().to_string())
+            .collect();
 
         if let Some(full) = self.maps.get(segments.first().unwrap()) {
             segments[0] = full.clone();
         }
 
-        segments.join("::")
+        segments
     }
 }
