@@ -61,9 +61,7 @@ impl EntityResolverPass for EntityStructResolverPass {
             }
 
             if let Type::Path(type_path) = &field.ty {
-                if let Some(new_ty) = type_path_resolver.get_full_path(type_path.clone()) {
-                    field.ty = Type::Path(new_ty)
-                }
+                field.ty = Type::Path(type_path_resolver.get_full_path(type_path.clone()))
             }
         }
 

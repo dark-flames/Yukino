@@ -82,7 +82,7 @@ impl TypePathResolver {
         })
     }
 
-    pub fn get_full_path(&self, ty: TypePath) -> Option<TypePath> {
+    pub fn get_full_path(&self, ty: TypePath) -> TypePath {
         let first_segment = ty.path.segments.first().unwrap();
 
         if let Some(full) = self.maps.get(first_segment.ident.to_string().as_str()) {
@@ -102,9 +102,9 @@ impl TypePathResolver {
                     .insert(0, PathSegment::from(ident.clone()))
             }
 
-            Some(result)
+            result
         } else {
-            None
+            ty
         }
     }
 }

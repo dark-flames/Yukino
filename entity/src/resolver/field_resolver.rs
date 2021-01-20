@@ -1,7 +1,7 @@
 use crate::annotations::{Field, FieldAnnotation};
 use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{EntityName, EntityResolver, FieldPath};
+use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
 use crate::types::DatabaseValue;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
@@ -37,6 +37,7 @@ pub trait FieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>>;
 
     fn default_annotations(annotations: &[FieldAnnotation]) -> Field
@@ -91,8 +92,16 @@ pub trait FieldResolver {
         entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError>;
 
-    fn default_converter_getter_ident(&self) -> Ident {
+    fn converter_getter_ident(&self) -> Ident {
         quote::format_ident!("get_{}_converter", &self.field_path().1)
+    }
+
+    fn getter_ident(&self) -> Ident {
+        quote::format_ident!("get_{}", &self.field_path().1)
+    }
+
+    fn setter_ident(&self) -> Ident {
+        quote::format_ident!("set_{}", &self.field_path().1)
     }
 }
 
@@ -127,6 +136,10 @@ pub struct AchievedFieldResolver {
     pub foreign_keys: Vec<ForeignKeyDefinition>,
     pub data_converter_token_stream: TokenStream,
     pub converter_getter_ident: Ident,
+    pub field_getter_ident: Ident,
+    pub field_getter_token_stream: TokenStream,
+    pub field_setter_ident: Ident,
+    pub field_setter_token_stream: TokenStream,
 }
 
 impl AchievedFieldResolver {

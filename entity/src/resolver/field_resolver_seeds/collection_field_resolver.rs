@@ -3,19 +3,21 @@ use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
-    FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, ValueConverter,
+    FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
+    TypePathResolver, ValueConverter,
 };
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
+use quote::{format_ident, quote};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{from_value, to_value};
 use std::collections::HashMap;
 use std::hash::Hash;
-use syn::{PathSegment, Type};
+use syn::{PathSegment, Type, TypePath};
 
 enum CollectionType {
     List,
@@ -56,10 +58,10 @@ impl CollectionType {
 
     pub fn converter_name(&self) -> TokenStream {
         match self {
-            CollectionType::List => quote::quote! {
+            CollectionType::List => quote! {
                 yukino::resolver::field_resolver_seeds::ListValueConverter
             },
-            CollectionType::Map => quote::quote! {
+            CollectionType::Map => quote! {
                 yukino::resolver::field_resolver_seeds::MapValueConverter
             },
         }
@@ -86,10 +88,12 @@ impl FieldResolverSeed for CollectionFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
-        let ty = match field_type {
+        let (ty, field_type) = match field_type {
             Type::Path(type_path) => match type_path.path.segments.iter().rev().next() {
-                Some(last_segment) => CollectionType::from_last_segment(&last_segment),
+                Some(last_segment) => CollectionType::from_last_segment(&last_segment)
+                    .map(|ty| (ty, type_path_resolver.get_full_path(type_path.clone()))),
                 None => None,
             },
             _ => None,
@@ -118,6 +122,7 @@ impl FieldResolverSeed for CollectionFieldResolverSeed {
 
             Some(Ok(Box::new(CollectionFieldResolver {
                 field_path: (entity_name, ident.to_string()),
+                field_type,
                 ty,
                 definition,
             })))
@@ -127,6 +132,7 @@ impl FieldResolverSeed for CollectionFieldResolverSeed {
 
 pub struct CollectionFieldResolver {
     field_path: FieldPath,
+    field_type: TypePath,
     ty: CollectionType,
     definition: ColumnDefinition,
 }
@@ -158,7 +164,7 @@ impl FieldResolver for CollectionFieldResolver {
         &mut self,
         _entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError> {
-        let method_name = self.default_converter_getter_ident();
+        let method_name = self.converter_getter_ident();
         let output_type = self.ty.converter_name();
         let converter = self
             .ty
@@ -170,6 +176,23 @@ impl FieldResolver for CollectionFieldResolver {
             }
         };
 
+        let getter_name = self.getter_ident();
+        let setter_name = self.setter_ident();
+        let field_ident = format_ident!("{}", self.field_path().1);
+        let field_type = &self.field_type;
+
+        let field_getter_token_stream = quote! {
+            pub fn #getter_name(&self) -> &#field_type {
+                &self.inner.#field_ident
+            }
+        };
+        let field_setter_token_stream = quote! {
+            pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
+                self.inner.#field_ident= value;
+                self
+            }
+        };
+
         Ok(AchievedFieldResolver {
             field_path: self.field_path(),
             columns: vec![self.definition.clone()],
@@ -177,6 +200,10 @@ impl FieldResolver for CollectionFieldResolver {
             foreign_keys: vec![],
             data_converter_token_stream,
             converter_getter_ident: method_name,
+            field_getter_ident: getter_name,
+            field_getter_token_stream,
+            field_setter_ident: setter_name,
+            field_setter_token_stream,
         })
     }
 }

@@ -3,15 +3,16 @@ use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
-    FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, ValueConverter,
+    FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
+use quote::{format_ident, quote};
 use std::collections::HashMap;
-use syn::Type;
+use syn::{Type, TypePath};
 
 enum NumericType {
     Integer(usize),
@@ -106,33 +107,33 @@ impl NumericType {
     }
 
     pub fn converter_name(&self) -> TokenStream {
-        let prefix = quote::quote! {
+        let prefix = quote! {
             yukino::resolver::field_resolver_seeds
         };
 
         match self {
-            NumericType::Integer(16) => quote::quote! {
+            NumericType::Integer(16) => quote! {
                 #prefix::SmallIntegerValueConverter
             },
-            NumericType::Integer(32) => quote::quote! {
+            NumericType::Integer(32) => quote! {
                 #prefix::IntegerValueConverter
             },
-            NumericType::Integer(64) => quote::quote! {
+            NumericType::Integer(64) => quote! {
                 #prefix::BigIntegerValueConverter
             },
-            NumericType::UnsignedInteger(16) => quote::quote! {
+            NumericType::UnsignedInteger(16) => quote! {
                 #prefix::UnsignedSmallIntegerValueConverter
             },
-            NumericType::UnsignedInteger(32) => quote::quote! {
+            NumericType::UnsignedInteger(32) => quote! {
                 #prefix::UnsignedIntegerValueConverter
             },
-            NumericType::UnsignedInteger(64) => quote::quote! {
+            NumericType::UnsignedInteger(64) => quote! {
                 #prefix::UnsignedBigIntegerValueConverter
             },
-            NumericType::Float(32) => quote::quote! {
+            NumericType::Float(32) => quote! {
                 #prefix::FloatValueConverter
             },
-            NumericType::Float(64) => quote::quote! {
+            NumericType::Float(64) => quote! {
                 #prefix::DoubleValueConverter
             },
             _ => unreachable!(),
@@ -174,10 +175,12 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
-        let ty = match field_type {
+        let (ty, field_type) = match field_type {
             Type::Path(type_path) => match type_path.path.segments.first() {
-                Some(first_segment) => NumericType::from_ident(&first_segment.ident),
+                Some(first_segment) => NumericType::from_ident(&first_segment.ident)
+                    .map(|ty| (ty, type_path_resolver.get_full_path(type_path.clone()))),
                 None => None,
             },
             _ => None,
@@ -200,6 +203,7 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
             field_path: (entity_name, ident.to_string()),
             ty,
             definition,
+            field_type,
         })))
     }
 }
@@ -208,6 +212,7 @@ pub struct NumericFieldResolver {
     field_path: FieldPath,
     ty: NumericType,
     definition: ColumnDefinition,
+    field_type: TypePath,
 }
 
 impl FieldResolver for NumericFieldResolver {
@@ -237,7 +242,7 @@ impl FieldResolver for NumericFieldResolver {
         &mut self,
         _entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError> {
-        let method_name = self.default_converter_getter_ident();
+        let method_name = self.converter_getter_ident();
         let output_type = self.ty.converter_name();
         let converter = self.ty.converter_token_stream(
             self.definition.name.clone(),
@@ -245,9 +250,26 @@ impl FieldResolver for NumericFieldResolver {
             self.definition.primary_key,
         );
 
-        let data_converter_token_stream = quote::quote! {
+        let data_converter_token_stream = quote! {
             pub fn #method_name() -> #output_type {
                 #converter
+            }
+        };
+
+        let getter_name = self.getter_ident();
+        let setter_name = self.setter_ident();
+        let field_ident = format_ident!("{}", self.field_path().1);
+        let field_type = &self.field_type;
+
+        let field_getter_token_stream = quote! {
+            pub fn #getter_name(&self) -> #field_type {
+                self.inner.#field_ident
+            }
+        };
+        let field_setter_token_stream = quote! {
+            pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
+                self.inner.#field_ident = value;
+                self
             }
         };
 
@@ -258,6 +280,10 @@ impl FieldResolver for NumericFieldResolver {
             foreign_keys: vec![],
             data_converter_token_stream,
             converter_getter_ident: method_name,
+            field_getter_ident: getter_name,
+            field_getter_token_stream,
+            field_setter_ident: setter_name,
+            field_setter_token_stream,
         })
     }
 }

@@ -40,7 +40,11 @@ impl SchemaResolver {
         }
     }
 
-    pub fn parse(&mut self, input: ItemStruct) -> Result<(), SynError> {
+    pub fn parse(
+        &mut self,
+        input: ItemStruct,
+        type_path_resolver: &TypePathResolver,
+    ) -> Result<(), SynError> {
         let entity_annotation = match input
             .attrs
             .iter()
@@ -89,6 +93,7 @@ impl SchemaResolver {
                                     field.ident.as_ref().unwrap(),
                                     &field_annotations,
                                     &field.ty,
+                                    type_path_resolver,
                                 )
                                 .unwrap_or(result)
                             } else {

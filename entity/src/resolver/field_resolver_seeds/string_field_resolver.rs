@@ -3,12 +3,13 @@ use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
-    FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, ValueConverter,
+    FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
 use crate::types::{DatabaseType, DatabaseValue};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::Ident;
+use quote::{format_ident, quote};
 use std::collections::HashMap;
 use syn::Type;
 
@@ -32,6 +33,7 @@ impl FieldResolverSeed for StringFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
+        _type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         if let Type::Path(type_path) = field_type {
             if let Some(first_segment) = type_path.path.segments.first() {
@@ -94,20 +96,36 @@ impl FieldResolver for StringFieldResolver {
         &mut self,
         _entity_resolver: &EntityResolver,
     ) -> Result<AchievedFieldResolver, ResolveError> {
-        let method_name = self.default_converter_getter_ident();
+        let method_name = self.converter_getter_ident();
 
         let (entity_name, field_name) = self.field_path();
 
         let converter = StringValueConverter {
             is_primary_key: self.definition.primary_key,
             entity_name,
-            field_name,
+            field_name: field_name.clone(),
             column_name: self.definition.name.clone(),
         };
 
-        let data_converter_token_stream = quote::quote! {
+        let data_converter_token_stream = quote! {
             pub fn #method_name() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
                 #converter
+            }
+        };
+
+        let getter_name = self.getter_ident();
+        let setter_name = self.setter_ident();
+        let field_ident = format_ident!("{}", field_name);
+
+        let field_getter_token_stream = quote! {
+            pub fn #getter_name(&self) -> &String {
+                &self.inner.#field_ident
+            }
+        };
+        let field_setter_token_stream = quote! {
+            pub fn #setter_name(&mut self, value: String) -> &mut Self {
+                self.inner.#field_ident = value;
+                self
             }
         };
 
@@ -118,6 +136,10 @@ impl FieldResolver for StringFieldResolver {
             foreign_keys: vec![],
             data_converter_token_stream,
             converter_getter_ident: method_name,
+            field_getter_ident: getter_name,
+            field_getter_token_stream,
+            field_setter_ident: setter_name,
+            field_setter_token_stream,
         })
     }
 }

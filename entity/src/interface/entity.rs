@@ -64,7 +64,7 @@ macro_rules! impl_entity_proxy {
 
             fn create(
                 inner: concat_idents!($entity, Inner),
-                repository: &'r yukino ::repository::Repository<concat_idents!($entity, Inner)>,
+                repository: &'r yukino::repository::Repository<concat_idents!($entity, Inner)>,
             ) -> Self
             where
                 Self: Sized,

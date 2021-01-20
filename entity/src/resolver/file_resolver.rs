@@ -72,7 +72,8 @@ impl FileResolver {
         for item in syntax.items {
             match item {
                 Item::Struct(item_struct) => {
-                    self.schema_resolver.parse(item_struct)?;
+                    self.schema_resolver
+                        .parse(item_struct, &self.type_path_resolver)?;
                 }
                 Item::Use(_) => {}
                 _ => return Err(ResolveError::UnsupportedSyntaxBlock.into_syn_error(item)),
