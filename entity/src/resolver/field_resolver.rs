@@ -3,6 +3,7 @@ use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
 use crate::types::DatabaseValue;
+use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
@@ -93,15 +94,15 @@ pub trait FieldResolver {
     ) -> Result<AchievedFieldResolver, ResolveError>;
 
     fn converter_getter_ident(&self) -> Ident {
-        quote::format_ident!("get_{}_converter", &self.field_path().1)
+        quote::format_ident!("get_{}_converter", &self.field_path().1.to_snake_case())
     }
 
     fn getter_ident(&self) -> Ident {
-        quote::format_ident!("get_{}", &self.field_path().1)
+        quote::format_ident!("get_{}", &self.field_path().1.to_snake_case())
     }
 
     fn setter_ident(&self) -> Ident {
-        quote::format_ident!("set_{}", &self.field_path().1)
+        quote::format_ident!("set_{}", &self.field_path().1.to_snake_case())
     }
 }
 
