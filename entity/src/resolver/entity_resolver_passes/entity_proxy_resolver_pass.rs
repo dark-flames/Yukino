@@ -4,7 +4,7 @@ use crate::resolver::{
     AchievedFieldResolver, EntityResolverPass, EntityResolverPassBox, FieldName, TypePathResolver,
 };
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use std::collections::HashMap;
 use std::str::FromStr;
 use syn::ItemStruct;
@@ -32,6 +32,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
         _type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
         let ident = TokenStream::from_str(&entity_name).unwrap();
+        let inner_ident = format_ident!("{}Inner", &entity_name);
 
         let visitors = field_resolvers
             .iter()
@@ -42,7 +43,45 @@ impl EntityResolverPass for EntityProxyResolverPass {
             });
 
         Some(Ok(quote! {
-            yukino::impl_entity_proxy!(#ident);
+            pub struct #ident<'r> {
+                inner: #inner_ident,
+                unique_id: Option<yukino::EntityUniqueID>,
+                repository: &'r yukino::repository::Repository<#inner_ident>,
+            }
+
+            impl<'r> yukino::EntityProxy<'r, #inner_ident> for #ident<'r> {
+                fn unique_id(&self) -> Option<yukino::EntityUniqueID> {
+                    self.unique_id.clone()
+                }
+
+                fn set_unique_id(&mut self, unique_id: yukino::EntityUniqueID) {
+                    self.unique_id = Some(unique_id);
+                }
+
+                fn get_repository(
+                    &self,
+                ) -> &'r yukino::repository::Repository<#inner_ident> {
+                    self.repository
+                }
+
+                fn create(
+                    inner: #inner_ident,
+                    repository: &'r yukino::repository::Repository<#inner_ident>,
+                ) -> Self
+                where
+                    Self: Sized,
+                {
+                    #ident {
+                        inner,
+                        unique_id: None,
+                        repository,
+                    }
+                }
+
+                fn unwrap(self) -> #inner_ident {
+                    self.inner
+                }
+            }
 
             impl<'r> #ident<'r> {
                 #(#visitors)*
