@@ -7,9 +7,37 @@ use crate::resolver::{AchievedFieldResolver, EntityPath, FieldName};
 use crate::types::DatabaseType;
 use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote};
+use quote::{quote, ToTokens};
 use std::collections::HashMap;
 use std::str::FromStr;
+
+pub trait EntityResolverPass {
+    fn new() -> Self
+    where
+        Self: Sized;
+
+    fn boxed(&self) -> Box<dyn EntityResolverPass>;
+
+    fn get_methods_token_stream(
+        &self,
+        _entity_path: String,
+        _ident: &Ident,
+        _definitions: &[TableDefinition],
+        _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
+    ) -> Option<Vec<TokenStream>> {
+        None
+    }
+
+    fn get_implement_token_stream(
+        &self,
+        _entity_path: String,
+        _ident: &Ident,
+        _definitions: &[TableDefinition],
+        _field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
+    ) -> Option<TokenStream> {
+        None
+    }
+}
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum EntityResolveStatus {
@@ -26,6 +54,7 @@ pub struct EntityResolver {
     annotation: Entity,
     field_resolvers: HashMap<FieldName, AchievedFieldResolver>,
     primary_keys: Vec<String>,
+    resolver_passes: Vec<Box<dyn EntityResolverPass>>,
 }
 
 impl EntityResolver {
@@ -34,6 +63,7 @@ impl EntityResolver {
         mod_path: &'static str,
         field_count: usize,
         annotation: Option<Entity>,
+        resolver_passes: Vec<Box<dyn EntityResolverPass>>,
     ) -> Self {
         let mut resolved_annotation = annotation.unwrap_or(Entity {
             name: None,
@@ -55,6 +85,7 @@ impl EntityResolver {
             annotation: resolved_annotation,
             field_resolvers: HashMap::new(),
             primary_keys: vec![],
+            resolver_passes,
         }
     }
 
@@ -153,134 +184,51 @@ impl EntityResolver {
                 foreign_keys,
             });
 
+            let methods = self
+                .resolver_passes
+                .iter()
+                .filter_map(|pass| {
+                    pass.get_methods_token_stream(
+                        self.entity_path(),
+                        &self.ident,
+                        &tables,
+                        &self.field_resolvers,
+                    )
+                })
+                .fold(vec![], |mut carry, mut current| {
+                    carry.append(&mut current);
+                    carry
+                });
+
+            let implements = self
+                .resolver_passes
+                .iter()
+                .filter_map(|pass| {
+                    pass.get_implement_token_stream(
+                        self.entity_path(),
+                        &self.ident,
+                        &tables,
+                        &self.field_resolvers,
+                    )
+                })
+                .fold(TokenStream::new(), |mut previous, current| {
+                    current.to_tokens(&mut previous);
+
+                    previous
+                });
+
+            let entity_ident = TokenStream::from_str(self.entity_path().as_str()).unwrap();
+
             Ok(AchievedEntityResolver {
-                definitions: tables.clone(),
-                implement: self.get_implement_token_stream(tables),
+                definitions: tables,
+                implement: quote! {
+                    impl #entity_ident {
+                        #(#methods)*
+                    }
+
+                    #implements
+                },
             })
-        }
-    }
-
-    fn get_implement_token_stream(&self, definitions: Vec<TableDefinition>) -> TokenStream {
-        assert_eq!(self.status(), EntityResolveStatus::Finished);
-        let ident = TokenStream::from_str(self.entity_path().as_str()).unwrap();
-
-        let converters: Vec<_> = self
-            .field_resolvers
-            .values()
-            .into_iter()
-            .map(|resolver| resolver.data_converter_token_stream.clone())
-            .collect();
-
-        let temp_values: Vec<_> = self
-            .field_resolvers
-            .values()
-            .map(|resolver| {
-                let method = resolver.converter_getter_ident.clone();
-
-                let field_ident = format_ident!("{}", &resolver.field_path.1);
-
-                quote::quote! {
-                    let #field_ident = Self::#method().to_field_value(result)?
-                }
-            })
-            .collect();
-
-        let fields: Vec<_> = self
-            .field_resolvers
-            .values()
-            .map(|resolver| format_ident!("{}", &resolver.field_path.1))
-            .collect();
-
-        let inserts: Vec<_> = self
-            .field_resolvers
-            .values()
-            .map(|resolver| {
-                let method = resolver.converter_getter_ident.clone();
-
-                let field_ident = format_ident!("{}", &resolver.field_path.1);
-
-                quote::quote! {
-                    map.extend(Self::#method().to_database_values_by_ref(&self.#field_ident)?)
-                }
-            })
-            .collect();
-
-        let primary_key_inserts: Vec<_> = self
-            .field_resolvers
-            .values()
-            .filter_map(|resolver| {
-                if !resolver.primary_key_column_names().is_empty() {
-                    let method = resolver.converter_getter_ident.clone();
-
-                    let field_ident = format_ident!("{}", &resolver.field_path.1);
-
-                    Some(quote::quote! {
-                        map.extend(Self::#method().primary_key_values_by_ref(&self.#field_ident)?)
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        let (mut_token, use_tokens) = if primary_key_inserts.is_empty() {
-            (TokenStream::new(), TokenStream::new())
-        } else {
-            (
-                quote::quote! {mut},
-                quote::quote! {use yukino::resolver::ValueConverter},
-            )
-        };
-
-        quote! {
-            impl #ident {
-                #(#converters)*
-            }
-
-            impl yukino::Entity for #ident {
-                fn from_database_value(
-                    result: &std::collections::HashMap<String, yukino::types::DatabaseValue>
-                ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
-                    use yukino::resolver::ValueConverter;
-
-                    #(#temp_values;)*
-
-                    Ok(Box::new(
-                        #ident {
-                            #(#fields),*
-                        }
-                    ))
-                }
-
-                fn to_database_values(&self)
-                    -> Result<
-                        std::collections::HashMap<String, yukino::types::DatabaseValue>,
-                        yukino::resolver::error::DataConvertError
-                    > {
-                    let mut map = std::collections::HashMap::new();
-                    use yukino::resolver::ValueConverter;
-                    #(#inserts;)*
-
-                    Ok(map)
-                }
-
-                fn primary_key_values(&self) -> Result<
-                        std::collections::HashMap<String, yukino::types::DatabaseValue>,
-                        yukino::resolver::error::DataConvertError
-                    > {
-                    let #mut_token map = std::collections::HashMap::new();
-                    #use_tokens;
-                    #(#primary_key_inserts;)*
-
-                    Ok(map)
-                }
-
-                fn get_definitions() -> Vec<yukino::definitions::TableDefinition> {
-                    vec![
-                        #(#definitions),*
-                    ]
-                }
-            }
         }
     }
 }

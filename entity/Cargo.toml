@@ -18,6 +18,7 @@ syn = "1.0"
 proc-macro2 = "1.0"
 thiserror = "1.0"
 heck = "0.3"
+rand = "0.8.2"
 
 [features]
 default = ["mysql", "decimal", "json", "data-time"]

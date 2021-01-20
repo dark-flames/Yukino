@@ -1,5 +1,8 @@
 use crate::entry::ModePath;
 use crate::error::CLIError;
+use entity::resolver::entity_resolver_passes::{
+    ConverterGetterResolverPass, EntityImplementResolverPass,
+};
 use entity::resolver::{FieldResolverSeedBox, ImmutableSchemaResolver, SchemaResolver};
 use std::collections::HashMap;
 use std::fs::{remove_file, File};
@@ -25,7 +28,13 @@ impl Resolver {
             .collect::<Result<HashMap<ModePath, File>, IOError>>()?;
 
         Ok(Resolver {
-            schema_resolver: SchemaResolver::new(seeds),
+            schema_resolver: SchemaResolver::new(
+                seeds,
+                vec![
+                    Box::new(EntityImplementResolverPass),
+                    Box::new(ConverterGetterResolverPass),
+                ],
+            ),
             model_files,
             output_file_path,
         })

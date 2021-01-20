@@ -3,7 +3,7 @@ use crate::definitions::TableDefinition;
 use crate::resolver::error::ResolveError;
 use crate::resolver::{
     AchievedEntityResolver, AchievedFieldResolver, EntityResolveStatus, EntityResolver,
-    FieldResolverBox, FieldResolverSeedBox, FieldResolverStatus,
+    EntityResolverPass, FieldResolverBox, FieldResolverSeedBox, FieldResolverStatus,
 };
 use annotation_rs::AnnotationStructure;
 use proc_macro2::{Ident, TokenStream};
@@ -21,16 +21,21 @@ pub struct SchemaResolver {
     entity_resolver: HashMap<EntityPath, EntityResolver>,
     waiting_fields: HashMap<FieldPath, Vec<FieldPath>>,
     waiting_entity: HashMap<EntityPath, Vec<FieldPath>>,
+    entity_resolver_passes: Vec<Box<dyn EntityResolverPass>>,
 }
 
 impl SchemaResolver {
-    pub fn new(seeds: Vec<FieldResolverSeedBox>) -> Self {
+    pub fn new(
+        seeds: Vec<FieldResolverSeedBox>,
+        entity_resolver_passes: Vec<Box<dyn EntityResolverPass>>,
+    ) -> Self {
         SchemaResolver {
             field_resolver_seeds: seeds,
             field_resolver: HashMap::new(),
             entity_resolver: HashMap::new(),
             waiting_fields: HashMap::new(),
             waiting_entity: HashMap::new(),
+            entity_resolver_passes,
         }
     }
 
@@ -328,7 +333,16 @@ impl SchemaResolver {
         field_count: usize,
         annotation: Option<Entity>,
     ) -> Result<EntityPath, ResolveError> {
-        let resolver = EntityResolver::new(ident, mod_path, field_count, annotation);
+        let resolver = EntityResolver::new(
+            ident,
+            mod_path,
+            field_count,
+            annotation,
+            self.entity_resolver_passes
+                .iter()
+                .map(|item| item.boxed())
+                .collect(),
+        );
         let entity_path = resolver.entity_path();
         let status = resolver.status();
 
