@@ -37,7 +37,7 @@ pub trait EntityProxy<'r, E: 'r + Entity> {
         Self: 'r + Sized,
     {
         if let Some(id) = self.unique_id() {
-            self.get_repository().pool_mut().drop_entity(&id);
+            self.get_repository().drop_entity(&id);
         }
     }
 }
