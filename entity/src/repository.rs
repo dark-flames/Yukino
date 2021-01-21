@@ -47,6 +47,6 @@ impl<'r, E: 'r + Entity, P: EntityProxy<'r, E>> Repository<'r, P, E> {
     }
 
     pub fn create<F: FnOnce() -> E>(&'r self, entity: F) -> P {
-        P::create(entity(), self)
+        P::create_proxy(entity(), self)
     }
 }

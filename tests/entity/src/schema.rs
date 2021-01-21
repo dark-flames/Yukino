@@ -1,5 +1,5 @@
 #![allow(unknown_lints)]
-struct FooInner {
+pub struct FooInner {
     integer: u32,
     int16: i16,
     list: Vec<String>,
@@ -7,6 +7,14 @@ struct FooInner {
     string: String,
 }
 impl FooInner {
+    pub fn get_string_converter() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
+        yukino::resolver::field_resolver_seeds::StringValueConverter::new(
+            false,
+            "Foo".to_string(),
+            "string".to_string(),
+            "string".to_string(),
+        )
+    }
     pub fn get_int16_converter(
     ) -> yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter {
         yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter::new(
@@ -21,14 +29,6 @@ impl FooInner {
             "Foo".to_string(),
             "map".to_string(),
             "map".to_string(),
-        )
-    }
-    pub fn get_string_converter() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
-        yukino::resolver::field_resolver_seeds::StringValueConverter::new(
-            false,
-            "Foo".to_string(),
-            "string".to_string(),
-            "string".to_string(),
         )
     }
     pub fn get_list_converter() -> yukino::resolver::field_resolver_seeds::ListValueConverter {
@@ -53,15 +53,15 @@ impl yukino::Entity for FooInner {
         result: &std::collections::HashMap<String, yukino::types::DatabaseValue>,
     ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
         use yukino::resolver::ValueConverter;
+        let string = Self::get_string_converter().to_field_value(result)?;
         let int16 = Self::get_int16_converter().to_field_value(result)?;
         let map = Self::get_map_converter().to_field_value(result)?;
-        let string = Self::get_string_converter().to_field_value(result)?;
         let list = Self::get_list_converter().to_field_value(result)?;
         let integer = Self::get_integer_converter().to_field_value(result)?;
         Ok(Box::new(FooInner {
+            string,
             int16,
             map,
-            string,
             list,
             integer,
         }))
@@ -74,9 +74,9 @@ impl yukino::Entity for FooInner {
     > {
         let mut map = std::collections::HashMap::new();
         use yukino::resolver::ValueConverter;
+        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         map.extend(Self::get_int16_converter().to_database_values_by_ref(&self.int16)?);
         map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
-        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
         map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
         Ok(map)
@@ -95,6 +95,14 @@ impl yukino::Entity for FooInner {
                     true,
                 ),
                 yukino::definitions::ColumnDefinition::new(
+                    "string".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
+                    yukino::types::DatabaseType::String,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
                     "int16".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("int16".to_string()),
                     yukino::types::DatabaseType::SmallInteger,
@@ -106,14 +114,6 @@ impl yukino::Entity for FooInner {
                     "map".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("map".to_string()),
                     yukino::types::DatabaseType::Json,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::definitions::ColumnDefinition::new(
-                    "string".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
-                    yukino::types::DatabaseType::String,
                     false,
                     false,
                     false,
@@ -167,7 +167,7 @@ impl<'r> yukino::EntityProxy<'r, FooInner> for Foo<'r> {
     {
         self.repository
     }
-    fn create(
+    fn create_proxy(
         inner: FooInner,
         repository: &'r yukino::repository::Repository<'r, Self, FooInner>,
     ) -> Self
@@ -182,6 +182,13 @@ impl<'r> yukino::EntityProxy<'r, FooInner> for Foo<'r> {
     }
 }
 impl<'r> Foo<'r> {
+    pub fn get_string(&self) -> &String {
+        &self.inner.string
+    }
+    pub fn set_string(&mut self, value: String) -> &mut Self {
+        self.inner.string = value;
+        self
+    }
     pub fn get_int16(&self) -> i16 {
         self.inner.int16
     }
@@ -194,13 +201,6 @@ impl<'r> Foo<'r> {
     }
     pub fn set_map(&mut self, value: std::collections::HashMap<String, String>) -> &mut Self {
         self.inner.map = value;
-        self
-    }
-    pub fn get_string(&self) -> &String {
-        &self.inner.string
-    }
-    pub fn set_string(&mut self, value: String) -> &mut Self {
-        self.inner.string = value;
         self
     }
     pub fn get_list(&self) -> &Vec<String> {
@@ -216,6 +216,21 @@ impl<'r> Foo<'r> {
     pub fn set_integer(&mut self, value: u32) -> &mut Self {
         self.inner.integer = value;
         self
+    }
+    pub fn create(
+        string: String,
+        int16: i16,
+        map: std::collections::HashMap<String, String>,
+        list: Vec<String>,
+        integer: u32,
+    ) -> FooInner {
+        FooInner {
+            string,
+            int16,
+            map,
+            list,
+            integer,
+        }
     }
 }
 impl<'r> Drop for Foo<'r> {

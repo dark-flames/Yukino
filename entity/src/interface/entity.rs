@@ -28,7 +28,7 @@ pub trait EntityProxy<'r, E: 'r + Entity> {
     where
         Self: Sized;
 
-    fn create(inner: E, repo: &'r Repository<'r, Self, E>) -> Self
+    fn create_proxy(inner: E, repo: &'r Repository<'r, Self, E>) -> Self
     where
         Self: Sized;
 

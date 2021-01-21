@@ -204,6 +204,7 @@ impl FieldResolver for CollectionFieldResolver {
             field_getter_token_stream,
             field_setter_ident: setter_name,
             field_setter_token_stream,
+            field_type: Type::Path(field_type.clone()),
         })
     }
 }

@@ -141,6 +141,7 @@ pub struct AchievedFieldResolver {
     pub field_getter_token_stream: TokenStream,
     pub field_setter_ident: Ident,
     pub field_setter_token_stream: TokenStream,
+    pub field_type: Type,
 }
 
 impl AchievedFieldResolver {

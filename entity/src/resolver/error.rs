@@ -32,8 +32,8 @@ pub enum ResolveError {
     UnsupportedSyntaxBlock,
     #[error("GenericIsNotSupported: Generic is not supported on entity struct: {0}")]
     GenericIsNotSupported(EntityName),
-    #[error("EntityVisibilityMustBePrivate: Visibility of entity({0}) must be private")]
-    EntityVisibilityMustBePrivate(EntityName),
+    #[error("EntityVisibilityMustBePublic: Visibility of entity({0}) must be public")]
+    EntityVisibilityMustBePublic(EntityName),
     #[error("EntityVisibilityMustBePrivate: Visibility of field({1} in {0}) must be private")]
     FieldVisibilityMustBePrivate(EntityName, FieldName),
     #[error("IOError: {0}")]

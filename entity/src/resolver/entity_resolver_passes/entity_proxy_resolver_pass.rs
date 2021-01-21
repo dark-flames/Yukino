@@ -42,6 +42,32 @@ impl EntityResolverPass for EntityProxyResolverPass {
                 list
             });
 
+        let params: Vec<_> = field_resolvers
+            .iter()
+            .map(|(_, resolver)| {
+                let field_ident = format_ident!("{}", resolver.field_path.1);
+                let field_type = &resolver.field_type;
+                quote! {
+                    #field_ident: #field_type
+                }
+            })
+            .collect();
+
+        let field_idents: Vec<_> = field_resolvers
+            .iter()
+            .map(|(_, resolver)| format_ident!("{}", resolver.field_path.1))
+            .collect();
+
+        let create = quote! {
+            pub fn create(
+                #(#params,)*
+            ) -> #inner_ident {
+                #inner_ident {
+                    #(#field_idents,)*
+                }
+            }
+        };
+
         Some(Ok(quote! {
             pub struct #ident<'r> {
                 inner: #inner_ident,
@@ -66,7 +92,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
                     self.repository
                 }
 
-                fn create(
+                fn create_proxy(
                     inner: #inner_ident,
                     repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
                 ) -> Self
@@ -83,6 +109,8 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
             impl<'r> #ident<'r> {
                 #(#visitors)*
+
+                #create
             }
 
             impl<'r> Drop for #ident<'r> {

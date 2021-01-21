@@ -33,7 +33,7 @@ impl FieldResolverSeed for StringFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-        _type_path_resolver: &TypePathResolver,
+        type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         if let Type::Path(type_path) = field_type {
             if let Some(first_segment) = type_path.path.segments.first() {
@@ -51,6 +51,7 @@ impl FieldResolverSeed for StringFieldResolverSeed {
                             auto_increase: field.auto_increase,
                             primary_key: Self::is_primary_key(annotations),
                         },
+                        field_type: Type::Path(type_path_resolver.get_full_path(type_path.clone())),
                     })))
                 } else {
                     None
@@ -67,6 +68,7 @@ impl FieldResolverSeed for StringFieldResolverSeed {
 pub struct StringFieldResolver {
     field_path: FieldPath,
     definition: ColumnDefinition,
+    field_type: Type,
 }
 
 impl FieldResolver for StringFieldResolver {
@@ -140,6 +142,7 @@ impl FieldResolver for StringFieldResolver {
             field_getter_token_stream,
             field_setter_ident: setter_name,
             field_setter_token_stream,
+            field_type: self.field_type.clone(),
         })
     }
 }

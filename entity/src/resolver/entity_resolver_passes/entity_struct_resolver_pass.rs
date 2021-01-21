@@ -45,10 +45,8 @@ impl EntityResolverPass for EntityStructResolverPass {
 
         if !struct_item.generics.params.is_empty() {
             return Some(Err(ResolveError::GenericIsNotSupported(entity_name)));
-        } else if struct_item.vis != Visibility::Inherited {
-            return Some(Err(ResolveError::EntityVisibilityMustBePrivate(
-                entity_name,
-            )));
+        } else if !matches!(&struct_item.vis, Visibility::Public(_)) {
+            return Some(Err(ResolveError::EntityVisibilityMustBePublic(entity_name)));
         }
 
         for field in struct_item.fields.iter_mut() {
