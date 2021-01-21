@@ -19,19 +19,23 @@ pub trait Entity {
 }
 
 pub trait EntityProxy<'r, E: 'r + Entity> {
+    type Entity = E;
     fn unique_id(&self) -> Option<EntityUniqueID>;
 
     fn set_unique_id(&mut self, unique_id: EntityUniqueID);
 
-    fn get_repository(&self) -> &'r Repository<E>;
-
-    fn create(inner: E, repo: &'r Repository<E>) -> Self
+    fn get_repository(&self) -> &'r Repository<'r, Self, E>
     where
         Self: Sized;
 
-    fn unwrap(self) -> E;
+    fn create(inner: E, repo: &'r Repository<'r, Self, E>) -> Self
+    where
+        Self: Sized;
 
-    fn drop(&mut self) {
+    fn drop_from_pool(&mut self)
+    where
+        Self: 'r + Sized,
+    {
         if let Some(id) = self.unique_id() {
             self.get_repository().pool_mut().drop_entity(&id);
         }

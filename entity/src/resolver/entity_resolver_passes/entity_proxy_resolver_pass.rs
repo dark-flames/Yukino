@@ -46,7 +46,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
             pub struct #ident<'r> {
                 inner: #inner_ident,
                 unique_id: Option<yukino::EntityUniqueID>,
-                repository: &'r yukino::repository::Repository<#inner_ident>,
+                repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
             }
 
             impl<'r> yukino::EntityProxy<'r, #inner_ident> for #ident<'r> {
@@ -60,13 +60,15 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
                 fn get_repository(
                     &self,
-                ) -> &'r yukino::repository::Repository<#inner_ident> {
+                ) -> &'r yukino::repository::Repository<'r, Self, #inner_ident>
+                    where
+                        Self: Sized {
                     self.repository
                 }
 
                 fn create(
                     inner: #inner_ident,
-                    repository: &'r yukino::repository::Repository<#inner_ident>,
+                    repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
                 ) -> Self
                 where
                     Self: Sized,
@@ -77,14 +79,17 @@ impl EntityResolverPass for EntityProxyResolverPass {
                         repository,
                     }
                 }
-
-                fn unwrap(self) -> #inner_ident {
-                    self.inner
-                }
             }
 
             impl<'r> #ident<'r> {
                 #(#visitors)*
+            }
+
+            impl<'r> Drop for #ident<'r> {
+                fn drop(&mut self) {
+                    use yukino::EntityProxy;
+                    self.drop_from_pool()
+                }
             }
         }))
     }

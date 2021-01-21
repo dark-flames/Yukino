@@ -1,3 +1,4 @@
+#![feature(associated_type_defaults)]
 pub mod annotations;
 pub mod definitions;
 mod interface;

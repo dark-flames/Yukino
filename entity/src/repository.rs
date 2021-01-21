@@ -1,5 +1,6 @@
-use crate::{Entity, EntityUniqueID};
+use crate::{Entity, EntityProxy, EntityUniqueID};
 use rand::random;
+use serde::export::PhantomData;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
 
@@ -27,16 +28,25 @@ impl<E: Entity> EntityPool<E> {
     }
 }
 
-pub struct Repository<E: Entity> {
+pub struct Repository<'r, P, E>
+where
+    E: 'r + Entity,
+    P: EntityProxy<'r, E>,
+{
     pool: RefCell<EntityPool<E>>,
+    _marker: PhantomData<&'r P>,
 }
 
-impl<E: Entity> Repository<E> {
+impl<'r, E: 'r + Entity, P: EntityProxy<'r, E>> Repository<'r, P, E> {
     pub fn pool(&self) -> Ref<EntityPool<E>> {
         self.pool.borrow()
     }
 
     pub fn pool_mut(&self) -> RefMut<EntityPool<E>> {
         self.pool.borrow_mut()
+    }
+
+    pub fn create<F: FnOnce() -> E>(&'r self, entity: F) -> P {
+        P::create(entity(), self)
     }
 }
