@@ -188,7 +188,7 @@ impl FieldResolver for CollectionFieldResolver {
         };
         let field_setter_token_stream = quote! {
             pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
-                self.inner.#field_ident= value;
+                self.inner.to_mut().#field_ident= value;
                 self
             }
         };

@@ -2,6 +2,7 @@ use crate::definitions::TableDefinition;
 use crate::repository::Repository;
 use crate::resolver::error::DataConvertError;
 use crate::types::DatabaseValue;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 pub type EntityUniqueID = usize;
@@ -18,7 +19,7 @@ pub trait Entity {
     fn primary_key_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
 }
 
-pub trait EntityProxy<'r, E: 'r + Entity> {
+pub trait EntityProxy<'r, E: 'r + Entity + Clone> {
     type Entity = E;
     fn unique_id(&self) -> Option<EntityUniqueID>;
 
@@ -28,7 +29,7 @@ pub trait EntityProxy<'r, E: 'r + Entity> {
     where
         Self: Sized;
 
-    fn create_proxy(inner: E, repo: &'r Repository<'r, Self, E>) -> Self
+    fn create_proxy(inner: Cow<'r, E>, repo: &'r Repository<'r, Self, E>) -> Self
     where
         Self: Sized;
 

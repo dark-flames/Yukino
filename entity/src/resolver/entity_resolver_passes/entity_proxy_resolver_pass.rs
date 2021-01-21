@@ -72,7 +72,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
         Some(Ok(quote! {
             pub struct #ident<'r> {
-                inner: #inner_ident,
+                inner: std::borrow::Cow<'r, #inner_ident>,
                 unique_id: Option<yukino::EntityUniqueID>,
                 repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
             }
@@ -95,7 +95,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
                 }
 
                 fn create_proxy(
-                    inner: #inner_ident,
+                    inner: std::borrow::Cow<'r, #inner_ident>,
                     repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
                 ) -> Self
                 where

@@ -64,6 +64,7 @@ impl EntityResolverPass for EntityStructResolverPass {
         }
 
         Some(Ok(quote! {
+            #[derive(Clone)]
             #struct_item
 
             impl #new_ident {
