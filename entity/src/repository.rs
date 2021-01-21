@@ -1,8 +1,8 @@
 use crate::{Entity, EntityProxy, EntityUniqueID};
 use rand::random;
-use serde::export::PhantomData;
 use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashMap;
+use std::marker::PhantomData;
 
 pub struct EntityPool<E: Entity> {
     entities: HashMap<EntityUniqueID, E>,
