@@ -93,16 +93,15 @@ impl EntityResolverPass for EntityImplementResolverPass {
             impl yukino::Entity for #ident {
                 fn from_database_value(
                     result: &std::collections::HashMap<String, yukino::types::DatabaseValue>
-                ) -> Result<Box<Self>, yukino::resolver::error::DataConvertError> {
+                ) -> Result<Self, yukino::resolver::error::DataConvertError>
+                where Self: Sized{
                     use yukino::resolver::ValueConverter;
 
                     #(#temp_values;)*
 
-                    Ok(Box::new(
-                        #ident {
-                            #(#fields),*
-                        }
-                    ))
+                    Ok(#ident {
+                        #(#fields),*
+                    })
                 }
 
                 fn to_database_values(&self)

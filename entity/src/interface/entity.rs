@@ -9,7 +9,9 @@ pub type EntityUniqueID = usize;
 pub trait Entity {
     fn from_database_value(
         result: &HashMap<String, DatabaseValue>,
-    ) -> Result<Box<Self>, DataConvertError>;
+    ) -> Result<Self, DataConvertError>
+    where
+        Self: Sized;
 
     fn to_database_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
 
@@ -40,4 +42,6 @@ pub trait EntityProxy<'r, E: 'r + Entity> {
             self.get_repository().drop_entity(&id);
         }
     }
+
+    fn inner(&self) -> E;
 }

@@ -107,6 +107,10 @@ impl EntityResolverPass for EntityProxyResolverPass {
                         repository,
                     }
                 }
+
+                fn inner(&self) -> #inner_ident {
+                    self.inner.clone()
+                }
             }
 
             impl<'r> #ident<'r> {
