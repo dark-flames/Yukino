@@ -59,11 +59,13 @@ impl EntityResolverPass for EntityProxyResolverPass {
             .collect();
 
         let create = quote! {
-            pub fn create(
+            pub fn with_value(
                 #(#params,)*
-            ) -> #inner_ident {
-                #inner_ident {
-                    #(#field_idents,)*
+            ) -> impl FnOnce() -> FooInner {
+                move || {
+                    #inner_ident {
+                        #(#field_idents,)*
+                    }
                 }
             }
         };
