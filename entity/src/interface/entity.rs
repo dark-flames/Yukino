@@ -20,7 +20,7 @@ pub trait Entity {
     fn primary_key_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
 }
 
-pub trait EntityProxy<'r, E: 'r + Entity> {
+pub trait EntityProxy<'r, E: 'r + Entity + Clone> {
     type Entity = E;
     fn unique_id(&self) -> Option<EntityUniqueID>;
 

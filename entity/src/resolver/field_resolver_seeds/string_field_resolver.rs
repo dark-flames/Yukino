@@ -126,7 +126,7 @@ impl FieldResolver for StringFieldResolver {
         };
         let field_setter_token_stream = quote! {
             pub fn #setter_name(&mut self, value: String) -> &mut Self {
-                self.inner.to_mut().#field_ident = value;
+                self.inner.#field_ident = value;
                 self
             }
         };
