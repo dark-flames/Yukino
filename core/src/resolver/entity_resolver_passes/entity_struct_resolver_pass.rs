@@ -68,7 +68,7 @@ impl EntityResolverPass for EntityStructResolverPass {
         struct_item
             .generics
             .params
-            .push(GenericParam::Lifetime(LifetimeDef::new(parse_quote! {'r})));
+            .push(GenericParam::Lifetime(LifetimeDef::new(parse_quote! {'t})));
 
         if let Fields::Named(named_filed) = &mut struct_item.fields {
             named_filed.named.push(Field {
@@ -77,7 +77,7 @@ impl EntityResolverPass for EntityStructResolverPass {
                 ident: Some(format_ident!("_repository_life_time_marker")),
                 colon_token: Some(Token![:](Span::mixed_site())),
                 ty: parse_quote! {
-                    std::marker::PhantomData<&'r ()>
+                    std::marker::PhantomData<&'t ()>
                 },
             });
         }
@@ -86,7 +86,7 @@ impl EntityResolverPass for EntityStructResolverPass {
         #[derive(Clone)]
             #struct_item
 
-            impl<'r> #new_ident<'r> {
+            impl<'t> #new_ident<'t> {
                 #(#converters)*
             }
         }))

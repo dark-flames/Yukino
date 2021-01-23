@@ -1,24 +1,20 @@
-use crate::repository::Repository;
 use crate::types::DatabaseValue;
-use crate::{Entity, EntityProxy};
+use crate::Entity;
 use serde::export::PhantomData;
 use std::collections::HashMap;
 
-pub enum AssociatedEntity<'r, P, E>
+pub enum AssociatedEntity<'t, E>
 where
-    E: Entity<'r> + Clone,
-    P: EntityProxy<'r, E>,
+    E: Entity<'t> + Clone,
 {
     Unresolved(HashMap<String, DatabaseValue>),
-    Resolved(P),
-    _Marker(PhantomData<&'r E>),
+    Resolved(E::Proxy),
+    _Marker(PhantomData<&'t E>),
 }
 
-pub struct AssociatedValue<'r, P, E>
+pub struct AssociatedValue<'t, E>
 where
-    E: Entity<'r> + Clone,
-    P: EntityProxy<'r, E>,
+    E: Entity<'t> + Clone,
 {
-    _entity: AssociatedEntity<'r, P, E>,
-    _repository: &'r Repository<'r, P, E>,
+    _entity: AssociatedEntity<'t, E>,
 }

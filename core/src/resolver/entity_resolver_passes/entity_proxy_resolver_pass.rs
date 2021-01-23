@@ -61,7 +61,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
         let create = quote! {
             pub fn with_value(
                 #(#params,)*
-            ) -> impl FnOnce() -> #inner_ident<'r> {
+            ) -> impl FnOnce() -> #inner_ident<'t> {
                 move || {
                     #inner_ident {
                         #(#field_idents,)*
@@ -72,13 +72,13 @@ impl EntityResolverPass for EntityProxyResolverPass {
         };
 
         Some(Ok(quote! {
-            pub struct #ident<'r> {
-                inner: #inner_ident<'r>,
+            pub struct #ident<'t> {
+                inner: #inner_ident<'t>,
                 unique_id: Option<yukino::EntityUniqueID>,
-                repository: &'r yukino::repository::Repository<'r, Self, #inner_ident<'r>>,
+                repository: &'t yukino::repository::Repository<'t, #inner_ident<'t>>,
             }
 
-            impl<'r> yukino::EntityProxy<'r, #inner_ident<'r>> for #ident<'r> {
+            impl<'t> yukino::EntityProxy<'t, #inner_ident<'t>> for #ident<'t> {
                 fn unique_id(&self) -> Option<yukino::EntityUniqueID> {
                     self.unique_id.clone()
                 }
@@ -89,15 +89,15 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
                 fn get_repository(
                     &self,
-                ) -> &'r yukino::repository::Repository<'r, Self, #inner_ident<'r>>
+                ) -> &'t yukino::repository::Repository<'t, #inner_ident<'t>>
                     where
                         Self: Sized {
                     self.repository
                 }
 
                 fn create_proxy(
-                    inner: #inner_ident<'r>,
-                    repository: &'r yukino::repository::Repository<'r, Self, #inner_ident<'r>>,
+                    inner: #inner_ident<'t>,
+                    repository: &'t yukino::repository::Repository<'t, #inner_ident<'t>>,
                 ) -> Self
                 where
                     Self: Sized,
@@ -109,18 +109,18 @@ impl EntityResolverPass for EntityProxyResolverPass {
                     }
                 }
 
-                fn inner(&self) -> #inner_ident<'r> {
+                fn inner(&self) -> #inner_ident<'t> {
                     self.inner.clone()
                 }
             }
 
-            impl<'r> #ident<'r> {
+            impl<'t> #ident<'t> {
                 #(#visitors)*
 
                 #create
             }
 
-            impl<'r> Drop for #ident<'r> {
+            impl<'t> Drop for #ident<'t> {
                 fn drop(&mut self) {
                     use yukino::EntityProxy;
                     self.drop_from_pool()
