@@ -9,13 +9,6 @@ pub struct FooInner<'r> {
     _repository_life_time_marker: std::marker::PhantomData<&'r ()>,
 }
 impl<'r> FooInner<'r> {
-    pub fn get_list_converter() -> yukino::resolver::field_resolver_seeds::ListValueConverter {
-        yukino::resolver::field_resolver_seeds::ListValueConverter::new(
-            "Foo".to_string(),
-            "list".to_string(),
-            "list".to_string(),
-        )
-    }
     pub fn get_integer_converter(
     ) -> yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter {
         yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter::new(
@@ -25,19 +18,26 @@ impl<'r> FooInner<'r> {
             "integer".to_string(),
         )
     }
+    pub fn get_map_converter() -> yukino::resolver::field_resolver_seeds::MapValueConverter {
+        yukino::resolver::field_resolver_seeds::MapValueConverter::new(
+            "Foo".to_string(),
+            "map".to_string(),
+            "map".to_string(),
+        )
+    }
+    pub fn get_list_converter() -> yukino::resolver::field_resolver_seeds::ListValueConverter {
+        yukino::resolver::field_resolver_seeds::ListValueConverter::new(
+            "Foo".to_string(),
+            "list".to_string(),
+            "list".to_string(),
+        )
+    }
     pub fn get_string_converter() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
         yukino::resolver::field_resolver_seeds::StringValueConverter::new(
             false,
             "Foo".to_string(),
             "string".to_string(),
             "string".to_string(),
-        )
-    }
-    pub fn get_map_converter() -> yukino::resolver::field_resolver_seeds::MapValueConverter {
-        yukino::resolver::field_resolver_seeds::MapValueConverter::new(
-            "Foo".to_string(),
-            "map".to_string(),
-            "map".to_string(),
         )
     }
     pub fn get_int16_converter(
@@ -58,16 +58,16 @@ impl<'r> yukino::Entity<'r> for FooInner<'r> {
         Self: Sized,
     {
         use yukino::resolver::ValueConverter;
-        let list = Self::get_list_converter().to_field_value(result)?;
         let integer = Self::get_integer_converter().to_field_value(result)?;
-        let string = Self::get_string_converter().to_field_value(result)?;
         let map = Self::get_map_converter().to_field_value(result)?;
+        let list = Self::get_list_converter().to_field_value(result)?;
+        let string = Self::get_string_converter().to_field_value(result)?;
         let int16 = Self::get_int16_converter().to_field_value(result)?;
         Ok(FooInner {
-            list,
             integer,
-            string,
             map,
+            list,
+            string,
             int16,
             _repository_life_time_marker: Default::default(),
         })
@@ -80,10 +80,10 @@ impl<'r> yukino::Entity<'r> for FooInner<'r> {
     > {
         let mut map = std::collections::HashMap::new();
         use yukino::resolver::ValueConverter;
-        map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
         map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
-        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
+        map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
+        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         map.extend(Self::get_int16_converter().to_database_values_by_ref(&self.int16)?);
         Ok(map)
     }
@@ -101,14 +101,6 @@ impl<'r> yukino::Entity<'r> for FooInner<'r> {
                     true,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "list".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("list".to_string()),
-                    yukino::types::DatabaseType::Json,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::definitions::ColumnDefinition::new(
                     "integer".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("integer".to_string()),
                     yukino::types::DatabaseType::UnsignedInteger,
@@ -117,17 +109,25 @@ impl<'r> yukino::Entity<'r> for FooInner<'r> {
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "string".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
-                    yukino::types::DatabaseType::String,
+                    "map".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    yukino::types::DatabaseType::Json,
                     false,
                     false,
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "map".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    "list".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("list".to_string()),
                     yukino::types::DatabaseType::Json,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
+                    "string".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
+                    yukino::types::DatabaseType::String,
                     false,
                     false,
                     false,
@@ -191,13 +191,6 @@ impl<'r> yukino::EntityProxy<'r, FooInner<'r>> for Foo<'r> {
     }
 }
 impl<'r> Foo<'r> {
-    pub fn get_list(&self) -> &Vec<String> {
-        &self.inner.list
-    }
-    pub fn set_list(&mut self, value: Vec<String>) -> &mut Self {
-        self.inner.list = value;
-        self
-    }
     pub fn get_integer(&self) -> u32 {
         self.inner.integer
     }
@@ -205,18 +198,25 @@ impl<'r> Foo<'r> {
         self.inner.integer = value;
         self
     }
-    pub fn get_string(&self) -> &String {
-        &self.inner.string
-    }
-    pub fn set_string(&mut self, value: String) -> &mut Self {
-        self.inner.string = value;
-        self
-    }
     pub fn get_map(&self) -> &std::collections::HashMap<String, String> {
         &self.inner.map
     }
     pub fn set_map(&mut self, value: std::collections::HashMap<String, String>) -> &mut Self {
         self.inner.map = value;
+        self
+    }
+    pub fn get_list(&self) -> &Vec<String> {
+        &self.inner.list
+    }
+    pub fn set_list(&mut self, value: Vec<String>) -> &mut Self {
+        self.inner.list = value;
+        self
+    }
+    pub fn get_string(&self) -> &String {
+        &self.inner.string
+    }
+    pub fn set_string(&mut self, value: String) -> &mut Self {
+        self.inner.string = value;
         self
     }
     pub fn get_int16(&self) -> i16 {
@@ -227,17 +227,17 @@ impl<'r> Foo<'r> {
         self
     }
     pub fn with_value(
-        list: Vec<String>,
         integer: u32,
-        string: String,
         map: std::collections::HashMap<String, String>,
+        list: Vec<String>,
+        string: String,
         int16: i16,
     ) -> impl FnOnce() -> FooInner<'r> {
         move || FooInner {
-            list,
             integer,
-            string,
             map,
+            list,
+            string,
             int16,
             _repository_life_time_marker: Default::default(),
         }

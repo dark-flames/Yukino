@@ -1,7 +1,7 @@
 use crate::error::CLIError;
 use clap::{crate_authors, crate_description, crate_version, App, SubCommand};
 use cmd_lib::run_cmd;
-use entity::resolver::{EntityResolverPassBox, FieldResolverSeedBox, FileResolver};
+use core::resolver::{EntityResolverPassBox, FieldResolverSeedBox, FileResolver};
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use std::fs::{remove_file, File};

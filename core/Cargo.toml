@@ -1,5 +1,5 @@
 [package]
-name = "yukino-entity"
+name = "yukino-core"
 version = "0.1.0"
 authors = ["dark-flames <dark_flames@outlook.com>"]
 edition = "2018"
@@ -19,6 +19,7 @@ proc-macro2 = "1.0"
 thiserror = "1.0"
 heck = "0.3"
 rand = "0.8.2"
+repository = "0.0.2"
 
 [features]
 default = ["mysql", "decimal", "json", "data-time"]

@@ -5,7 +5,7 @@ authors = ["dark-flames <dark_flames@outlook.com>"]
 edition = "2018"
 
 [dependencies]
-entity = { package = "yukino-entity", path = "entity", version = "0.1.0" }
+core = { package = "yukino-core", path = "core", version = "0.1.0" }
 cli = { package = "yukino-cli", path = "cli", version = "0.1.0"}
 proc_macro = { package = "yukino-proc-macro", path = "proc_macro", version = "0.1.0" }
 proc-macro2 = "1.0"
@@ -17,7 +17,7 @@ rusty-hook = "^0.11.2"
 
 [workspace]
 members = [
-    "entity",
+    "core",
     "cli",
     "tests/entity",
     "proc_macro"

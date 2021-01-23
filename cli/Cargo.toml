@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 cmd_lib = "0.7.8"
 clap = { version = "2.33.3" }
-entity = { package = "yukino-entity", path = "../entity", version = "0.1.0" }
+core = { package = "yukino-core", path = "../core", version = "0.1.0" }
 quote = "1.0"
 syn = { version = "1.0", features = ["derive", "parsing", "printing", "clone-impls", "proc-macro", "extra-traits", "full"]}
 thiserror = "1.0"
