@@ -90,7 +90,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
         };
 
         Some(Ok(quote! {
-            impl yukino::Entity for #ident {
+            impl<'r> yukino::Entity<'r> for #ident<'r> {
                 fn from_database_value(
                     result: &std::collections::HashMap<String, yukino::types::DatabaseValue>
                 ) -> Result<Self, yukino::resolver::error::DataConvertError>
@@ -100,7 +100,8 @@ impl EntityResolverPass for EntityImplementResolverPass {
                     #(#temp_values;)*
 
                     Ok(#ident {
-                        #(#fields),*
+                        #(#fields,)*
+                        _repository_life_time_marker: Default::default()
                     })
                 }
 

@@ -3,10 +3,12 @@ use crate::resolver::error::ResolveError;
 use crate::resolver::{
     AchievedFieldResolver, EntityResolverPass, EntityResolverPassBox, FieldName, TypePathResolver,
 };
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use syn::{ItemStruct, Type, Visibility};
+use syn::{
+    parse_quote, Field, Fields, GenericParam, ItemStruct, LifetimeDef, Token, Type, Visibility,
+};
 
 pub struct EntityStructResolverPass;
 
@@ -63,11 +65,28 @@ impl EntityResolverPass for EntityStructResolverPass {
             }
         }
 
+        struct_item
+            .generics
+            .params
+            .push(GenericParam::Lifetime(LifetimeDef::new(parse_quote! {'r})));
+
+        if let Fields::Named(named_filed) = &mut struct_item.fields {
+            named_filed.named.push(Field {
+                attrs: vec![],
+                vis: Visibility::Inherited,
+                ident: Some(format_ident!("_repository_life_time_marker")),
+                colon_token: Some(Token![:](Span::mixed_site())),
+                ty: parse_quote! {
+                    std::marker::PhantomData<&'r ()>
+                },
+            });
+        }
+
         Some(Ok(quote! {
         #[derive(Clone)]
             #struct_item
 
-            impl #new_ident {
+            impl<'r> #new_ident<'r> {
                 #(#converters)*
             }
         }))

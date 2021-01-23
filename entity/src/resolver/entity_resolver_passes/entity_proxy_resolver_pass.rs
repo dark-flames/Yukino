@@ -61,10 +61,11 @@ impl EntityResolverPass for EntityProxyResolverPass {
         let create = quote! {
             pub fn with_value(
                 #(#params,)*
-            ) -> impl FnOnce() -> FooInner {
+            ) -> impl FnOnce() -> #inner_ident<'r> {
                 move || {
                     #inner_ident {
                         #(#field_idents,)*
+                        _repository_life_time_marker: Default::default()
                     }
                 }
             }
@@ -72,12 +73,12 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
         Some(Ok(quote! {
             pub struct #ident<'r> {
-                inner: #inner_ident,
+                inner: #inner_ident<'r>,
                 unique_id: Option<yukino::EntityUniqueID>,
-                repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
+                repository: &'r yukino::repository::Repository<'r, Self, #inner_ident<'r>>,
             }
 
-            impl<'r> yukino::EntityProxy<'r, #inner_ident> for #ident<'r> {
+            impl<'r> yukino::EntityProxy<'r, #inner_ident<'r>> for #ident<'r> {
                 fn unique_id(&self) -> Option<yukino::EntityUniqueID> {
                     self.unique_id.clone()
                 }
@@ -88,15 +89,15 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
                 fn get_repository(
                     &self,
-                ) -> &'r yukino::repository::Repository<'r, Self, #inner_ident>
+                ) -> &'r yukino::repository::Repository<'r, Self, #inner_ident<'r>>
                     where
                         Self: Sized {
                     self.repository
                 }
 
                 fn create_proxy(
-                    inner: #inner_ident,
-                    repository: &'r yukino::repository::Repository<'r, Self, #inner_ident>,
+                    inner: #inner_ident<'r>,
+                    repository: &'r yukino::repository::Repository<'r, Self, #inner_ident<'r>>,
                 ) -> Self
                 where
                     Self: Sized,
@@ -108,7 +109,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
                     }
                 }
 
-                fn inner(&self) -> #inner_ident {
+                fn inner(&self) -> #inner_ident<'r> {
                     self.inner.clone()
                 }
             }

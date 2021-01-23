@@ -6,12 +6,12 @@ use std::collections::HashMap;
 
 pub type EntityUniqueID = usize;
 
-pub trait Entity {
+pub trait Entity<'r> {
     fn from_database_value(
         result: &HashMap<String, DatabaseValue>,
     ) -> Result<Self, DataConvertError>
     where
-        Self: Sized;
+        Self: 'r + Sized;
 
     fn to_database_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
 
@@ -20,7 +20,7 @@ pub trait Entity {
     fn primary_key_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
 }
 
-pub trait EntityProxy<'r, E: 'r + Entity + Clone> {
+pub trait EntityProxy<'r, E: 'r + Entity<'r> + Clone> {
     type Entity = E;
     fn unique_id(&self) -> Option<EntityUniqueID>;
 

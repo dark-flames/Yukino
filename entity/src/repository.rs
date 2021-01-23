@@ -9,14 +9,14 @@ use std::marker::PhantomData;
 
 pub struct Repository<'r, P, E>
 where
-    E: 'r + Entity + Clone,
+    E: 'r + Entity<'r> + Clone,
     P: EntityProxy<'r, E>,
 {
     pool: RefCell<HashMap<EntityUniqueID, E>>,
     _marker: PhantomData<&'r P>,
 }
 
-impl<'r, E: 'r + Entity + Clone, P: EntityProxy<'r, E>> Repository<'r, P, E> {
+impl<'r, E: Entity<'r> + Clone, P: EntityProxy<'r, E>> Repository<'r, P, E> {
     fn insert_entity(&self, entity: E) {
         let mut pool = self.pool.borrow_mut();
         let id = self.generate_unique_id();
@@ -65,7 +65,7 @@ impl<'r, E: 'r + Entity + Clone, P: EntityProxy<'r, E>> Repository<'r, P, E> {
 
 pub(crate) trait RepositoryInternal<'r, P, E>
 where
-    E: 'r + Entity + Clone,
+    E: 'r + Entity<'r> + Clone,
     P: EntityProxy<'r, E>,
 {
     fn deserialize_value(
@@ -76,7 +76,7 @@ where
 
 impl<'r, E, P> RepositoryInternal<'r, P, E> for Repository<'r, P, E>
 where
-    E: 'r + Entity + Clone,
+    E: 'r + Entity<'r> + Clone,
     P: EntityProxy<'r, E>,
 {
     fn deserialize_value(
