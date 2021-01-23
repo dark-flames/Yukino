@@ -1,7 +1,7 @@
 use crate::types::DatabaseValue;
 use crate::Entity;
-use serde::export::PhantomData;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 
 pub enum AssociatedEntity<'t, E>
 where
