@@ -5,23 +5,24 @@ use rand::random;
 use std::cell::RefCell;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
-use std::marker::PhantomData;
 
-pub struct Repository<'t, E>
+pub struct Repository<E>
 where
-    E: 't + Entity<'t> + Clone,
+    E: Entity + Clone,
 {
     pool: RefCell<HashMap<EntityUniqueID, E>>,
-    _marker: PhantomData<&'t E>,
 }
 
-impl<'t, E: Entity<'t> + Clone> Repository<'t, E> {
-    fn insert_entity(&self, entity: E) {
+impl<E: Entity + Clone> Repository<E> {
+    fn insert_entity(&self, entity: E) -> EntityUniqueID {
         let mut pool = self.pool.borrow_mut();
         let id = self.generate_unique_id();
 
         pool.insert(id, entity);
+
+        id
     }
+
     pub fn get_entity(&self, id: &EntityUniqueID) -> Option<E> {
         let pool = self.pool.borrow();
         pool.get(id).cloned()
@@ -45,11 +46,7 @@ impl<'t, E: Entity<'t> + Clone> Repository<'t, E> {
         }
     }
 
-    pub fn create<F: FnOnce() -> E>(&'t self, entity: F) -> E::Proxy {
-        E::Proxy::create_proxy(entity(), self)
-    }
-
-    pub fn commit(&mut self, entity_proxy: E::Proxy) {
+    pub fn commit<'t, P: EntityProxy<'t, E>>(&mut self, entity_proxy: P) {
         let _id = entity_proxy
             .unique_id()
             .unwrap_or_else(|| self.generate_unique_id());
@@ -62,31 +59,35 @@ impl<'t, E: Entity<'t> + Clone> Repository<'t, E> {
     }
 }
 
-pub(crate) trait RepositoryInternal<'t, E>
+pub(crate) trait RepositoryInternal<E>
 where
-    E: 't + Entity<'t> + Clone,
+    E: Entity + Clone,
+    Self: Sized,
 {
     fn deserialize_value(
-        &'t self,
+        &self,
         values: &HashMap<String, DatabaseValue>,
-    ) -> Result<E::Proxy, DataConvertError>;
+    ) -> Result<(E, EntityUniqueID), DataConvertError>;
+
+    fn create() -> Self;
 }
 
-impl<'r, E> RepositoryInternal<'r, E> for Repository<'r, E>
+impl<E> RepositoryInternal<E> for Repository<E>
 where
-    E: 'r + Entity<'r> + Clone,
+    E: Entity + Clone,
 {
     fn deserialize_value(
-        &'r self,
+        &self,
         values: &HashMap<String, DatabaseValue, RandomState>,
-    ) -> Result<E::Proxy, DataConvertError> {
+    ) -> Result<(E, EntityUniqueID), DataConvertError> {
         let entity = E::from_database_value(values)?;
 
-        self.insert_entity(entity.clone());
-        let mut proxy = E::Proxy::create_proxy(entity, &self);
+        Ok((entity.clone(), self.insert_entity(entity)))
+    }
 
-        proxy.set_unique_id(self.generate_unique_id());
-
-        Ok(proxy)
+    fn create() -> Repository<E> where {
+        Repository {
+            pool: RefCell::new(Default::default()),
+        }
     }
 }

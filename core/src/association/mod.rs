@@ -1,20 +1,18 @@
 use crate::types::DatabaseValue;
 use crate::Entity;
 use std::collections::HashMap;
-use std::marker::PhantomData;
 
-pub enum AssociatedEntity<'t, E>
+pub enum AssociatedEntity<E>
 where
-    E: Entity<'t> + Clone,
+    E: Entity + Clone,
 {
     Unresolved(HashMap<String, DatabaseValue>),
-    Resolved(E::Proxy),
-    _Marker(PhantomData<&'t E>),
+    Resolved(E),
 }
 
-pub struct AssociatedValue<'t, E>
+pub struct AssociatedValue<E>
 where
-    E: Entity<'t> + Clone,
+    E: Entity + Clone,
 {
-    _entity: AssociatedEntity<'t, E>,
+    _entity: AssociatedEntity<E>,
 }
