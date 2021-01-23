@@ -53,7 +53,7 @@ impl EntityResolverPass for EntityStructResolverPass {
 
         for field in struct_item.fields.iter_mut() {
             field.attrs = vec![];
-            if field.vis != Visibility::Inherited {
+            if matches!(field.vis, Visibility::Inherited) {
                 return Some(Err(ResolveError::FieldVisibilityMustBePrivate(
                     entity_name,
                     field.ident.as_ref().unwrap().to_string(),
