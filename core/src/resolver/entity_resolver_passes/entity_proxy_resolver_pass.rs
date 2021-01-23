@@ -61,11 +61,10 @@ impl EntityResolverPass for EntityProxyResolverPass {
         let create = quote! {
             pub fn with_value(
                 #(#params,)*
-            ) -> impl FnOnce() -> #inner_ident<'t> {
+            ) -> impl FnOnce() -> #inner_ident {
                 move || {
                     #inner_ident {
-                        #(#field_idents,)*
-                        _repository_life_time_marker: Default::default()
+                        #(#field_idents),*
                     }
                 }
             }
@@ -73,12 +72,12 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
         Some(Ok(quote! {
             pub struct #ident<'t> {
-                inner: #inner_ident<'t>,
+                inner: #inner_ident,
                 unique_id: Option<yukino::EntityUniqueID>,
-                repository: &'t yukino::repository::Repository<'t, #inner_ident<'t>>,
+                transaction: &'t yukino::Transaction,
             }
 
-            impl<'t> yukino::EntityProxy<'t, #inner_ident<'t>> for #ident<'t> {
+            impl<'t> yukino::EntityProxy<'t, #inner_ident> for #ident<'t> {
                 fn unique_id(&self) -> Option<yukino::EntityUniqueID> {
                     self.unique_id.clone()
                 }
@@ -87,17 +86,17 @@ impl EntityResolverPass for EntityProxyResolverPass {
                     self.unique_id = Some(unique_id);
                 }
 
-                fn get_repository(
+                fn get_transaction(
                     &self,
-                ) -> &'t yukino::repository::Repository<'t, #inner_ident<'t>>
+                ) -> &'t yukino::Transaction
                     where
                         Self: Sized {
-                    self.repository
+                    self.transaction
                 }
 
                 fn create_proxy(
-                    inner: #inner_ident<'t>,
-                    repository: &'t yukino::repository::Repository<'t, #inner_ident<'t>>,
+                    inner: #inner_ident,
+                    transaction: &'t yukino::Transaction,
                 ) -> Self
                 where
                     Self: Sized,
@@ -105,11 +104,11 @@ impl EntityResolverPass for EntityProxyResolverPass {
                     #ident {
                         inner,
                         unique_id: None,
-                        repository,
+                        transaction,
                     }
                 }
 
-                fn inner(&self) -> #inner_ident<'t> {
+                fn inner(&self) -> #inner_ident {
                     self.inner.clone()
                 }
             }

@@ -3,12 +3,10 @@ use crate::resolver::error::ResolveError;
 use crate::resolver::{
     AchievedFieldResolver, EntityResolverPass, EntityResolverPassBox, FieldName, TypePathResolver,
 };
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use syn::{
-    parse_quote, Field, Fields, GenericParam, ItemStruct, LifetimeDef, Token, Type, Visibility,
-};
+use syn::{ItemStruct, Type, Visibility};
 
 pub struct EntityStructResolverPass;
 
@@ -53,7 +51,7 @@ impl EntityResolverPass for EntityStructResolverPass {
 
         for field in struct_item.fields.iter_mut() {
             field.attrs = vec![];
-            if matches!(field.vis, Visibility::Inherited) {
+            if !matches!(field.vis, Visibility::Inherited) {
                 return Some(Err(ResolveError::FieldVisibilityMustBePrivate(
                     entity_name,
                     field.ident.as_ref().unwrap().to_string(),
@@ -65,28 +63,11 @@ impl EntityResolverPass for EntityStructResolverPass {
             }
         }
 
-        struct_item
-            .generics
-            .params
-            .push(GenericParam::Lifetime(LifetimeDef::new(parse_quote! {'t})));
-
-        if let Fields::Named(named_filed) = &mut struct_item.fields {
-            named_filed.named.push(Field {
-                attrs: vec![],
-                vis: Visibility::Inherited,
-                ident: Some(format_ident!("_repository_life_time_marker")),
-                colon_token: Some(Token![:](Span::mixed_site())),
-                ty: parse_quote! {
-                    std::marker::PhantomData<&'t ()>
-                },
-            });
-        }
-
         Some(Ok(quote! {
         #[derive(Clone)]
             #struct_item
 
-            impl<'t> #new_ident<'t> {
+            impl #new_ident {
                 #(#converters)*
             }
         }))

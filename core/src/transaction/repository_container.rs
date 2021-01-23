@@ -37,9 +37,9 @@ impl RepositoryContainer {
     pub fn get_repository<E: Entity + Clone>(&self) -> &Repository<E> {
         let type_id = TypeId::of::<Repository<E>>();
         let repositories = unsafe { self.repositories.get().as_mut().unwrap() };
-        repositories.entry(type_id).or_insert_with(
-            || RepositoryBox::create(Repository::<E>::create())
-        );
+        repositories
+            .entry(type_id)
+            .or_insert_with(|| RepositoryBox::create(Repository::<E>::create()));
 
         repositories.get(&type_id).unwrap().as_ref()
     }

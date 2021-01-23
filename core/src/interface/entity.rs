@@ -24,6 +24,7 @@ where
 }
 
 pub trait EntityProxy<'t, E: 't + Entity + Clone> {
+    type Entity = E;
     fn unique_id(&self) -> Option<EntityUniqueID>;
 
     fn set_unique_id(&mut self, unique_id: EntityUniqueID);

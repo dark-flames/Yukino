@@ -11,3 +11,4 @@ mod transaction;
 pub mod types;
 
 pub use interface::*;
+pub use transaction::*;

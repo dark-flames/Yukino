@@ -31,7 +31,6 @@ impl EntityResolverPass for EntityImplementResolverPass {
         _type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
         let ident = format_ident!("{}Inner", entity_name);
-        let proxy_ident = format_ident!("{}", entity_name);
 
         let temp_values: Vec<_> = field_resolvers
             .values()
@@ -91,8 +90,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
         };
 
         Some(Ok(quote! {
-            impl<'t> yukino::Entity<'t> for #ident<'t> {
-                type Proxy: EntityProxy<'t, Self> = #proxy_ident<'t>;
+            impl yukino::Entity for #ident {
                 fn from_database_value(
                     result: &std::collections::HashMap<String, yukino::types::DatabaseValue>
                 ) -> Result<Self, yukino::resolver::error::DataConvertError>
@@ -102,8 +100,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
                     #(#temp_values;)*
 
                     Ok(#ident {
-                        #(#fields,)*
-                        _repository_life_time_marker: Default::default()
+                        #(#fields),*
                     })
                 }
 
