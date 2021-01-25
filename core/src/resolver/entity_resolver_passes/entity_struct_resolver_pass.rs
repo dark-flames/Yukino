@@ -30,7 +30,7 @@ impl EntityResolverPass for EntityStructResolverPass {
         input: &ItemStruct,
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
-        let new_ident = format_ident!("{}Inner", entity_name);
+        let new_ident = format_ident!("{}", entity_name);
 
         let converters: Vec<_> = field_resolvers
             .values()

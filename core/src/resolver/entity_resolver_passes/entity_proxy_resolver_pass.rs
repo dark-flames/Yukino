@@ -31,8 +31,8 @@ impl EntityResolverPass for EntityProxyResolverPass {
         _input: &ItemStruct,
         _type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
-        let ident = TokenStream::from_str(&entity_name).unwrap();
-        let inner_ident = format_ident!("{}Inner", &entity_name);
+        let ident = format_ident!("{}Proxy", &entity_name);
+        let inner_ident = TokenStream::from_str(&entity_name).unwrap();
 
         let visitors = field_resolvers
             .iter()
