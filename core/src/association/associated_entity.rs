@@ -20,6 +20,7 @@ pub struct AssociatedEntityValueConverter<E: Entity + Clone> {
     entity_name: String,
     field_name: String,
     column_map: HashMap<String, String>,
+    is_primary_key: bool,
     _marker: PhantomData<E>,
 }
 
@@ -80,8 +81,12 @@ impl<E: Entity + Clone> ValueConverter<AssociatedEntity<E>> for AssociatedEntity
 
     fn primary_column_values_by_ref(
         &self,
-        _value: &AssociatedEntity<E>,
+        value: &AssociatedEntity<E>,
     ) -> Result<HashMap<String, DatabaseValue, RandomState>, DataConvertError> {
-        Ok(HashMap::new())
+        if self.is_primary_key {
+            self.to_database_values_by_ref(value)
+        } else {
+            Ok(HashMap::new())
+        }
     }
 }
