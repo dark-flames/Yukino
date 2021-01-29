@@ -9,7 +9,7 @@ use quote::ToTokens;
 use std::collections::HashMap;
 use syn::Type;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum FieldResolverStatus {
     WaitingForFields(Vec<FieldPath>),
     WaitingForEntity(EntityName),

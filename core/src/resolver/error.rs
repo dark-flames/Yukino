@@ -36,6 +36,8 @@ pub enum ResolveError {
     EntityVisibilityMustBePublic(EntityName),
     #[error("EntityVisibilityMustBePrivate: Visibility of field({1} in {0}) must be private")]
     FieldVisibilityMustBePrivate(EntityName, FieldName),
+    #[error("UnexpectedFieldGeneric: Unexpected Field Generic on {1} in {0}")]
+    UnexpectedFieldGeneric(EntityName, FieldName),
     #[error("IOError: {0}")]
     IOError(IOError),
     #[error("ParseError: {0}")]
