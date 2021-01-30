@@ -8,6 +8,7 @@ use crate::resolver::{
 };
 use crate::types::DatabaseValue;
 use crate::Entity;
+use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::Ident;
 use quote::ToTokens;
@@ -15,7 +16,6 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use syn::{GenericArgument, PathArguments, Type, TypePath};
-use heck::SnakeCase;
 
 pub enum AssociatedEntity<E>
 where
@@ -212,44 +212,52 @@ impl FieldResolver for AssociatedEntityFieldResolver {
 
                 let mapped_by = match &self.association.mapped_by {
                     Some(columns) => columns.clone(),
-                    _ => resolver.get_primary_columns()?
+                    _ => resolver.get_primary_columns()?,
                 };
+
+                if !resolver.is_unique_fields(&mapped_by)? {
+                    return Err(ResolveError::MappingFieldsNotUnique(
+                        self.field_path.0.clone(),
+                        self.field_path.1.clone(),
+                    ));
+                }
 
                 let column_name_prefix = self.field_path.1.to_snake_case();
 
-                self.columns = mapped_by.into_iter().map(
-                    |referenced_column_name| -> Result<Vec<ColumnDefinition>, ResolveError> {
-                        Ok(resolver.get_field_resolver(
-                            &referenced_column_name
-                        )?.columns.iter().map(
-                            |definition| {
-                                ColumnDefinition {
+                self.columns = mapped_by
+                    .into_iter()
+                    .map(
+                        |referenced_column_name| -> Result<Vec<ColumnDefinition>, ResolveError> {
+                            Ok(resolver
+                                .get_field_resolver(&referenced_column_name)?
+                                .columns
+                                .iter()
+                                .map(|definition| ColumnDefinition {
                                     name: format!("{}_{}", column_name_prefix, definition.name),
                                     ty: ColumnType::VisualColumn,
                                     data_type: definition.data_type,
                                     unique: false,
                                     auto_increase: false,
-                                    primary_key: self.primary_key
-                                }
-                            }
-                        ).collect())
-                    }
-                ).collect::<Result<Vec<_>, _>>()?.into_iter().fold(
-                    vec![],
-                    |mut carry, mut item| {
+                                    primary_key: self.primary_key,
+                                })
+                                .collect())
+                        },
+                    )
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into_iter()
+                    .fold(vec![], |mut carry, mut item| {
                         carry.append(&mut item);
                         carry
-                    }
-                );
+                    });
 
                 Ok(FieldResolverStatus::WaitingAssemble)
-            },
+            }
             s => Err(ResolveError::UnexpectedFieldResolverStatus(
                 self.field_path.0.clone(),
                 self.field_path.1.clone(),
                 "WaitingForEntity".to_string(),
-                s
-            ))
+                s,
+            )),
         }
     }
 

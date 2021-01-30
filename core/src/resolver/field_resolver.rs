@@ -7,9 +7,9 @@ use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
-use syn::Type;
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
+use syn::Type;
 
 #[derive(Clone, Debug)]
 pub enum FieldResolverStatus {
@@ -171,5 +171,12 @@ impl AchievedFieldResolver {
             .iter()
             .map(|column| column.name.clone())
             .collect()
+    }
+
+    pub fn unique(&self) -> bool {
+        self.columns
+            .iter()
+            .map(|definitions| definitions.unique)
+            .any(|is_unique| is_unique)
     }
 }

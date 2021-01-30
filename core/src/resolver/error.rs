@@ -40,6 +40,8 @@ pub enum ResolveError {
     UnexpectedFieldGeneric(EntityName, FieldName),
     #[error("UnexpectedFieldResolverStatus: unexpected field resolver status on field({1} in {0}), expect {2}, got {3}")]
     UnexpectedFieldResolverStatus(EntityName, FieldName, String, FieldResolverStatus),
+    #[error("MappingFieldNotUnique: Mapping fields of field({1} in {0}) must be unique")]
+    MappingFieldsNotUnique(EntityName, FieldName),
     #[error("IOError: {0}")]
     IOError(IOError),
     #[error("ParseError: {0}")]

@@ -8,7 +8,7 @@ use crate::types::DatabaseType;
 use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use syn::ItemStruct;
 
 pub type EntityResolverPassBox = Box<dyn EntityResolverPass>;
@@ -96,14 +96,51 @@ impl EntityResolver {
         })
     }
 
-    pub fn get_primary_columns(&self) -> Result<Vec<String>, ResolveError> {
+    fn assert_finished(&self) -> Result<(), ResolveError> {
         if self.status != EntityResolveStatus::Finished {
             Err(ResolveError::EntityResolverIsNotFinished(
                 self.entity_name(),
             ))
         } else {
-            Ok(self.primary_keys.clone())
+            Ok(())
         }
+    }
+
+    pub fn get_primary_columns(&self) -> Result<Vec<String>, ResolveError> {
+        self.assert_finished()?;
+
+        Ok(self.primary_keys.clone())
+    }
+
+    pub fn is_unique_fields(&self, fields: &[String]) -> Result<bool, ResolveError> {
+        self.assert_finished()?;
+
+        for field_name in fields {
+            if self.get_field_resolver(field_name)?.unique() {
+                return Ok(true);
+            }
+        }
+
+        let fields_set: HashSet<_> = fields.iter().cloned().collect();
+
+        for (_, index) in self
+            .annotation
+            .indexes
+            .clone()
+            .unwrap_or_else(HashMap::new)
+        {
+            if index.unique
+                && index
+                    .fields
+                    .iter()
+                    .map(|field_name| fields_set.contains(field_name))
+                    .all(|result| result)
+            {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 
     pub fn assemble_field(
@@ -130,99 +167,95 @@ impl EntityResolver {
         mut self,
         type_path_resolver: &TypePathResolver,
     ) -> Result<AchievedEntityResolver, ResolveError> {
-        if self.status != EntityResolveStatus::Finished {
-            Err(ResolveError::EntityResolverIsNotFinished(
-                self.entity_name(),
-            ))
-        } else {
-            let mut columns = vec![];
-            let mut tables = vec![];
-            let mut foreign_keys = vec![];
+        self.assert_finished()?;
 
-            if self.primary_keys.is_empty() {
-                let auto_primary_keys = ColumnDefinition {
-                    name: format!("__{}_id", self.ident.to_string().to_snake_case()),
-                    ty: ColumnType::VisualColumn,
-                    data_type: DatabaseType::String,
-                    unique: true,
-                    auto_increase: false,
-                    primary_key: true,
-                };
-                self.primary_keys.push(auto_primary_keys.name.clone());
-                columns.push(auto_primary_keys);
-            }
+        let mut columns = vec![];
+        let mut tables = vec![];
+        let mut foreign_keys = vec![];
 
-            for resolver in self.field_resolvers.values() {
-                let mut field_columns = resolver.columns.clone();
-                let mut joined_tables = resolver.joined_table.clone();
-                let mut field_foreign_keys = resolver.foreign_keys.clone();
-                columns.append(&mut field_columns);
-                tables.append(&mut joined_tables);
-                foreign_keys.append(&mut field_foreign_keys);
-            }
-
-            let indexes = self
-                .annotation
-                .indexes
-                .as_ref()
-                .unwrap()
-                .iter()
-                .map(|(name, index)| {
-                    let mut columns = vec![];
-                    for field_name in index.fields.iter() {
-                        let mut column_names = self.get_field_resolver(field_name)?.column_names();
-                        columns.append(&mut column_names)
-                    }
-                    Ok(IndexDefinition {
-                        name: name.clone(),
-                        columns,
-                        method: index.method,
-                        unique: index.unique,
-                    })
-                })
-                .collect::<Result<Vec<_>, ResolveError>>()?;
-
-            tables.push(TableDefinition {
-                name: self.annotation.name.clone().unwrap(),
-                ty: TableType::NormalEntityTable(self.entity_name()),
-                columns,
-                indexes,
-                foreign_keys,
-            });
-
-            let implements = self
-                .resolver_passes
-                .iter()
-                .filter_map(|pass| {
-                    pass.get_implement_token_stream(
-                        self.entity_name(),
-                        &tables,
-                        &self.field_resolvers,
-                        &self.input,
-                        type_path_resolver,
-                    )
-                })
-                .fold(Ok(TokenStream::new()), |carry_result, item_result| {
-                    if let Ok(mut carry) = carry_result {
-                        if let Ok(item) = item_result {
-                            item.to_tokens(&mut carry);
-
-                            Ok(carry)
-                        } else {
-                            item_result
-                        }
-                    } else {
-                        carry_result
-                    }
-                })?;
-
-            Ok(AchievedEntityResolver {
-                definitions: tables,
-                implement: quote! {
-                    #implements
-                },
-            })
+        if self.primary_keys.is_empty() {
+            let auto_primary_keys = ColumnDefinition {
+                name: format!("__{}_id", self.ident.to_string().to_snake_case()),
+                ty: ColumnType::VisualColumn,
+                data_type: DatabaseType::String,
+                unique: true,
+                auto_increase: false,
+                primary_key: true,
+            };
+            self.primary_keys.push(auto_primary_keys.name.clone());
+            columns.push(auto_primary_keys);
         }
+
+        for resolver in self.field_resolvers.values() {
+            let mut field_columns = resolver.columns.clone();
+            let mut joined_tables = resolver.joined_table.clone();
+            let mut field_foreign_keys = resolver.foreign_keys.clone();
+            columns.append(&mut field_columns);
+            tables.append(&mut joined_tables);
+            foreign_keys.append(&mut field_foreign_keys);
+        }
+
+        let indexes = self
+            .annotation
+            .indexes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|(name, index)| {
+                let mut columns = vec![];
+                for field_name in index.fields.iter() {
+                    let mut column_names = self.get_field_resolver(field_name)?.column_names();
+                    columns.append(&mut column_names)
+                }
+                Ok(IndexDefinition {
+                    name: name.clone(),
+                    columns,
+                    method: index.method,
+                    unique: index.unique,
+                })
+            })
+            .collect::<Result<Vec<_>, ResolveError>>()?;
+
+        tables.push(TableDefinition {
+            name: self.annotation.name.clone().unwrap(),
+            ty: TableType::NormalEntityTable(self.entity_name()),
+            columns,
+            indexes,
+            foreign_keys,
+        });
+
+        let implements = self
+            .resolver_passes
+            .iter()
+            .filter_map(|pass| {
+                pass.get_implement_token_stream(
+                    self.entity_name(),
+                    &tables,
+                    &self.field_resolvers,
+                    &self.input,
+                    type_path_resolver,
+                )
+            })
+            .fold(Ok(TokenStream::new()), |carry_result, item_result| {
+                if let Ok(mut carry) = carry_result {
+                    if let Ok(item) = item_result {
+                        item.to_tokens(&mut carry);
+
+                        Ok(carry)
+                    } else {
+                        item_result
+                    }
+                } else {
+                    carry_result
+                }
+            })?;
+
+        Ok(AchievedEntityResolver {
+            definitions: tables,
+            implement: quote! {
+                #implements
+            },
+        })
     }
 }
 
