@@ -184,7 +184,7 @@ impl FieldResolver for CollectionFieldResolver {
         let field_getter_token_stream = quote! {
             pub fn #getter_name(&self) -> &#field_type {
                 let inner = self.get_inner();
-                &self.inner.#field_ident
+                &inner.#field_ident
             }
         };
         let field_setter_token_stream = quote! {

@@ -2,10 +2,10 @@
 use iroha::ToTokens;
 #[doc(hidden)]
 use serde_json::Value;
+use std::collections::HashMap;
 #[doc(hidden)]
 #[cfg(any(feature = "data-time"))]
 use time::{Date, PrimitiveDateTime, Time};
-use std::collections::HashMap;
 
 /// Field type in Yukino, may be different depends on platform or feature configuration
 #[derive(Copy, Clone, ToTokens, Debug, Eq, PartialEq)]

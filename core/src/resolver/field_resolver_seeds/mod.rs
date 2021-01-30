@@ -6,9 +6,7 @@ pub use collection_field_resolver::*;
 pub use numeric_field_resolver::*;
 pub use string_field_resolver::*;
 
-pub use crate::association:: {
-    AssociatedEntityFieldResolver,
-    AssociatedEntity,
-    AssociatedEntityFieldResolverSeed,
-    AssociatedEntityValueConverter
+pub use crate::association::{
+    AssociatedEntity, AssociatedEntityFieldResolver, AssociatedEntityFieldResolverSeed,
+    AssociatedEntityValueConverter,
 };

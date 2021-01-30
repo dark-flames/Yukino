@@ -120,13 +120,13 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
                 fn get_inner(&self) -> & #inner_ident {
                     unsafe {
-                        self.inner.get() as &#inner_ident
+                        self.inner.get().as_ref().unwrap()
                     }
                 }
 
                 fn get_inner_mut(&self) -> &mut #inner_ident {
                     unsafe {
-                        self.inner.get() as &mut #inner_ident
+                        self.inner.get().as_mut().unwrap()
                     }
                 }
             }

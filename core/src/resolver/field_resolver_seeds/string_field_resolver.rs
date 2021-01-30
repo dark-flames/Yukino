@@ -121,12 +121,14 @@ impl FieldResolver for StringFieldResolver {
 
         let field_getter_token_stream = quote! {
             pub fn #getter_name(&self) -> &String {
-                &self.inner.#field_ident
+                let inner = self.get_inner();
+                &inner.#field_ident
             }
         };
         let field_setter_token_stream = quote! {
             pub fn #setter_name(&mut self, value: String) -> &mut Self {
-                self.inner.#field_ident = value;
+                let inner = self.get_inner_mut();
+                inner.#field_ident= value;
                 self
             }
         };

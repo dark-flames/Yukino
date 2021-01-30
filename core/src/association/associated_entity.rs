@@ -1,5 +1,6 @@
-use crate::annotations::{Association, FieldAnnotation, Field, IndexMethod};
-use crate::definitions::{ColumnDefinition, ColumnType, IndexDefinition, ForeignKeyDefinition};
+use crate::annotations::{Association, Field, FieldAnnotation, IndexMethod};
+use crate::association::FakeEntity;
+use crate::definitions::{ColumnDefinition, ColumnType, ForeignKeyDefinition, IndexDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
@@ -11,13 +12,12 @@ use crate::Entity;
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
-use quote::{ToTokens, quote, format_ident};
+use quote::{format_ident, quote, ToTokens};
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use syn::{GenericArgument, PathArguments, Type};
-use crate::association::FakeEntity;
 use std::str::FromStr;
+use syn::{GenericArgument, PathArguments, Type};
 
 pub enum AssociatedEntity<E>
 where
@@ -29,7 +29,8 @@ where
 
 impl<E> AssociatedEntity<E>
 where
-    E: Entity + Clone {
+    E: Entity + Clone,
+{
     pub fn resolved(&self) -> bool {
         matches!(self, Self::Resolved(_))
     }
@@ -37,7 +38,7 @@ where
     pub fn get(&self) -> Option<&E> {
         match self {
             Self::Resolved(entity) => Some(entity),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -199,7 +200,7 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
             ),
             referenced_table: None,
             columns: vec![],
-            column_map: vec![]
+            column_map: vec![],
         })))
     }
 }
@@ -215,7 +216,7 @@ pub struct AssociatedEntityFieldResolver {
     status: FieldResolverStatus,
     referenced_table: Option<String>,
     columns: Vec<ColumnDefinition>,
-    column_map: Vec<(String, String)>
+    column_map: Vec<(String, String)>,
 }
 
 impl FieldResolver for AssociatedEntityFieldResolver {
@@ -249,26 +250,36 @@ impl FieldResolver for AssociatedEntityFieldResolver {
 
                 self.referenced_table = Some(resolver.table_name());
 
-                self.column_map = mapped_by.iter().map(
-                    |referenced_field_name| -> Result<Vec<(String, String)>, ResolveError> {
-                        Ok(resolver
-                            .get_field_resolver(&referenced_field_name)?
-                            .columns
-                            .iter()
-                            .map(|definition| (
-                                format!("{}_{}", self.field_path.1.to_snake_case(), definition.name),
-                                definition.name.clone()
-                            ))
-                            .collect())
-                    }
-                ).collect::<Result<Vec<_>, _>>()?
-                .into_iter()
-                .fold(vec![], |mut carry, mut item| {
-                    carry.append(&mut item);
-                    carry
-                });
+                self.column_map = mapped_by
+                    .iter()
+                    .map(
+                        |referenced_field_name| -> Result<Vec<(String, String)>, ResolveError> {
+                            Ok(resolver
+                                .get_field_resolver(&referenced_field_name)?
+                                .columns
+                                .iter()
+                                .map(|definition| {
+                                    (
+                                        format!(
+                                            "{}_{}",
+                                            self.field_path.1.to_snake_case(),
+                                            definition.name
+                                        ),
+                                        definition.name.clone(),
+                                    )
+                                })
+                                .collect())
+                        },
+                    )
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into_iter()
+                    .fold(vec![], |mut carry, mut item| {
+                        carry.append(&mut item);
+                        carry
+                    });
 
-                self.columns = mapped_by.iter()
+                self.columns = mapped_by
+                    .iter()
                     .map(
                         |referenced_field_name| -> Result<Vec<ColumnDefinition>, ResolveError> {
                             Ok(resolver
@@ -276,7 +287,11 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                                 .columns
                                 .iter()
                                 .map(|definition| ColumnDefinition {
-                                    name: format!("{}_{}", self.field_path.1.to_snake_case(), definition.name),
+                                    name: format!(
+                                        "{}_{}",
+                                        self.field_path.1.to_snake_case(),
+                                        definition.name
+                                    ),
                                     ty: ColumnType::VisualColumn,
                                     data_type: definition.data_type,
                                     unique: false,
@@ -320,27 +335,27 @@ impl FieldResolver for AssociatedEntityFieldResolver {
             let indexes = if self.field_annotation.unique {
                 vec![IndexDefinition {
                     name: format!("{}_unique", field_snake_case),
-                    columns: self.columns.iter().map(
-                        |definition| definition.name.clone()
-                    ).collect(),
+                    columns: self
+                        .columns
+                        .iter()
+                        .map(|definition| definition.name.clone())
+                        .collect(),
                     method: IndexMethod::BTree,
-                    unique: true
+                    unique: true,
                 }]
             } else {
                 vec![]
             };
 
-            let converter_getter_name = quote::format_ident!(
-                "get_{}_converter",
-                 &self.field_path().1.to_snake_case()
-            );
+            let converter_getter_name =
+                quote::format_ident!("get_{}_converter", &self.field_path().1.to_snake_case());
 
             let convert = AssociatedEntityValueConverter {
                 entity_name: self.field_path.0.clone(),
                 field_name: self.field_path.1.clone(),
                 column_map: self.column_map.iter().cloned().collect(),
                 is_primary_key: self.primary_key,
-                _marker: PhantomData::<FakeEntity>::default()
+                _marker: PhantomData::<FakeEntity>::default(),
             };
 
             let entity_ident = format_ident!("{}Inner", self.field_path.0);
@@ -396,27 +411,25 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 indexes,
                 columns: self.columns.clone(),
                 joined_table: vec![],
-                foreign_keys: vec![
-                    ForeignKeyDefinition {
-                        name: format!("__{}", self.field_path.1),
-                        referenced_table: self.referenced_table.clone().unwrap(),
-                        column_map: self.column_map.clone()
-                    }
-                ],
+                foreign_keys: vec![ForeignKeyDefinition {
+                    name: format!("__{}", self.field_path.1),
+                    referenced_table: self.referenced_table.clone().unwrap(),
+                    column_map: self.column_map.clone(),
+                }],
                 data_converter_token_stream,
                 converter_getter_ident: converter_getter_name,
                 field_getter_ident: getter_name,
                 field_getter_token_stream,
                 field_setter_ident: setter_name,
                 field_setter_token_stream,
-                field_type: self.field_type.clone()
+                field_type: self.field_type.clone(),
             })
         } else {
             Err(ResolveError::UnexpectedFieldResolverStatus(
                 self.field_path.0.clone(),
                 self.field_path.1.clone(),
                 "WaitingAssemble".to_string(),
-                self.status()
+                self.status(),
             ))
         }
     }

@@ -1,17 +1,19 @@
 mod associated_entity;
 
-pub use associated_entity::*;
-use crate::Entity;
-use crate::types::ValuePack;
-use crate::resolver::error::DataConvertError;
 use crate::definitions::TableDefinition;
+use crate::resolver::error::DataConvertError;
+use crate::types::ValuePack;
+use crate::Entity;
+pub use associated_entity::*;
 
 #[derive(Clone)]
 struct FakeEntity;
 
 impl Entity for FakeEntity {
-    fn from_database_value(_result: &ValuePack) -> Result<Self, DataConvertError> where
-        Self: Sized {
+    fn from_database_value(_result: &ValuePack) -> Result<Self, DataConvertError>
+    where
+        Self: Sized,
+    {
         unreachable!()
     }
 

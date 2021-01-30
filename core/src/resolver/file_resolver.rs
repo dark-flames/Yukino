@@ -1,3 +1,4 @@
+use crate::association::AssociatedEntityFieldResolverSeed;
 use crate::resolver::entity_resolver_passes::{
     EntityImplementResolverPass, EntityProxyResolverPass, EntityStructResolverPass,
 };
@@ -33,6 +34,7 @@ impl FileResolver {
             Box::new(NumericFieldResolverSeed::new()),
             Box::new(CollectionFieldResolverSeed::new()),
             Box::new(StringFieldResolverSeed::new()),
+            Box::new(AssociatedEntityFieldResolverSeed::new()),
         ];
 
         let mut default_passes: Vec<EntityResolverPassBox> = vec![

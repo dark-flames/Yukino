@@ -1,5 +1,7 @@
 use crate::annotations::{Field, FieldAnnotation};
-use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition, IndexDefinition};
+use crate::definitions::{
+    ColumnDefinition, ForeignKeyDefinition, IndexDefinition, TableDefinition,
+};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
 use crate::types::DatabaseValue;

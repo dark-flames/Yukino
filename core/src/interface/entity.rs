@@ -9,9 +9,7 @@ pub trait Entity
 where
     Self: 'static + Clone,
 {
-    fn from_database_value(
-        result: &ValuePack,
-    ) -> Result<Self, DataConvertError>
+    fn from_database_value(result: &ValuePack) -> Result<Self, DataConvertError>
     where
         Self: Sized;
 

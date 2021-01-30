@@ -58,8 +58,7 @@ impl<E: Entity + Clone> Repository<E> {
         // todo: commit to db
     }
 
-    pub fn find(&self, _primary_key_values: &HashMap<String, DatabaseValue>)
-            -> Option<E> {
+    pub fn find(&self, _primary_key_values: &HashMap<String, DatabaseValue>) -> Option<E> {
         unimplemented!()
     }
 }
