@@ -1,5 +1,5 @@
 use crate::annotations::{Field, FieldAnnotation};
-use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition};
+use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, TableDefinition, IndexDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
 use crate::types::DatabaseValue;
@@ -140,6 +140,7 @@ pub trait ValueConverter<T>: ToTokens {
 
 pub struct AchievedFieldResolver {
     pub field_path: FieldPath,
+    pub indexes: Vec<IndexDefinition>,
     pub columns: Vec<ColumnDefinition>,
     pub joined_table: Vec<TableDefinition>,
     pub foreign_keys: Vec<ForeignKeyDefinition>,

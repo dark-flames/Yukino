@@ -1,8 +1,7 @@
 use crate::definitions::TableDefinition;
 use crate::resolver::error::DataConvertError;
 use crate::transaction::Transaction;
-use crate::types::DatabaseValue;
-use std::collections::HashMap;
+use crate::types::ValuePack;
 
 pub type EntityUniqueID = usize;
 
@@ -11,16 +10,16 @@ where
     Self: 'static + Clone,
 {
     fn from_database_value(
-        result: &HashMap<String, DatabaseValue>,
+        result: &ValuePack,
     ) -> Result<Self, DataConvertError>
     where
         Self: Sized;
 
-    fn to_database_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
+    fn to_database_values(&self) -> Result<ValuePack, DataConvertError>;
 
     fn get_definitions() -> Vec<TableDefinition>;
 
-    fn primary_key_values(&self) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
+    fn primary_key_values(&self) -> Result<ValuePack, DataConvertError>;
 }
 
 pub trait EntityProxy<'t, E: 't + Entity + Clone> {

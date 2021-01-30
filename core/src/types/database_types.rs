@@ -5,6 +5,7 @@ use serde_json::Value;
 #[doc(hidden)]
 #[cfg(any(feature = "data-time"))]
 use time::{Date, PrimitiveDateTime, Time};
+use std::collections::HashMap;
 
 /// Field type in Yukino, may be different depends on platform or feature configuration
 #[derive(Copy, Clone, ToTokens, Debug, Eq, PartialEq)]
@@ -44,6 +45,8 @@ pub enum DatabaseType {
 
 /// Binary data, type alias of `Vec<u8>`
 pub type Binary = Vec<u8>;
+
+pub type ValuePack = HashMap<String, DatabaseValue>;
 
 /// Raw data of database. It can be automatically converted to and from variables in the entity.
 #[derive(Debug, Clone)]

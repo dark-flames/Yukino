@@ -76,10 +76,8 @@ pub struct IndexDefinition {
 pub struct ForeignKeyDefinition {
     /// foreign key name
     pub name: String,
-    /// foreign key part, list of column names
-    pub columns: Vec<String>,
-    /// reference table name
-    pub reference_table: String,
-    /// reference column name in reference table
-    pub reference_columns: Vec<String>,
+    /// referenced table name
+    pub referenced_table: String,
+    /// list of (column_name, referenced_columns)
+    pub column_map: Vec<(String, String)>,
 }

@@ -72,7 +72,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
 
         Some(Ok(quote! {
             pub struct #ident<'t> {
-                inner: #inner_ident,
+                inner: std::cell::UnsafeCell<#inner_ident>,
                 unique_id: Option<yukino::EntityUniqueID>,
                 transaction: &'t yukino::Transaction,
             }
@@ -102,14 +102,14 @@ impl EntityResolverPass for EntityProxyResolverPass {
                     Self: Sized,
                 {
                     #ident {
-                        inner,
+                        inner: std::cell::UnsafeCell::new(inner),
                         unique_id: None,
                         transaction,
                     }
                 }
 
                 fn inner(&self) -> #inner_ident {
-                    self.inner.clone()
+                    self.get_inner().clone()
                 }
             }
 
@@ -117,6 +117,18 @@ impl EntityResolverPass for EntityProxyResolverPass {
                 #(#visitors)*
 
                 #create
+
+                fn get_inner(&self) -> & #inner_ident {
+                    unsafe {
+                        self.inner.get() as &#inner_ident
+                    }
+                }
+
+                fn get_inner_mut(&self) -> &mut #inner_ident {
+                    unsafe {
+                        self.inner.get() as &mut #inner_ident
+                    }
+                }
             }
 
             impl<'t> Drop for #ident<'t> {

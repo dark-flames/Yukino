@@ -2,7 +2,7 @@
 #![feature(unsafe_cell_raw_get)]
 
 pub mod annotations;
-pub mod association;
+mod association;
 pub mod definitions;
 mod interface;
 pub mod repository;
@@ -12,3 +12,7 @@ pub mod types;
 
 pub use interface::*;
 pub use transaction::*;
+
+pub mod collection {
+    pub use super::association::AssociatedEntity;
+}

@@ -23,17 +23,6 @@ impl<E: Entity + Clone> Repository<E> {
         id
     }
 
-    pub fn get_entity(&self, id: &EntityUniqueID) -> Option<E> {
-        let pool = self.pool.borrow();
-        pool.get(id).cloned()
-    }
-
-    pub fn drop_entity(&self, id: &EntityUniqueID) -> Option<E> {
-        let mut pool = self.pool.borrow_mut();
-
-        pool.remove(id)
-    }
-
     fn generate_unique_id(&self) -> EntityUniqueID {
         // todo: generate_by_primary_key
         let pool = self.pool.borrow();
@@ -46,6 +35,17 @@ impl<E: Entity + Clone> Repository<E> {
         }
     }
 
+    pub fn get_entity(&self, id: &EntityUniqueID) -> Option<E> {
+        let pool = self.pool.borrow();
+        pool.get(id).cloned()
+    }
+
+    pub fn drop_entity(&self, id: &EntityUniqueID) -> Option<E> {
+        let mut pool = self.pool.borrow_mut();
+
+        pool.remove(id)
+    }
+
     pub fn commit<'t, P: EntityProxy<'t, E>>(&mut self, entity_proxy: P) {
         let _id = entity_proxy
             .unique_id()
@@ -56,6 +56,11 @@ impl<E: Entity + Clone> Repository<E> {
 
         let _value = entity.to_database_values();
         // todo: commit to db
+    }
+
+    pub fn find(&self, _primary_key_values: &HashMap<String, DatabaseValue>)
+            -> Option<E> {
+        unimplemented!()
     }
 }
 

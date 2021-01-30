@@ -133,6 +133,7 @@ impl FieldResolver for StringFieldResolver {
 
         Ok(AchievedFieldResolver {
             field_path: self.field_path(),
+            indexes: vec![],
             columns: vec![self.definition.clone()],
             joined_table: vec![],
             foreign_keys: vec![],

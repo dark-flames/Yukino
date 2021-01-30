@@ -183,18 +183,21 @@ impl FieldResolver for CollectionFieldResolver {
 
         let field_getter_token_stream = quote! {
             pub fn #getter_name(&self) -> &#field_type {
+                let inner = self.get_inner();
                 &self.inner.#field_ident
             }
         };
         let field_setter_token_stream = quote! {
             pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
-                self.inner.#field_ident= value;
+                let inner = self.get_inner_mut();
+                inner.#field_ident= value;
                 self
             }
         };
 
         Ok(AchievedFieldResolver {
             field_path: self.field_path(),
+            indexes: vec![],
             columns: vec![self.definition.clone()],
             joined_table: vec![],
             foreign_keys: vec![],

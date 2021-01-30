@@ -86,6 +86,10 @@ impl EntityResolver {
         self.ident.to_string()
     }
 
+    pub fn table_name(&self) -> String {
+        self.annotation.name.clone().unwrap()
+    }
+
     pub fn status(&self) -> EntityResolveStatus {
         self.status
     }
@@ -123,12 +127,7 @@ impl EntityResolver {
 
         let fields_set: HashSet<_> = fields.iter().cloned().collect();
 
-        for (_, index) in self
-            .annotation
-            .indexes
-            .clone()
-            .unwrap_or_else(HashMap::new)
-        {
+        for (_, index) in self.annotation.indexes.clone().unwrap_or_else(HashMap::new) {
             if index.unique
                 && index
                     .fields
