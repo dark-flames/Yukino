@@ -96,6 +96,16 @@ impl EntityResolver {
         })
     }
 
+    pub fn get_primary_columns(&self) -> Result<Vec<String>, ResolveError> {
+        if self.status != EntityResolveStatus::Finished {
+            Err(ResolveError::EntityResolverIsNotFinished(
+                self.entity_name(),
+            ))
+        } else {
+            Ok(self.primary_keys.clone())
+        }
+    }
+
     pub fn assemble_field(
         &mut self,
         field: AchievedFieldResolver,

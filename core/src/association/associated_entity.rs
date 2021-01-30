@@ -1,16 +1,21 @@
+use crate::annotations::{Association, FieldAnnotation};
+use crate::definitions::{ColumnDefinition, ColumnType};
 use crate::resolver::error::{DataConvertError, ResolveError};
-use crate::resolver::{ValueConverter, FieldResolverSeed, FieldResolverSeedBox, FieldResolverBox, EntityName, TypePathResolver, FieldName, FieldPath, FieldResolver, FieldResolverStatus, EntityResolver, AchievedFieldResolver};
+use crate::resolver::{
+    AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
+    FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
+    TypePathResolver, ValueConverter,
+};
 use crate::types::DatabaseValue;
 use crate::Entity;
 use iroha::ToTokens;
+use proc_macro2::Ident;
+use quote::ToTokens;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use syn::{Type, PathArguments, GenericArgument, TypePath};
-use proc_macro2::Ident;
-use crate::annotations::{FieldAnnotation, Association};
-use quote::ToTokens;
-use crate::definitions::ColumnDefinition;
+use syn::{GenericArgument, PathArguments, Type, TypePath};
+use heck::SnakeCase;
 
 pub enum AssociatedEntity<E>
 where
@@ -99,8 +104,10 @@ impl<E: Entity + Clone> ValueConverter<AssociatedEntity<E>> for AssociatedEntity
 pub struct AssociatedEntityFieldResolverSeed;
 
 impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
-    fn new() -> Self where
-        Self: Sized {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
         AssociatedEntityFieldResolverSeed
     }
 
@@ -114,7 +121,7 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
         ident: &Ident,
         annotations: &[FieldAnnotation],
         field_type: &Type,
-        type_path_resolver: &TypePathResolver
+        type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
         let nested_type = match field_type {
             Type::Path(type_path) => {
@@ -124,59 +131,55 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
 
                 if last_segment.ident == "AssociatedEntity" {
                     match &last_segment.arguments {
-                        PathArguments::AngleBracketed(arguments) => {
-                            match arguments.args.first() {
-                                Some(GenericArgument::Type(Type::Path(nested_type_path))) => {
-                                    Some(nested_type_path.clone())
-                                },
-                                _ => return Some(Err(
-                                    ResolveError::UnexpectedFieldGeneric(
-                                        entity_name,
-                                        ident.to_string()
+                        PathArguments::AngleBracketed(arguments) => match arguments.args.first() {
+                            Some(GenericArgument::Type(Type::Path(nested_type_path))) => {
+                                Some(nested_type_path.clone())
+                            }
+                            _ => {
+                                return Some(Err(ResolveError::UnexpectedFieldGeneric(
+                                    entity_name,
+                                    ident.to_string(),
                                 )))
                             }
                         },
-                        _ => return Some(Err(
-                            ResolveError::UnexpectedFieldGeneric(
+                        _ => {
+                            return Some(Err(ResolveError::UnexpectedFieldGeneric(
                                 entity_name,
-                                ident.to_string()
-                        )))
+                                ident.to_string(),
+                            )))
+                        }
                     }
                 } else {
                     None
                 }
-            },
-            _ => None
+            }
+            _ => None,
         }?;
 
-        let association = annotations.iter().fold(
-            None,
-            |carry, item| {
+        let association = annotations
+            .iter()
+            .fold(None, |carry, item| {
                 if carry.is_none() {
                     match item {
-                        FieldAnnotation::Association(association) => {
-                            Some(association.clone())
-                        },
-                        _ => None
+                        FieldAnnotation::Association(association) => Some(association.clone()),
+                        _ => None,
                     }
                 } else {
                     carry
                 }
-            }
-        ).unwrap_or(Association {
-            mapped_by: None
-        });
+            })
+            .unwrap_or(Association { mapped_by: None });
 
-        Some(Ok(Box::new(
-            AssociatedEntityFieldResolver {
-                field_path: (entity_name, ident.to_string()),
-                nested_type: nested_type.clone(),
-                primary_key: Self::is_primary_key(annotations),
-                association,
-                status: FieldResolverStatus::WaitingForEntity(nested_type.to_token_stream().to_string()),
-                columns: vec![]
-            }
-        )))
+        Some(Ok(Box::new(AssociatedEntityFieldResolver {
+            field_path: (entity_name, ident.to_string()),
+            nested_type: nested_type.clone(),
+            primary_key: Self::is_primary_key(annotations),
+            association,
+            status: FieldResolverStatus::WaitingForEntity(
+                nested_type.to_token_stream().to_string(),
+            ),
+            columns: vec![],
+        })))
     }
 }
 
@@ -187,7 +190,7 @@ pub struct AssociatedEntityFieldResolver {
     primary_key: bool,
     association: Association,
     status: FieldResolverStatus,
-    columns: Vec<ColumnDefinition>
+    columns: Vec<ColumnDefinition>,
 }
 
 impl FieldResolver for AssociatedEntityFieldResolver {
@@ -201,19 +204,66 @@ impl FieldResolver for AssociatedEntityFieldResolver {
 
     fn resolve_by_waiting_entity(
         &mut self,
-        _resolver: &EntityResolver
+        resolver: &EntityResolver,
     ) -> Result<FieldResolverStatus, ResolveError> {
-        unimplemented!()
+        match self.status.clone() {
+            FieldResolverStatus::WaitingForEntity(waited_entity) => {
+                assert_eq!(waited_entity, resolver.entity_name());
+
+                let mapped_by = match &self.association.mapped_by {
+                    Some(columns) => columns.clone(),
+                    _ => resolver.get_primary_columns()?
+                };
+
+                let column_name_prefix = self.field_path.1.to_snake_case();
+
+                self.columns = mapped_by.into_iter().map(
+                    |referenced_column_name| -> Result<Vec<ColumnDefinition>, ResolveError> {
+                        Ok(resolver.get_field_resolver(
+                            &referenced_column_name
+                        )?.columns.iter().map(
+                            |definition| {
+                                ColumnDefinition {
+                                    name: format!("{}_{}", column_name_prefix, definition.name),
+                                    ty: ColumnType::VisualColumn,
+                                    data_type: definition.data_type,
+                                    unique: false,
+                                    auto_increase: false,
+                                    primary_key: self.primary_key
+                                }
+                            }
+                        ).collect())
+                    }
+                ).collect::<Result<Vec<_>, _>>()?.into_iter().fold(
+                    vec![],
+                    |mut carry, mut item| {
+                        carry.append(&mut item);
+                        carry
+                    }
+                );
+
+                Ok(FieldResolverStatus::WaitingAssemble)
+            },
+            s => Err(ResolveError::UnexpectedFieldResolverStatus(
+                self.field_path.0.clone(),
+                self.field_path.1.clone(),
+                "WaitingForEntity".to_string(),
+                s
+            ))
+        }
     }
 
     fn resolve_by_waiting_fields(
         &mut self,
-        _resolvers: Vec<&AchievedFieldResolver>
+        _resolvers: Vec<&AchievedFieldResolver>,
     ) -> Result<FieldResolverStatus, ResolveError> {
-       unreachable!()
+        unreachable!()
     }
 
-    fn assemble(&mut self, _entity_resolver: &EntityResolver) -> Result<AchievedFieldResolver, ResolveError> {
+    fn assemble(
+        &mut self,
+        _entity_resolver: &EntityResolver,
+    ) -> Result<AchievedFieldResolver, ResolveError> {
         unimplemented!()
     }
 }

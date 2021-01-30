@@ -7,7 +7,7 @@ use serde_json::Value;
 use time::{Date, PrimitiveDateTime, Time};
 
 /// Field type in Yukino, may be different depends on platform or feature configuration
-#[derive(Clone, ToTokens, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path = "yukino::types")]
 pub enum DatabaseType {
     SmallInteger,

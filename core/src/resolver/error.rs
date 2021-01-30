@@ -1,4 +1,4 @@
-use crate::resolver::{EntityName, FieldName};
+use crate::resolver::{EntityName, FieldName, FieldResolverStatus};
 use quote::ToTokens;
 use std::io::Error as IOError;
 use syn::Error;
@@ -38,6 +38,8 @@ pub enum ResolveError {
     FieldVisibilityMustBePrivate(EntityName, FieldName),
     #[error("UnexpectedFieldGeneric: Unexpected Field Generic on {1} in {0}")]
     UnexpectedFieldGeneric(EntityName, FieldName),
+    #[error("UnexpectedFieldResolverStatus: unexpected field resolver status on field({1} in {0}), expect {2}, got {3}")]
+    UnexpectedFieldResolverStatus(EntityName, FieldName, String, FieldResolverStatus),
     #[error("IOError: {0}")]
     IOError(IOError),
     #[error("ParseError: {0}")]

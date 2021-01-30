@@ -8,12 +8,20 @@ use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::collections::HashMap;
 use syn::Type;
+use std::fmt::{Display, Formatter};
+use std::fmt;
 
 #[derive(Clone, Debug)]
 pub enum FieldResolverStatus {
     WaitingForFields(Vec<FieldPath>),
     WaitingForEntity(EntityName),
     WaitingAssemble,
+}
+
+impl Display for FieldResolverStatus {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl FieldResolverStatus {
