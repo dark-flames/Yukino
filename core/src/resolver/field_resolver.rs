@@ -4,11 +4,10 @@ use crate::definitions::{
 };
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
-use crate::types::DatabaseValue;
+use crate::types::ValuePack;
 use heck::SnakeCase;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
-use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use syn::Type;
@@ -117,27 +116,15 @@ pub trait FieldResolver {
 }
 
 pub trait ValueConverter<T>: ToTokens {
-    fn to_field_value(
-        &self,
-        values: &HashMap<String, DatabaseValue>,
-    ) -> Result<T, DataConvertError>;
+    fn to_field_value(&self, values: &ValuePack) -> Result<T, DataConvertError>;
 
-    fn to_database_values(
-        &self,
-        value: T,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    fn to_database_values(&self, value: T) -> Result<ValuePack, DataConvertError> {
         self.to_database_values_by_ref(&value)
     }
 
-    fn to_database_values_by_ref(
-        &self,
-        value: &T,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
+    fn to_database_values_by_ref(&self, value: &T) -> Result<ValuePack, DataConvertError>;
 
-    fn primary_column_values_by_ref(
-        &self,
-        value: &T,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError>;
+    fn primary_column_values_by_ref(&self, value: &T) -> Result<ValuePack, DataConvertError>;
 }
 
 pub struct AchievedFieldResolver {

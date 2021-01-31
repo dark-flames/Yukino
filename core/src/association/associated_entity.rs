@@ -7,7 +7,7 @@ use crate::resolver::{
     FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
     TypePathResolver, ValueConverter,
 };
-use crate::types::DatabaseValue;
+use crate::types::{DatabaseValue, ValuePack};
 use crate::Entity;
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -23,7 +23,7 @@ pub enum AssociatedEntity<E>
 where
     E: Entity + Clone,
 {
-    Unresolved(HashMap<String, DatabaseValue>),
+    Unresolved(ValuePack),
     Resolved(E),
 }
 
@@ -55,9 +55,9 @@ pub struct AssociatedEntityValueConverter<E: Entity + Clone> {
 impl<E: Entity + Clone> ValueConverter<AssociatedEntity<E>> for AssociatedEntityValueConverter<E> {
     fn to_field_value(
         &self,
-        values: &HashMap<String, DatabaseValue>,
+        values: &ValuePack,
     ) -> Result<AssociatedEntity<E>, DataConvertError> {
-        let value_map: HashMap<String, DatabaseValue> = values
+        let value_map: ValuePack = values
             .iter()
             .filter_map(|(name, value)| {
                 if self.column_map.contains_key(name.as_str()) {

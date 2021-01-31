@@ -5,7 +5,7 @@ use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue};
+use crate::types::{DatabaseType, DatabaseValue, ValuePack};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::Ident;
@@ -160,10 +160,7 @@ pub struct StringValueConverter {
 }
 
 impl ValueConverter<String> for StringValueConverter {
-    fn to_field_value(
-        &self,
-        values: &HashMap<String, DatabaseValue>,
-    ) -> Result<String, DataConvertError> {
+    fn to_field_value(&self, values: &ValuePack) -> Result<String, DataConvertError> {
         match values.get(&self.column_name) {
             Some(DatabaseValue::String(value)) => Ok(value.clone()),
             _ => Err(DataConvertError::UnexpectedDatabaseValueType(
@@ -173,10 +170,7 @@ impl ValueConverter<String> for StringValueConverter {
         }
     }
 
-    fn to_database_values_by_ref(
-        &self,
-        value: &String,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    fn to_database_values_by_ref(&self, value: &String) -> Result<ValuePack, DataConvertError> {
         let mut map = HashMap::new();
         map.insert(
             self.column_name.clone(),
@@ -186,10 +180,7 @@ impl ValueConverter<String> for StringValueConverter {
         Ok(map)
     }
 
-    fn primary_column_values_by_ref(
-        &self,
-        value: &String,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    fn primary_column_values_by_ref(&self, value: &String) -> Result<ValuePack, DataConvertError> {
         if self.is_primary_key {
             self.to_database_values_by_ref(value)
         } else {

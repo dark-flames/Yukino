@@ -6,7 +6,7 @@ use crate::resolver::{
     FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
     TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue};
+use crate::types::{DatabaseType, DatabaseValue, ValuePack};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
@@ -224,10 +224,7 @@ impl<T> ValueConverter<Vec<T>> for ListValueConverter
 where
     T: Serialize + DeserializeOwned,
 {
-    fn to_field_value(
-        &self,
-        values: &HashMap<String, DatabaseValue>,
-    ) -> Result<Vec<T>, DataConvertError> {
+    fn to_field_value(&self, values: &ValuePack) -> Result<Vec<T>, DataConvertError> {
         match values.get(&self.column_name) {
             Some(DatabaseValue::Json(value)) if value.is_array() => from_value(value.clone())
                 .map_err(|e| {
@@ -247,7 +244,7 @@ where
     fn to_database_values_by_ref(
         &self,
         value: &Vec<T>,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    ) -> Result<ValuePack, DataConvertError> {
         let json_value = to_value(value).map_err(|e| {
             DataConvertError::DatabaseValueConvertError(
                 e.to_string(),
@@ -268,7 +265,7 @@ where
     fn primary_column_values_by_ref(
         &self,
         _value: &Vec<T>,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    ) -> Result<ValuePack, DataConvertError> {
         Ok(HashMap::new())
     }
 }
@@ -286,10 +283,7 @@ where
     K: Eq + Hash + Serialize + DeserializeOwned,
     V: Serialize + DeserializeOwned,
 {
-    fn to_field_value(
-        &self,
-        values: &HashMap<String, DatabaseValue>,
-    ) -> Result<HashMap<K, V>, DataConvertError> {
+    fn to_field_value(&self, values: &ValuePack) -> Result<HashMap<K, V>, DataConvertError> {
         match values.get(&self.column_name) {
             Some(DatabaseValue::Json(value)) if value.is_object() => from_value(value.clone())
                 .map_err(|e| {
@@ -309,7 +303,7 @@ where
     fn to_database_values_by_ref(
         &self,
         value: &HashMap<K, V>,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    ) -> Result<ValuePack, DataConvertError> {
         let json_value = to_value(value).map_err(|e| {
             DataConvertError::DatabaseValueConvertError(
                 e.to_string(),
@@ -330,7 +324,7 @@ where
     fn primary_column_values_by_ref(
         &self,
         _value: &HashMap<K, V>,
-    ) -> Result<HashMap<String, DatabaseValue>, DataConvertError> {
+    ) -> Result<ValuePack, DataConvertError> {
         Ok(HashMap::new())
     }
 }

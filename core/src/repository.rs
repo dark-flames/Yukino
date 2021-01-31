@@ -1,5 +1,5 @@
 use crate::resolver::error::DataConvertError;
-use crate::types::DatabaseValue;
+use crate::types::{DatabaseValue, ValuePack};
 use crate::{Entity, EntityProxy, EntityUniqueID};
 use rand::random;
 use std::cell::RefCell;
@@ -58,7 +58,7 @@ impl<E: Entity + Clone> Repository<E> {
         // todo: commit to db
     }
 
-    pub fn find(&self, _primary_key_values: &HashMap<String, DatabaseValue>) -> Option<E> {
+    pub fn find(&self, _primary_key_values: &ValuePack) -> Option<E> {
         unimplemented!()
     }
 }
@@ -70,7 +70,7 @@ where
 {
     fn deserialize_value(
         &self,
-        values: &HashMap<String, DatabaseValue>,
+        values: &ValuePack,
     ) -> Result<(E, EntityUniqueID), DataConvertError>;
 
     fn create() -> Self;
