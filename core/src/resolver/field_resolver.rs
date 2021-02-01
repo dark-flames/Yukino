@@ -169,4 +169,11 @@ impl AchievedFieldResolver {
             .map(|definitions| definitions.unique)
             .any(|is_unique| is_unique)
     }
+
+    pub fn primary_key(&self) -> bool {
+        self.columns
+            .iter()
+            .map(|definitions| definitions.primary_key)
+            .any(|is_unique| is_unique)
+    }
 }

@@ -2,6 +2,7 @@ use crate::annotations::{Association, Field, FieldAnnotation, IndexMethod};
 use crate::association::FakeEntity;
 use crate::definitions::{ColumnDefinition, ColumnType, ForeignKeyDefinition, IndexDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
+use crate::resolver::FieldResolverStatus::WaitingAssemble;
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
     FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
@@ -19,6 +20,7 @@ use std::marker::PhantomData;
 use std::str::FromStr;
 use syn::{GenericArgument, PathArguments, Type};
 
+#[derive(Clone)]
 pub enum AssociatedEntity<E>
 where
     E: Entity + Clone,
@@ -44,6 +46,7 @@ where
 }
 
 #[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
 pub struct AssociatedEntityValueConverter<E: Entity + Clone> {
     entity_name: String,
     field_name: String,
@@ -53,10 +56,7 @@ pub struct AssociatedEntityValueConverter<E: Entity + Clone> {
 }
 
 impl<E: Entity + Clone> ValueConverter<AssociatedEntity<E>> for AssociatedEntityValueConverter<E> {
-    fn to_field_value(
-        &self,
-        values: &ValuePack,
-    ) -> Result<AssociatedEntity<E>, DataConvertError> {
+    fn to_field_value(&self, values: &ValuePack) -> Result<AssociatedEntity<E>, DataConvertError> {
         let value_map: ValuePack = values
             .iter()
             .filter_map(|(name, value)| {
@@ -141,7 +141,7 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
         field_type: &Type,
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
-        let nested_type = match field_type {
+        let (old_nested_type, nested_type, mut type_path) = match field_type {
             Type::Path(type_path) => {
                 let full_path = type_path_resolver.get_full_path(type_path.clone());
 
@@ -151,7 +151,23 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
                     match &last_segment.arguments {
                         PathArguments::AngleBracketed(arguments) => match arguments.args.first() {
                             Some(GenericArgument::Type(Type::Path(nested_type_path))) => {
-                                Some(nested_type_path.clone())
+                                let mut nested_type_path_new = nested_type_path.clone();
+                                let ident = format_ident!(
+                                    "{}Inner",
+                                    nested_type_path_new.path.segments.first().unwrap().ident
+                                );
+
+                                nested_type_path_new
+                                    .path
+                                    .segments
+                                    .first_mut()
+                                    .unwrap()
+                                    .ident = ident;
+                                Some((
+                                    nested_type_path.clone(),
+                                    nested_type_path_new,
+                                    type_path.clone(),
+                                ))
                             }
                             _ => {
                                 return Some(Err(ResolveError::UnexpectedFieldGeneric(
@@ -188,15 +204,23 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
             })
             .unwrap_or(Association { mapped_by: None });
 
+        let last = type_path.path.segments.last_mut().unwrap();
+
+        if let PathArguments::AngleBracketed(argument) = &mut last.arguments {
+            let arg = argument.args.first_mut().unwrap();
+            *arg = GenericArgument::Type(Type::Path(nested_type.clone()));
+        }
+
         Some(Ok(Box::new(AssociatedEntityFieldResolver {
             field_path: (entity_name, ident.to_string()),
-            field_type: field_type.clone(),
-            nested_type: Type::Path(nested_type.clone()),
+            field_type: Type::Path(type_path),
+            proxy_type: Type::Path(old_nested_type.clone()),
+            inner_type: Type::Path(nested_type),
             primary_key: Self::is_primary_key(annotations),
             association,
             field_annotation: Self::default_annotations(annotations),
             status: FieldResolverStatus::WaitingForEntity(
-                nested_type.to_token_stream().to_string(),
+                old_nested_type.to_token_stream().to_string(),
             ),
             referenced_table: None,
             columns: vec![],
@@ -209,7 +233,8 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
 pub struct AssociatedEntityFieldResolver {
     field_path: FieldPath,
     field_type: Type,
-    nested_type: Type,
+    proxy_type: Type,
+    inner_type: Type,
     primary_key: bool,
     association: Association,
     field_annotation: Field,
@@ -235,7 +260,6 @@ impl FieldResolver for AssociatedEntityFieldResolver {
         match self.status.clone() {
             FieldResolverStatus::WaitingForEntity(waited_entity) => {
                 assert_eq!(waited_entity, resolver.entity_name());
-
                 let mapped_by = match &self.association.mapped_by {
                     Some(columns) => columns.clone(),
                     _ => resolver.get_primary_columns()?,
@@ -308,6 +332,8 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                         carry
                     });
 
+                self.status = WaitingAssemble;
+
                 Ok(FieldResolverStatus::WaitingAssemble)
             }
             s => Err(ResolveError::UnexpectedFieldResolverStatus(
@@ -358,17 +384,15 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 _marker: PhantomData::<FakeEntity>::default(),
             };
 
-            let entity_ident = format_ident!("{}Inner", self.field_path.0);
+            let entity_ident = &self.inner_type;
 
             let output_type = quote! {
-                yukino::resolver::field_resolver_seeds::AssociatedEntityValueConverter<#entity_ident>
+                yukino::resolver::field_resolver_seeds::AssociatedEntityValueConverter::<#entity_ident>
             };
 
             let data_converter_token_stream = quote! {
                 pub fn #converter_getter_name() -> #output_type {
-                    #output_type::new(
-                        #convert
-                    )
+                    #convert
                 }
             };
 
@@ -379,14 +403,15 @@ impl FieldResolver for AssociatedEntityFieldResolver {
 
             //todo: nullable
 
-            let nested_type = &self.nested_type;
-            let field_type = &self.field_type;
+            let nested_type = &self.proxy_type;
+            let field_type = &self.inner_type;
 
             let field_getter_token_stream = quote! {
                 pub fn #getter_name(&self) -> &#field_type {
+                    use yukino::EntityProxy;
                     let inner = self.get_inner();
 
-                    if !inner.#field_ident.unresolved() {
+                    if let yukino::collection::AssociatedEntity::Unresolved(values) = &inner.#field_ident {
                         let mut_inner = self.get_inner_mut();
 
                         let result = self.get_transaction().get_repository().find(values).unwrap();
@@ -394,11 +419,12 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                         mut_inner.#field_ident = yukino::collection::AssociatedEntity::Resolved(result)
                     }
 
-                    inner.get().unwrap()
+                    inner.#field_ident.get().unwrap()
                 }
             };
             let field_setter_token_stream = quote! {
                 pub fn #setter_name(&mut self, value: #nested_type) -> &mut Self {
+                    use yukino::EntityProxy;
                     let mut_inner = self.get_inner_mut();
                     mut_inner.#field_ident = yukino::collection::AssociatedEntity::Resolved(value.inner());
 

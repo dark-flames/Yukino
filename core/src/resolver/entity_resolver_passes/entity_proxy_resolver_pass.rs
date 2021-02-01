@@ -29,7 +29,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
         _definitions: &[TableDefinition],
         field_resolvers: &HashMap<FieldName, AchievedFieldResolver>,
         _input: &ItemStruct,
-        _type_path_resolver: &TypePathResolver,
+        type_path_resolver: &TypePathResolver,
     ) -> Option<Result<TokenStream, ResolveError>> {
         let ident = TokenStream::from_str(&entity_name).unwrap();
         let inner_ident = format_ident!("{}Inner", &entity_name);
@@ -46,7 +46,7 @@ impl EntityResolverPass for EntityProxyResolverPass {
             .iter()
             .map(|(_, resolver)| {
                 let field_ident = format_ident!("{}", resolver.field_path.1);
-                let field_type = &resolver.field_type;
+                let field_type = type_path_resolver.get_full_type(resolver.field_type.clone());
                 quote! {
                     #field_ident: #field_type
                 }

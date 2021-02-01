@@ -241,10 +241,7 @@ where
         }
     }
 
-    fn to_database_values_by_ref(
-        &self,
-        value: &Vec<T>,
-    ) -> Result<ValuePack, DataConvertError> {
+    fn to_database_values_by_ref(&self, value: &Vec<T>) -> Result<ValuePack, DataConvertError> {
         let json_value = to_value(value).map_err(|e| {
             DataConvertError::DatabaseValueConvertError(
                 e.to_string(),
@@ -262,10 +259,7 @@ where
         Ok(result)
     }
 
-    fn primary_column_values_by_ref(
-        &self,
-        _value: &Vec<T>,
-    ) -> Result<ValuePack, DataConvertError> {
+    fn primary_column_values_by_ref(&self, _value: &Vec<T>) -> Result<ValuePack, DataConvertError> {
         Ok(HashMap::new())
     }
 }

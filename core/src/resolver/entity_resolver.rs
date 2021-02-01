@@ -1,4 +1,4 @@
-use crate::annotations::Entity;
+use crate::annotations::{Entity, IndexMethod};
 use crate::definitions::{
     ColumnDefinition, ColumnType, IndexDefinition, TableDefinition, TableType,
 };
@@ -139,6 +139,15 @@ impl EntityResolver {
             }
         }
 
+        if self
+            .primary_keys
+            .iter()
+            .map(|field_name| fields_set.contains(field_name))
+            .all(|result| result)
+        {
+            return Ok(true);
+        }
+
         Ok(false)
     }
 
@@ -172,29 +181,7 @@ impl EntityResolver {
         let mut tables = vec![];
         let mut foreign_keys = vec![];
 
-        if self.primary_keys.is_empty() {
-            let auto_primary_keys = ColumnDefinition {
-                name: format!("__{}_id", self.ident.to_string().to_snake_case()),
-                ty: ColumnType::VisualColumn,
-                data_type: DatabaseType::String,
-                unique: true,
-                auto_increase: false,
-                primary_key: true,
-            };
-            self.primary_keys.push(auto_primary_keys.name.clone());
-            columns.push(auto_primary_keys);
-        }
-
-        for resolver in self.field_resolvers.values() {
-            let mut field_columns = resolver.columns.clone();
-            let mut joined_tables = resolver.joined_table.clone();
-            let mut field_foreign_keys = resolver.foreign_keys.clone();
-            columns.append(&mut field_columns);
-            tables.append(&mut joined_tables);
-            foreign_keys.append(&mut field_foreign_keys);
-        }
-
-        let indexes = self
+        let mut indexes = self
             .annotation
             .indexes
             .as_ref()
@@ -214,6 +201,47 @@ impl EntityResolver {
                 })
             })
             .collect::<Result<Vec<_>, ResolveError>>()?;
+
+        for resolver in self.field_resolvers.values() {
+            let mut field_columns = resolver.columns.clone();
+            let mut joined_tables = resolver.joined_table.clone();
+            let mut field_foreign_keys = resolver.foreign_keys.clone();
+            columns.append(&mut field_columns);
+            tables.append(&mut joined_tables);
+            foreign_keys.append(&mut field_foreign_keys);
+        }
+
+        let primary_key_count = columns.iter().filter(|item| item.primary_key).count();
+
+        if primary_key_count == 0 {
+            let auto_primary_keys = ColumnDefinition {
+                name: format!("__{}_id", self.ident.to_string().to_snake_case()),
+                ty: ColumnType::VisualColumn,
+                data_type: DatabaseType::String,
+                unique: true,
+                auto_increase: false,
+                primary_key: true,
+            };
+            self.primary_keys.push(auto_primary_keys.name.clone());
+            columns.push(auto_primary_keys);
+        } else if primary_key_count == 1 {
+            columns
+                .iter_mut()
+                .find(|item| item.primary_key)
+                .unwrap()
+                .unique = true;
+        } else {
+            indexes.push(IndexDefinition {
+                name: "__primary_keys_index".to_string(),
+                columns: columns
+                    .iter()
+                    .filter(|item| item.primary_key)
+                    .map(|item| item.name.clone())
+                    .collect(),
+                method: IndexMethod::BTree,
+                unique: true,
+            });
+        }
 
         tables.push(TableDefinition {
             name: self.annotation.name.clone().unwrap(),

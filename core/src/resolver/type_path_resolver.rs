@@ -1,7 +1,7 @@
 use crate::resolver::error::ResolveError;
 use proc_macro2::Ident;
 use std::collections::HashMap;
-use syn::{ItemUse, PathSegment, TypePath, UseTree};
+use syn::{ItemUse, PathSegment, Type, TypePath, UseTree};
 
 pub type FullPath = Vec<Ident>;
 pub type TypeName = String;
@@ -105,6 +105,13 @@ impl TypePathResolver {
             result
         } else {
             ty
+        }
+    }
+
+    pub fn get_full_type(&self, ty: Type) -> Type {
+        match ty {
+            Type::Path(path) => Type::Path(self.get_full_path(path)),
+            others => others,
         }
     }
 }

@@ -160,19 +160,12 @@ impl SchemaResolver {
             })
     }
 
-    fn get_entity_resolver(&self, entity_name: &str) -> Result<&EntityResolver, ResolveError> {
-        self.entity_resolver
-            .get(entity_name)
-            .ok_or_else(|| ResolveError::EntityResolverNotFound(entity_name.to_string()))
+    fn get_entity_resolver(&self, entity_name: &str) -> Option<&EntityResolver> {
+        self.entity_resolver.get(entity_name)
     }
 
-    fn get_entity_resolver_mut(
-        &mut self,
-        entity_name: &str,
-    ) -> Result<&mut EntityResolver, ResolveError> {
-        self.entity_resolver
-            .get_mut(entity_name)
-            .ok_or_else(|| ResolveError::EntityResolverNotFound(entity_name.to_string()))
+    fn get_entity_resolver_mut(&mut self, entity_name: &str) -> Option<&mut EntityResolver> {
+        self.entity_resolver.get_mut(entity_name)
     }
 
     fn remove_field_resolver(
@@ -257,7 +250,9 @@ impl SchemaResolver {
             for field_path in paths.iter() {
                 let mut resolver = self.remove_field_resolver(field_path)?;
 
-                let entity_resolver = self.get_entity_resolver(&entity_name)?;
+                let entity_resolver = self
+                    .get_entity_resolver(&entity_name)
+                    .ok_or_else(|| ResolveError::EntityResolverNotFound(entity_name.to_string()))?;
 
                 resolver.resolve_by_waiting_entity(entity_resolver)?;
 
@@ -281,12 +276,15 @@ impl SchemaResolver {
             FieldResolverStatus::WaitingAssemble => {
                 let mut resolver = self.remove_field_resolver(field_path)?;
                 let entity_name = resolver.field_path().0;
-                let entity_resolver = self.get_entity_resolver(&entity_name)?;
+                let entity_resolver = self
+                    .get_entity_resolver(&entity_name)
+                    .ok_or_else(|| ResolveError::EntityResolverNotFound(entity_name.clone()))?;
 
                 let achieved = resolver.assemble(entity_resolver)?;
                 if EntityResolveStatus::Finished
                     == self
-                        .get_entity_resolver_mut(&entity_name)?
+                        .get_entity_resolver_mut(&entity_name)
+                        .ok_or_else(|| ResolveError::EntityResolverNotFound(entity_name.clone()))?
                         .assemble_field(achieved)?
                 {
                     self.update_entity_resolver_status(
@@ -306,20 +304,21 @@ impl SchemaResolver {
             }
             FieldResolverStatus::WaitingForEntity(entity_name) => {
                 let mut resolver = self.remove_field_resolver(field_path)?;
-                let entity_resolver = self.get_entity_resolver(&entity_name)?;
+                let entity_resolver = self.get_entity_resolver(&entity_name);
 
-                let result = if EntityResolveStatus::Finished == entity_resolver.status() {
-                    Some(resolver.resolve_by_waiting_entity(entity_resolver)?)
-                } else {
-                    if let Some(fields) = self.waiting_entity.get_mut(&entity_name) {
-                        fields.push(field_path.clone())
+                let result =
+                    if Some(EntityResolveStatus::Finished) == entity_resolver.map(|r| r.status()) {
+                        Some(resolver.resolve_by_waiting_entity(entity_resolver.unwrap())?)
                     } else {
-                        let fields = vec![field_path.clone()];
-                        self.waiting_entity.insert(entity_name, fields);
-                    }
+                        if let Some(fields) = self.waiting_entity.get_mut(&entity_name) {
+                            fields.push(field_path.clone())
+                        } else {
+                            let fields = vec![field_path.clone()];
+                            self.waiting_entity.insert(entity_name, fields);
+                        }
 
-                    None
-                };
+                        None
+                    };
 
                 self.append_field_resolver(resolver);
 

@@ -58,7 +58,19 @@ impl EntityResolverPass for EntityStructResolverPass {
                 )));
             }
 
-            if let Type::Path(type_path) = &field.ty {
+            let field_name = field.ident.as_ref().unwrap().to_string();
+
+            let resolver = match field_resolvers.get(&field_name) {
+                Some(r) => r,
+                _ => {
+                    return Some(Err(ResolveError::FieldResolverNotFound(
+                        entity_name,
+                        field_name,
+                    )))
+                }
+            };
+
+            if let Type::Path(type_path) = &resolver.field_type {
                 field.ty = Type::Path(type_path_resolver.get_full_path(type_path.clone()))
             }
         }

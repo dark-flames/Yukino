@@ -72,7 +72,7 @@ impl EntityResolverPass for EntityImplementResolverPass {
                     let field_ident = format_ident!("{}", &resolver.field_path.1);
 
                     Some(quote::quote! {
-                        map.extend(Self::#method().primary_key_values_by_ref(&self.#field_ident)?)
+                        map.extend(Self::#method().primary_column_values_by_ref(&self.#field_ident)?)
                     })
                 } else {
                     None
