@@ -18,6 +18,9 @@ pub struct Association {
     /// Field names of attachment side entity. Specifies how the object will be mapped, using the
     /// primary key of the target object by default.
     pub mapped_by: Option<Vec<String>>,
+    /// unique association
+    #[field(default = false)]
+    pub unique: bool,
 }
 
 /// Annotation of InverseAssociation.

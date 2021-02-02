@@ -1,4 +1,4 @@
-use crate::annotations::{Association, Field, FieldAnnotation, IndexMethod};
+use crate::annotations::{Association, FieldAnnotation, IndexMethod};
 use crate::association::FakeEntity;
 use crate::definitions::{ColumnDefinition, ColumnType, ForeignKeyDefinition, IndexDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
@@ -202,7 +202,10 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
                     carry
                 }
             })
-            .unwrap_or(Association { mapped_by: None });
+            .unwrap_or(Association {
+                mapped_by: None,
+                unique: false,
+            });
 
         let last = type_path.path.segments.last_mut().unwrap();
 
@@ -218,7 +221,6 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
             inner_type: Type::Path(nested_type),
             primary_key: Self::is_primary_key(annotations),
             association,
-            field_annotation: Self::default_annotations(annotations),
             status: FieldResolverStatus::WaitingForEntity(
                 old_nested_type.to_token_stream().to_string(),
             ),
@@ -237,7 +239,6 @@ pub struct AssociatedEntityFieldResolver {
     inner_type: Type,
     primary_key: bool,
     association: Association,
-    field_annotation: Field,
     status: FieldResolverStatus,
     referenced_table: Option<String>,
     columns: Vec<ColumnDefinition>,
@@ -358,17 +359,22 @@ impl FieldResolver for AssociatedEntityFieldResolver {
     ) -> Result<AchievedFieldResolver, ResolveError> {
         if let FieldResolverStatus::WaitingAssemble = self.status() {
             let field_snake_case = self.field_path.1.to_snake_case();
-            let indexes = if self.field_annotation.unique {
-                vec![IndexDefinition {
-                    name: format!("{}_unique", field_snake_case),
-                    columns: self
-                        .columns
-                        .iter()
-                        .map(|definition| definition.name.clone())
-                        .collect(),
-                    method: IndexMethod::BTree,
-                    unique: true,
-                }]
+            let indexes = if self.association.unique {
+                if self.columns.len() == 1 {
+                    self.columns.first_mut().unwrap().unique = true;
+                    vec![]
+                } else {
+                    vec![IndexDefinition {
+                        name: format!("{}_unique", field_snake_case),
+                        columns: self
+                            .columns
+                            .iter()
+                            .map(|definition| definition.name.clone())
+                            .collect(),
+                        method: IndexMethod::BTree,
+                        unique: true,
+                    }]
+                }
             } else {
                 vec![]
             };

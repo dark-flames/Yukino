@@ -206,9 +206,11 @@ impl EntityResolver {
             let mut field_columns = resolver.columns.clone();
             let mut joined_tables = resolver.joined_table.clone();
             let mut field_foreign_keys = resolver.foreign_keys.clone();
+            let mut field_indexes = resolver.indexes.clone();
             columns.append(&mut field_columns);
             tables.append(&mut joined_tables);
             foreign_keys.append(&mut field_foreign_keys);
+            indexes.append(&mut field_indexes)
         }
 
         let primary_key_count = columns.iter().filter(|item| item.primary_key).count();
