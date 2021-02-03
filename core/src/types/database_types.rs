@@ -1,3 +1,4 @@
+use crate::resolver::error::ResolveError;
 #[doc(hidden)]
 use iroha::ToTokens;
 #[doc(hidden)]
@@ -22,7 +23,7 @@ pub enum DatabaseType {
     Double,
 
     #[cfg(any(feature = "decimal"))]
-    Decimal(usize, usize),
+    Decimal(u32),
 
     Binary,
 
@@ -73,7 +74,7 @@ pub enum DatabaseValue {
     #[cfg(any(feature = "data-time"))]
     DateTime(PrimitiveDateTime),
 
-    Timestamp(i64),
+    Timestamp(u64),
 
     Character(char),
     String(String),
@@ -81,4 +82,52 @@ pub enum DatabaseValue {
 
     #[cfg(any(feature = "json"))]
     Json(Value),
+}
+
+impl DatabaseType {
+    pub fn suitable_for_primary_key(&self) -> bool {
+        !matches!(
+            self,
+            Self::Json
+                | Self::Text
+                | Self::DateTime
+                | Self::Date
+                | Self::Time
+                | Self::Binary
+                | Self::Decimal(_)
+                | Self::Double
+                | Self::Float
+        )
+    }
+}
+
+impl From<&DatabaseValue> for DatabaseType {
+    fn from(database_value: &DatabaseValue) -> Self {
+        match database_value {
+            DatabaseValue::SmallInteger(_) => DatabaseType::SmallInteger,
+            DatabaseValue::UnsignedSmallInteger(_) => DatabaseType::UnsignedSmallInteger,
+            DatabaseValue::Integer(_) => DatabaseType::UnsignedInteger,
+            DatabaseValue::UnsignedInteger(_) => DatabaseType::UnsignedInteger,
+            DatabaseValue::BigInteger(_) => DatabaseType::BigInteger,
+            DatabaseValue::UnsignedBigInteger(_) => DatabaseType::UnsignedBigInteger,
+            DatabaseValue::Float(_) => DatabaseType::Float,
+            DatabaseValue::Double(_) => DatabaseType::Double,
+            DatabaseValue::Decimal(value) => DatabaseType::Decimal(value.scale()),
+            DatabaseValue::Binary(_) => DatabaseType::Binary,
+            DatabaseValue::Time(_) => DatabaseType::Time,
+            DatabaseValue::Date(_) => DatabaseType::Date,
+            DatabaseValue::DateTime(_) => DatabaseType::DateTime,
+            DatabaseValue::Timestamp(_) => DatabaseType::Timestamp,
+            DatabaseValue::Character(_) => DatabaseType::Character,
+            DatabaseValue::String(_) => DatabaseType::String,
+            DatabaseValue::Text(_) => DatabaseType::Text,
+            DatabaseValue::Json(_) => DatabaseType::Json,
+        }
+    }
+}
+
+impl DatabaseValue {
+    pub fn hash_for_primary_key(&self) -> Result<String, ResolveError> {
+        Ok("".to_string())
+    }
 }

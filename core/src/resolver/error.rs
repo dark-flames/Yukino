@@ -42,6 +42,8 @@ pub enum ResolveError {
     UnexpectedFieldResolverStatus(EntityName, FieldName, String, FieldResolverStatus),
     #[error("MappingFieldNotUnique: Mapping fields of field({1} in {0}) must be unique")]
     MappingFieldsNotUnique(EntityName, FieldName),
+    #[error("UnsuitableColumnDataTypeForPrimaryKey: Unsuitable column data type for primary key on field({1} in {0})")]
+    UnsuitableColumnDataTypeForPrimaryKey(EntityName, FieldName),
     #[error("IOError: {0}")]
     IOError(IOError),
     #[error("ParseError: {0}")]

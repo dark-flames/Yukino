@@ -16,14 +16,14 @@ where
 impl<E: Entity + Clone> Repository<E> {
     fn insert_entity(&self, entity: E) -> EntityUniqueID {
         let mut pool = self.pool.borrow_mut();
-        let id = self.generate_unique_id();
+        let id = self.generate_unique_id(&entity);
 
         pool.insert(id, entity);
 
         id
     }
 
-    fn generate_unique_id(&self) -> EntityUniqueID {
+    fn generate_unique_id(&self, _entity: &E) -> EntityUniqueID {
         // todo: generate_by_primary_key
         let pool = self.pool.borrow();
         loop {
@@ -47,12 +47,12 @@ impl<E: Entity + Clone> Repository<E> {
     }
 
     pub fn commit<'t, P: EntityProxy<'t, E>>(&mut self, entity_proxy: P) {
-        let _id = entity_proxy
-            .unique_id()
-            .unwrap_or_else(|| self.generate_unique_id());
+        let id = entity_proxy.unique_id();
 
         let entity = entity_proxy.inner();
         // todo: compare_value
+
+        let _id = id.unwrap_or_else(|| self.generate_unique_id(&entity));
 
         let _value = entity.to_database_values();
         // todo: commit to db

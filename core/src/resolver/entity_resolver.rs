@@ -207,6 +207,14 @@ impl EntityResolver {
             let mut joined_tables = resolver.joined_table.clone();
             let mut field_foreign_keys = resolver.foreign_keys.clone();
             let mut field_indexes = resolver.indexes.clone();
+            for column in field_columns.iter() {
+                if !column.data_type.suitable_for_primary_key() {
+                    return Err(ResolveError::UnsuitableColumnDataTypeForPrimaryKey(
+                        resolver.field_path.0.clone(),
+                        resolver.field_path.1.clone(),
+                    ));
+                }
+            }
             columns.append(&mut field_columns);
             tables.append(&mut joined_tables);
             foreign_keys.append(&mut field_foreign_keys);
