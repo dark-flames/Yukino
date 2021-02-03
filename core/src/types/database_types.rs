@@ -1,4 +1,4 @@
-use crate::resolver::error::ResolveError;
+use crate::resolver::error::DataConvertError;
 #[doc(hidden)]
 use iroha::ToTokens;
 #[doc(hidden)]
@@ -91,6 +91,7 @@ impl DatabaseType {
             Self::Json
                 | Self::Text
                 | Self::DateTime
+                | Self::Timestamp
                 | Self::Date
                 | Self::Time
                 | Self::Binary
@@ -127,7 +128,22 @@ impl From<&DatabaseValue> for DatabaseType {
 }
 
 impl DatabaseValue {
-    pub fn hash_for_primary_key(&self) -> Result<String, ResolveError> {
-        Ok("".to_string())
+    pub fn hash_for_primary_key(&self) -> Result<String, DataConvertError> {
+        let ty: DatabaseType = self.into();
+        if ty.suitable_for_primary_key() {
+            Ok(match self {
+                DatabaseValue::SmallInteger(value) => value.to_string(),
+                DatabaseValue::UnsignedSmallInteger(value) => value.to_string(),
+                DatabaseValue::Integer(value) => value.to_string(),
+                DatabaseValue::UnsignedInteger(value) => value.to_string(),
+                DatabaseValue::BigInteger(value) => value.to_string(),
+                DatabaseValue::UnsignedBigInteger(value) => value.to_string(),
+                DatabaseValue::Character(value) => value.to_string(),
+                DatabaseValue::String(value) => value.clone(),
+                _ => return Err(DataConvertError::UnsuitableColumnDataTypeForPrimaryKey),
+            })
+        } else {
+            Err(DataConvertError::UnsuitableColumnDataTypeForPrimaryKey)
+        }
     }
 }

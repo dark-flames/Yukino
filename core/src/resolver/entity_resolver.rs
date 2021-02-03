@@ -208,7 +208,7 @@ impl EntityResolver {
             let mut field_foreign_keys = resolver.foreign_keys.clone();
             let mut field_indexes = resolver.indexes.clone();
             for column in field_columns.iter() {
-                if !column.data_type.suitable_for_primary_key() {
+                if column.primary_key && !column.data_type.suitable_for_primary_key() {
                     return Err(ResolveError::UnsuitableColumnDataTypeForPrimaryKey(
                         resolver.field_path.0.clone(),
                         resolver.field_path.1.clone(),

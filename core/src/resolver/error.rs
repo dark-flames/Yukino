@@ -66,6 +66,8 @@ pub enum DataConvertError {
     UnsupportedFieldType(String, &'static str),
     #[error("DatabaseValueConvertError: Error({0}) occur while converting field({2} in {1})")]
     DatabaseValueConvertError(String, EntityName, FieldName),
+    #[error("UnsuitableColumnDataTypeForPrimaryKey")]
+    UnsuitableColumnDataTypeForPrimaryKey,
 }
 
 impl From<DataConvertError> for ResolveError {
