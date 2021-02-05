@@ -10,7 +10,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use syn::Type;
+use syn::{GenericArgument, PathArguments, Type};
 
 #[derive(Clone, Debug)]
 pub enum FieldResolverStatus {
@@ -49,6 +49,48 @@ pub trait FieldResolverSeed {
         field_type: &Type,
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>>;
+
+    fn unwrap_option(ty: &Type, field_path: FieldPath) -> Result<(bool, &Type), ResolveError>
+    where
+        Self: Sized,
+    {
+        if let Type::Path(type_path) = ty {
+            if let Some(last_segment) = type_path.path.segments.last() {
+                if last_segment.ident == *"Option" {
+                    if let PathArguments::AngleBracketed(arguments) = &last_segment.arguments {
+                        if arguments.args.len() == 1 {
+                            if let GenericArgument::Type(nested_ty) =
+                                arguments.args.first().unwrap()
+                            {
+                                Ok((true, nested_ty))
+                            } else {
+                                Err(ResolveError::UnexpectedFieldGeneric(
+                                    field_path.0.clone(),
+                                    field_path.1,
+                                ))
+                            }
+                        } else {
+                            Err(ResolveError::UnexpectedFieldGeneric(
+                                field_path.0.clone(),
+                                field_path.1,
+                            ))
+                        }
+                    } else {
+                        Err(ResolveError::UnexpectedFieldGeneric(
+                            field_path.0.clone(),
+                            field_path.1,
+                        ))
+                    }
+                } else {
+                    Ok((false, ty))
+                }
+            } else {
+                Ok((false, ty))
+            }
+        } else {
+            Ok((false, ty))
+        }
+    }
 
     fn default_annotations(annotations: &[FieldAnnotation]) -> Field
     where
