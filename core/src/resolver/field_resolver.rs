@@ -50,7 +50,11 @@ pub trait FieldResolverSeed {
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>>;
 
-    fn unwrap_option(ty: &Type, field_path: FieldPath) -> Result<(bool, &Type), ResolveError>
+    fn unwrap_option(
+        ty: &Type,
+        field_path: FieldPath,
+        type_path_resolver: &TypePathResolver,
+    ) -> Result<(bool, Type), ResolveError>
     where
         Self: Sized,
     {
@@ -62,7 +66,7 @@ pub trait FieldResolverSeed {
                             if let GenericArgument::Type(nested_ty) =
                                 arguments.args.first().unwrap()
                             {
-                                Ok((true, nested_ty))
+                                Ok((true, type_path_resolver.get_full_type(nested_ty.clone())))
                             } else {
                                 Err(ResolveError::UnexpectedFieldGeneric(
                                     field_path.0.clone(),
@@ -82,13 +86,13 @@ pub trait FieldResolverSeed {
                         ))
                     }
                 } else {
-                    Ok((false, ty))
+                    Ok((false, type_path_resolver.get_full_type(ty.clone())))
                 }
             } else {
-                Ok((false, ty))
+                Ok((false, type_path_resolver.get_full_type(ty.clone())))
             }
         } else {
-            Ok((false, ty))
+            Ok((false, type_path_resolver.get_full_type(ty.clone())))
         }
     }
 

@@ -35,7 +35,15 @@ impl FieldResolverSeed for StringFieldResolverSeed {
         field_type: &Type,
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
-        if let Type::Path(type_path) = field_type {
+        let (nullable, nested_type) = match Self::unwrap_option(
+            field_type,
+            (entity_name.clone(), ident.to_string()),
+            type_path_resolver,
+        ) {
+            Ok(r) => r,
+            Err(e) => return Some(Err(e)),
+        };
+        if let Type::Path(type_path) = nested_type {
             if let Some(first_segment) = type_path.path.segments.first() {
                 if first_segment.ident == *"String" {
                     let field = Self::default_annotations(annotations);
@@ -51,7 +59,8 @@ impl FieldResolverSeed for StringFieldResolverSeed {
                             auto_increase: field.auto_increase,
                             primary_key: Self::is_primary_key(annotations),
                         },
-                        field_type: Type::Path(type_path_resolver.get_full_path(type_path.clone())),
+                        field_type: type_path_resolver.get_full_type(field_type.clone()),
+                        nullable,
                     })))
                 } else {
                     None
@@ -69,6 +78,7 @@ pub struct StringFieldResolver {
     field_path: FieldPath,
     definition: ColumnDefinition,
     field_type: Type,
+    nullable: bool,
 }
 
 impl FieldResolver for StringFieldResolver {
@@ -118,18 +128,29 @@ impl FieldResolver for StringFieldResolver {
         let getter_name = self.getter_ident();
         let setter_name = self.setter_ident();
         let field_ident = format_ident!("{}", field_name);
+        let field_ty = &self.field_type;
 
         let field_getter_token_stream = quote! {
-            pub fn #getter_name(&self) -> &String {
+            pub fn #getter_name(&self) -> &#field_ty{
                 let inner = self.get_inner();
                 &inner.#field_ident
             }
         };
-        let field_setter_token_stream = quote! {
-            pub fn #setter_name(&mut self, value: String) -> &mut Self {
-                let inner = self.get_inner_mut();
-                inner.#field_ident= value;
-                self
+        let field_setter_token_stream = if self.nullable {
+            quote! {
+                pub fn #setter_name(&mut self, value: String) -> &mut Self {
+                    let inner = self.get_inner_mut();
+                    inner.#field_ident= Some(value);
+                    self
+                }
+            }
+        } else {
+            quote! {
+                pub fn #setter_name(&mut self, value: String) -> &mut Self {
+                    let inner = self.get_inner_mut();
+                    inner.#field_ident= value;
+                    self
+                }
             }
         };
 
@@ -181,6 +202,45 @@ impl ValueConverter<String> for StringValueConverter {
     }
 
     fn primary_column_values_by_ref(&self, value: &String) -> Result<ValuePack, DataConvertError> {
+        if self.is_primary_key {
+            self.to_database_values_by_ref(value)
+        } else {
+            Ok(HashMap::new())
+        }
+    }
+}
+
+impl ValueConverter<Option<String>> for StringValueConverter {
+    fn to_field_value(&self, values: &ValuePack) -> Result<Option<String>, DataConvertError> {
+        match values.get(&self.column_name) {
+            Some(DatabaseValue::String(value)) => Ok(Some(value.clone())),
+            _ => Err(DataConvertError::UnexpectedDatabaseValueType(
+                self.entity_name.clone(),
+                self.field_name.clone(),
+            )),
+        }
+    }
+
+    fn to_database_values_by_ref(
+        &self,
+        value: &Option<String>,
+    ) -> Result<ValuePack, DataConvertError> {
+        let mut map = HashMap::new();
+        map.insert(
+            self.column_name.clone(),
+            match value {
+                Some(v) => DatabaseValue::String(v.clone()),
+                None => DatabaseValue::Null(DatabaseType::String),
+            },
+        );
+
+        Ok(map)
+    }
+
+    fn primary_column_values_by_ref(
+        &self,
+        value: &Option<String>,
+    ) -> Result<ValuePack, DataConvertError> {
         if self.is_primary_key {
             self.to_database_values_by_ref(value)
         } else {

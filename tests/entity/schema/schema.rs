@@ -8,6 +8,7 @@ pub struct Foo {
     list: Vec<String>,
     map: HashMap<String, String>,
     string: String,
+    option_string: Option<String>,
     #[Association(mapped_by("id"), unique = true)]
     bar: AssociatedEntity<Bar>
 }

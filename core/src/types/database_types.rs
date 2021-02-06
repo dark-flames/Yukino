@@ -82,6 +82,7 @@ pub enum DatabaseValue {
 
     #[cfg(any(feature = "json"))]
     Json(Value),
+    Null(DatabaseType),
 }
 
 impl DatabaseType {
@@ -123,6 +124,7 @@ impl From<&DatabaseValue> for DatabaseType {
             DatabaseValue::String(_) => DatabaseType::String,
             DatabaseValue::Text(_) => DatabaseType::Text,
             DatabaseValue::Json(_) => DatabaseType::Json,
+            DatabaseValue::Null(ty) => *ty,
         }
     }
 }

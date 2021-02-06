@@ -6,6 +6,7 @@ pub struct FooInner {
     list: Vec<String>,
     map: std::collections::HashMap<String, String>,
     string: String,
+    option_string: Option<String>,
     bar: yukino::collection::AssociatedEntity<BarInner>,
 }
 impl FooInner {
@@ -16,11 +17,13 @@ impl FooInner {
             "list".to_string(),
         )
     }
-    pub fn get_map_converter() -> yukino::resolver::field_resolver_seeds::MapValueConverter {
-        yukino::resolver::field_resolver_seeds::MapValueConverter::new(
+    pub fn get_int16_converter(
+    ) -> yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter {
+        yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter::new(
+            false,
+            "int16".to_string(),
             "Foo".to_string(),
-            "map".to_string(),
-            "map".to_string(),
+            "int16".to_string(),
         )
     }
     pub fn get_integer_converter(
@@ -32,13 +35,20 @@ impl FooInner {
             "integer".to_string(),
         )
     }
-    pub fn get_int16_converter(
-    ) -> yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter {
-        yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter::new(
+    pub fn get_option_string_converter(
+    ) -> yukino::resolver::field_resolver_seeds::StringValueConverter {
+        yukino::resolver::field_resolver_seeds::StringValueConverter::new(
             false,
-            "int16".to_string(),
             "Foo".to_string(),
-            "int16".to_string(),
+            "option_string".to_string(),
+            "option_string".to_string(),
+        )
+    }
+    pub fn get_map_converter() -> yukino::resolver::field_resolver_seeds::MapValueConverter {
+        yukino::resolver::field_resolver_seeds::MapValueConverter::new(
+            "Foo".to_string(),
+            "map".to_string(),
+            "map".to_string(),
         )
     }
     pub fn get_string_converter() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
@@ -71,16 +81,18 @@ impl yukino::Entity for FooInner {
     {
         use yukino::resolver::ValueConverter;
         let list = Self::get_list_converter().to_field_value(result)?;
-        let map = Self::get_map_converter().to_field_value(result)?;
-        let integer = Self::get_integer_converter().to_field_value(result)?;
         let int16 = Self::get_int16_converter().to_field_value(result)?;
+        let integer = Self::get_integer_converter().to_field_value(result)?;
+        let option_string = Self::get_option_string_converter().to_field_value(result)?;
+        let map = Self::get_map_converter().to_field_value(result)?;
         let string = Self::get_string_converter().to_field_value(result)?;
         let bar = Self::get_bar_converter().to_field_value(result)?;
         Ok(FooInner {
             list,
-            map,
-            integer,
             int16,
+            integer,
+            option_string,
+            map,
             string,
             bar,
         })
@@ -94,9 +106,12 @@ impl yukino::Entity for FooInner {
         let mut map = std::collections::HashMap::new();
         use yukino::resolver::ValueConverter;
         map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
-        map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
-        map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
         map.extend(Self::get_int16_converter().to_database_values_by_ref(&self.int16)?);
+        map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
+        map.extend(
+            Self::get_option_string_converter().to_database_values_by_ref(&self.option_string)?,
+        );
+        map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
         map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         map.extend(Self::get_bar_converter().to_database_values_by_ref(&self.bar)?);
         Ok(map)
@@ -115,9 +130,9 @@ impl yukino::Entity for FooInner {
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "map".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
-                    yukino::types::DatabaseType::Json,
+                    "int16".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("int16".to_string()),
+                    yukino::types::DatabaseType::SmallInteger,
                     false,
                     false,
                     false,
@@ -131,9 +146,17 @@ impl yukino::Entity for FooInner {
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "int16".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("int16".to_string()),
-                    yukino::types::DatabaseType::SmallInteger,
+                    "option_string".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
+                    yukino::types::DatabaseType::String,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
+                    "map".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    yukino::types::DatabaseType::Json,
                     false,
                     false,
                     false,
@@ -223,13 +246,13 @@ impl<'t> Foo<'t> {
         inner.list = value;
         self
     }
-    pub fn get_map(&self) -> &std::collections::HashMap<String, String> {
+    pub fn get_int16(&self) -> i16 {
         let inner = self.get_inner();
-        &inner.map
+        inner.int16
     }
-    pub fn set_map(&mut self, value: std::collections::HashMap<String, String>) -> &mut Self {
+    pub fn set_int16(&mut self, value: i16) -> &mut Self {
         let inner = self.get_inner_mut();
-        inner.map = value;
+        inner.int16 = value;
         self
     }
     pub fn get_integer(&self) -> u32 {
@@ -241,13 +264,22 @@ impl<'t> Foo<'t> {
         inner.integer = value;
         self
     }
-    pub fn get_int16(&self) -> i16 {
+    pub fn get_option_string(&self) -> &Option<String> {
         let inner = self.get_inner();
-        inner.int16
+        &inner.option_string
     }
-    pub fn set_int16(&mut self, value: i16) -> &mut Self {
+    pub fn set_option_string(&mut self, value: String) -> &mut Self {
         let inner = self.get_inner_mut();
-        inner.int16 = value;
+        inner.option_string = Some(value);
+        self
+    }
+    pub fn get_map(&self) -> &std::collections::HashMap<String, String> {
+        let inner = self.get_inner();
+        &inner.map
+    }
+    pub fn set_map(&mut self, value: std::collections::HashMap<String, String>) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.map = value;
         self
     }
     pub fn get_string(&self) -> &String {
@@ -281,17 +313,19 @@ impl<'t> Foo<'t> {
     }
     pub fn with_value(
         list: Vec<String>,
-        map: std::collections::HashMap<String, String>,
-        integer: u32,
         int16: i16,
+        integer: u32,
+        option_string: Option<String>,
+        map: std::collections::HashMap<String, String>,
         string: String,
         bar: yukino::collection::AssociatedEntity<BarInner>,
     ) -> impl FnOnce() -> FooInner {
         move || FooInner {
             list,
-            map,
-            integer,
             int16,
+            integer,
+            option_string,
+            map,
             string,
             bar,
         }
