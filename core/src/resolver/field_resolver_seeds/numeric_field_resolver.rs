@@ -380,6 +380,7 @@ macro_rules! impl_converter {
             ) -> Result<Option<$output_type>, DataConvertError> {
                 match values.get(&self.column_name) {
                     Some(DatabaseValue::$database_value(value)) => Ok(Some(*value)),
+                    Some(DatabaseValue::Null(DatabaseType::$database_value)) => Ok(None),
                     _ => Err(DataConvertError::UnexpectedDatabaseValueType(
                         self.entity_name.clone(),
                         self.field_name.clone(),

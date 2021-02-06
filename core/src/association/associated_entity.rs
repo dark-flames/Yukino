@@ -8,7 +8,7 @@ use crate::resolver::{
     FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
     TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseValue, ValuePack};
+use crate::types::{DatabaseType, DatabaseValue, ValuePack};
 use crate::Entity;
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -51,6 +51,7 @@ pub struct AssociatedEntityValueConverter<E: Entity + Clone> {
     entity_name: String,
     field_name: String,
     column_map: HashMap<String, String>,
+    column_ty: HashMap<String, DatabaseType>,
     is_primary_key: bool,
     _marker: PhantomData<E>,
 }
@@ -119,6 +120,86 @@ impl<E: Entity + Clone> ValueConverter<AssociatedEntity<E>> for AssociatedEntity
     }
 }
 
+impl<E: Entity + Clone> ValueConverter<Option<AssociatedEntity<E>>>
+    for AssociatedEntityValueConverter<E>
+{
+    fn to_field_value(
+        &self,
+        values: &ValuePack,
+    ) -> Result<Option<AssociatedEntity<E>>, DataConvertError> {
+        let value_map: ValuePack = values
+            .iter()
+            .filter_map(|(name, value)| {
+                if self.column_map.contains_key(name.as_str()) {
+                    Some((name.clone(), value.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let is_null = value_map
+            .values()
+            .any(|v| matches!(v, DatabaseValue::Null(_)));
+        if is_null {
+            Ok(None)
+        } else if value_map.len() == self.column_map.len() {
+            Ok(Some(AssociatedEntity::Unresolved(value_map)))
+        } else {
+            Err(DataConvertError::UnexpectedDatabaseValueType(
+                self.entity_name.clone(),
+                self.field_name.clone(),
+            ))
+        }
+    }
+
+    fn to_database_values_by_ref(
+        &self,
+        value: &Option<AssociatedEntity<E>>,
+    ) -> Result<ValuePack, DataConvertError> {
+        match value {
+            Some(AssociatedEntity::Unresolved(map)) => Ok(map.clone()),
+            Some(AssociatedEntity::Resolved(entity)) => {
+                let associated_result = entity.to_database_values()?;
+
+                let reverse_map: HashMap<String, String> = self
+                    .column_map
+                    .iter()
+                    .map(|(column, associated_column)| (associated_column.clone(), column.clone()))
+                    .collect();
+
+                Ok(associated_result
+                    .into_iter()
+                    .filter_map(|(column, value)| {
+                        if let Some(current_column_name) = reverse_map.get(&column) {
+                            Some((current_column_name.clone(), value))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect())
+            }
+            None => Ok(self
+                .column_ty
+                .clone()
+                .into_iter()
+                .map(|(name, ty)| (name, DatabaseValue::Null(ty)))
+                .collect()),
+        }
+    }
+
+    fn primary_column_values_by_ref(
+        &self,
+        value: &Option<AssociatedEntity<E>>,
+    ) -> Result<ValuePack, DataConvertError> {
+        if self.is_primary_key {
+            self.to_database_values_by_ref(value)
+        } else {
+            Ok(HashMap::new())
+        }
+    }
+}
+
 pub struct AssociatedEntityFieldResolverSeed;
 
 impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
@@ -141,7 +222,16 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
         field_type: &Type,
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
-        let (old_nested_type, nested_type, mut type_path) = match field_type {
+        let (nullable, option_nested_type) = match Self::unwrap_option(
+            field_type,
+            (entity_name.clone(), ident.to_string()),
+            type_path_resolver,
+        ) {
+            Ok(r) => r,
+            Err(e) => return Some(Err(e)),
+        };
+
+        let (old_nested_type, nested_type, mut type_path) = match &option_nested_type {
             Type::Path(type_path) => {
                 let full_path = type_path_resolver.get_full_path(type_path.clone());
 
@@ -220,6 +310,7 @@ impl FieldResolverSeed for AssociatedEntityFieldResolverSeed {
             proxy_type: Type::Path(old_nested_type.clone()),
             inner_type: Type::Path(nested_type),
             primary_key: Self::is_primary_key(annotations),
+            nullable,
             association,
             status: FieldResolverStatus::WaitingForEntity(
                 old_nested_type.to_token_stream().to_string(),
@@ -238,6 +329,7 @@ pub struct AssociatedEntityFieldResolver {
     proxy_type: Type,
     inner_type: Type,
     primary_key: bool,
+    nullable: bool,
     association: Association,
     status: FieldResolverStatus,
     referenced_table: Option<String>,
@@ -387,6 +479,11 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 entity_name: self.field_path.0.clone(),
                 field_name: self.field_path.1.clone(),
                 column_map: self.column_map.iter().cloned().collect(),
+                column_ty: self
+                    .columns
+                    .iter()
+                    .map(|definition| (definition.name.clone(), definition.data_type))
+                    .collect(),
                 is_primary_key: self.primary_key,
                 _marker: PhantomData::<FakeEntity>::default(),
             };
@@ -408,34 +505,74 @@ impl FieldResolver for AssociatedEntityFieldResolver {
 
             let field_ident = TokenStream::from_str(self.field_path.1.as_str()).unwrap();
 
-            //todo: nullable
+            let proxy_type = &self.proxy_type;
 
-            let nested_type = &self.proxy_type;
-            let field_type = &self.inner_type;
+            let field_getter_token_stream = if self.nullable {
+                quote! {
+                    pub fn #getter_name(&self) -> Option<#proxy_type> {
+                        use yukino::EntityProxy;
+                        let inner = self.get_inner();
 
-            let field_getter_token_stream = quote! {
-                pub fn #getter_name(&self) -> &#field_type {
-                    use yukino::EntityProxy;
-                    let inner = self.get_inner();
+                        if let Some(yukino::collection::AssociatedEntity::Unresolved(values)) = &inner.#field_ident {
+                            let mut_inner = self.get_inner_mut();
 
-                    if let yukino::collection::AssociatedEntity::Unresolved(values) = &inner.#field_ident {
-                        let mut_inner = self.get_inner_mut();
+                            let result = self.get_transaction().get_repository().find(values).unwrap();
 
-                        let result = self.get_transaction().get_repository().find(values).unwrap();
+                            mut_inner.#field_ident = Some(yukino::collection::AssociatedEntity::Resolved(result))
+                        }
 
-                        mut_inner.#field_ident = yukino::collection::AssociatedEntity::Resolved(result)
+                        inner.#field_ident.map(
+                            |associated_entity| {
+                                let entity = associated_entity.get().unwrap().clone();
+
+                                self.get_transaction().create_entity(
+                                    move || entity
+                                )
+                            }
+                        )
                     }
+                }
+            } else {
+                quote! {
+                    pub fn #getter_name(&self) -> #proxy_type {
+                        use yukino::EntityProxy;
+                        let inner = self.get_inner();
 
-                    inner.#field_ident.get().unwrap()
+                        if let yukino::collection::AssociatedEntity::Unresolved(values) = &inner.#field_ident {
+                            let mut_inner = self.get_inner_mut();
+
+                            let result = self.get_transaction().get_repository().find(values).unwrap();
+
+                            mut_inner.#field_ident = yukino::collection::AssociatedEntity::Resolved(result)
+                        }
+
+                        let entity = inner.#field_ident.get().unwrap().clone();
+
+                        self.get_transaction().create_entity(
+                            move || entity
+                        )
+                    }
                 }
             };
-            let field_setter_token_stream = quote! {
-                pub fn #setter_name(&mut self, value: #nested_type) -> &mut Self {
-                    use yukino::EntityProxy;
-                    let mut_inner = self.get_inner_mut();
-                    mut_inner.#field_ident = yukino::collection::AssociatedEntity::Resolved(value.inner());
+            let field_setter_token_stream = if self.nullable {
+                quote! {
+                    pub fn #setter_name(&mut self, value: #proxy_type) -> &mut Self {
+                        use yukino::EntityProxy;
+                        let mut_inner = self.get_inner_mut();
+                        mut_inner.#field_ident = Some(yukino::collection::AssociatedEntity::Resolved(value.inner()));
 
-                    self
+                        self
+                    }
+                }
+            } else {
+                quote! {
+                    pub fn #setter_name(&mut self, value: #proxy_type) -> &mut Self {
+                        use yukino::EntityProxy;
+                        let mut_inner = self.get_inner_mut();
+                        mut_inner.#field_ident = yukino::collection::AssociatedEntity::Resolved(value.inner());
+
+                        self
+                    }
                 }
             };
 

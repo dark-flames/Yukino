@@ -215,6 +215,7 @@ impl ValueConverter<Option<String>> for StringValueConverter {
     fn to_field_value(&self, values: &ValuePack) -> Result<Option<String>, DataConvertError> {
         match values.get(&self.column_name) {
             Some(DatabaseValue::String(value)) => Ok(Some(value.clone())),
+            Some(DatabaseValue::Null(DatabaseType::String)) => Ok(None),
             _ => Err(DataConvertError::UnexpectedDatabaseValueType(
                 self.entity_name.clone(),
                 self.field_name.clone(),
