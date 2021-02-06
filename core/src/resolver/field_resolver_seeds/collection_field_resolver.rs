@@ -118,6 +118,7 @@ impl FieldResolverSeed for CollectionFieldResolverSeed {
                 unique: false,
                 auto_increase: false,
                 primary_key: false,
+                nullable: false,
             };
 
             Some(Ok(Box::new(CollectionFieldResolver {

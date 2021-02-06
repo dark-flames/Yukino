@@ -231,6 +231,7 @@ impl EntityResolver {
                 unique: true,
                 auto_increase: false,
                 primary_key: true,
+                nullable: false,
             };
             self.primary_keys.push(auto_primary_keys.name.clone());
             columns.push(auto_primary_keys);

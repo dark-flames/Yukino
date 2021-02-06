@@ -54,6 +54,8 @@ pub struct ColumnDefinition {
     pub auto_increase: bool,
     /// is primary key
     pub primary_key: bool,
+    /// nullable
+    pub nullable: bool,
 }
 
 /// Index definition. Corresponds to a index of table database

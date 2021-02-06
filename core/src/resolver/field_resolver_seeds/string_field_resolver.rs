@@ -58,6 +58,7 @@ impl FieldResolverSeed for StringFieldResolverSeed {
                             unique: field.unique,
                             auto_increase: field.auto_increase,
                             primary_key: Self::is_primary_key(annotations),
+                            nullable,
                         },
                         field_type: type_path_resolver.get_full_type(field_type.clone()),
                         nullable,

@@ -12,7 +12,7 @@ use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use syn::{Type, TypePath};
+use syn::Type;
 
 enum NumericType {
     Integer(usize),
@@ -51,6 +51,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::Integer(32) => (IntegerValueConverter {
@@ -58,6 +59,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::Integer(64) => (BigIntegerValueConverter {
@@ -65,6 +67,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(16) => (UnsignedSmallIntegerValueConverter {
@@ -72,6 +75,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(32) => (UnsignedIntegerValueConverter {
@@ -79,6 +83,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::UnsignedInteger(64) => (UnsignedBigIntegerValueConverter {
@@ -86,6 +91,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::Float(32) => (FloatValueConverter {
@@ -93,6 +99,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             NumericType::Float(64) => (DoubleValueConverter {
@@ -100,6 +107,7 @@ impl NumericType {
                 column_name,
                 field_name,
                 entity_name,
+                database_type: self.database_type(),
             })
             .to_token_stream(),
             _ => unreachable!(),
@@ -177,10 +185,19 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
         field_type: &Type,
         type_path_resolver: &TypePathResolver,
     ) -> Option<Result<FieldResolverBox, ResolveError>> {
-        let (ty, field_type) = match field_type {
+        let (nullable, nested_type) = match Self::unwrap_option(
+            field_type,
+            (entity_name.clone(), ident.to_string()),
+            type_path_resolver,
+        ) {
+            Ok(r) => r,
+            Err(e) => return Some(Err(e)),
+        };
+
+        let (ty, field_type) = match &nested_type {
             Type::Path(type_path) => match type_path.path.segments.first() {
                 Some(first_segment) => NumericType::from_ident(&first_segment.ident)
-                    .map(|ty| (ty, type_path_resolver.get_full_path(type_path.clone()))),
+                    .map(|ty| (ty, type_path_resolver.get_full_type(field_type.clone()))),
                 None => None,
             },
             _ => None,
@@ -197,6 +214,7 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
             unique: field.unique,
             auto_increase: field.auto_increase,
             primary_key: Self::is_primary_key(annotations),
+            nullable,
         };
 
         Some(Ok(Box::new(NumericFieldResolver {
@@ -204,6 +222,8 @@ impl FieldResolverSeed for NumericFieldResolverSeed {
             ty,
             definition,
             field_type,
+            nullable,
+            nested_type,
         })))
     }
 }
@@ -212,7 +232,9 @@ pub struct NumericFieldResolver {
     field_path: FieldPath,
     ty: NumericType,
     definition: ColumnDefinition,
-    field_type: TypePath,
+    field_type: Type,
+    nullable: bool,
+    nested_type: Type,
 }
 
 impl FieldResolver for NumericFieldResolver {
@@ -260,6 +282,7 @@ impl FieldResolver for NumericFieldResolver {
         let setter_name = self.setter_ident();
         let field_ident = format_ident!("{}", self.field_path().1);
         let field_type = &self.field_type;
+        let nested_type = &self.nested_type;
 
         let field_getter_token_stream = quote! {
             pub fn #getter_name(&self) -> #field_type {
@@ -267,11 +290,21 @@ impl FieldResolver for NumericFieldResolver {
                 inner.#field_ident
             }
         };
-        let field_setter_token_stream = quote! {
-            pub fn #setter_name(&mut self, value: #field_type) -> &mut Self {
-                let inner = self.get_inner_mut();
-                inner.#field_ident= value;
-                self
+        let field_setter_token_stream = if self.nullable {
+            quote! {
+                pub fn #setter_name(&mut self, value: #nested_type) -> &mut Self {
+                    let inner = self.get_inner_mut();
+                    inner.#field_ident= Some(value);
+                    self
+                }
+            }
+        } else {
+            quote! {
+                pub fn #setter_name(&mut self, value: #nested_type) -> &mut Self {
+                    let inner = self.get_inner_mut();
+                    inner.#field_ident= value;
+                    self
+                }
             }
         };
 
@@ -287,7 +320,7 @@ impl FieldResolver for NumericFieldResolver {
             field_getter_token_stream,
             field_setter_ident: setter_name,
             field_setter_token_stream,
-            field_type: Type::Path(field_type.clone()),
+            field_type: field_type.clone(),
         })
     }
 }
@@ -301,6 +334,7 @@ macro_rules! impl_converter {
             column_name: String,
             entity_name: String,
             field_name: String,
+            database_type: DatabaseType,
         }
 
         impl ValueConverter<$output_type> for $ident {
@@ -330,6 +364,48 @@ macro_rules! impl_converter {
             fn primary_column_values_by_ref(
                 &self,
                 value: &$output_type,
+            ) -> Result<ValuePack, DataConvertError> {
+                if self.is_primary_key {
+                    self.to_database_values_by_ref(value)
+                } else {
+                    Ok(HashMap::new())
+                }
+            }
+        }
+
+        impl ValueConverter<Option<$output_type>> for $ident {
+            fn to_field_value(
+                &self,
+                values: &ValuePack,
+            ) -> Result<Option<$output_type>, DataConvertError> {
+                match values.get(&self.column_name) {
+                    Some(DatabaseValue::$database_value(value)) => Ok(Some(*value)),
+                    _ => Err(DataConvertError::UnexpectedDatabaseValueType(
+                        self.entity_name.clone(),
+                        self.field_name.clone(),
+                    )),
+                }
+            }
+
+            fn to_database_values_by_ref(
+                &self,
+                value: &Option<$output_type>,
+            ) -> Result<ValuePack, DataConvertError> {
+                let mut map = HashMap::new();
+                map.insert(
+                    self.column_name.clone(),
+                    match value {
+                        Some(v) => DatabaseValue::$database_value(*v),
+                        None => DatabaseValue::Null(self.database_type),
+                    },
+                );
+
+                Ok(map)
+            }
+
+            fn primary_column_values_by_ref(
+                &self,
+                value: &Option<$output_type>,
             ) -> Result<ValuePack, DataConvertError> {
                 if self.is_primary_key {
                     self.to_database_values_by_ref(value)

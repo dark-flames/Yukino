@@ -9,6 +9,7 @@ pub struct Foo {
     map: HashMap<String, String>,
     string: String,
     option_string: Option<String>,
+    option_num: Option<u32>,
     #[Association(mapped_by("id"), unique = true)]
     bar: AssociatedEntity<Bar>
 }

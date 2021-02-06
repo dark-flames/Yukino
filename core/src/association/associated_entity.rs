@@ -322,6 +322,7 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                                     unique: false,
                                     auto_increase: false,
                                     primary_key: self.primary_key,
+                                    nullable: false,
                                 })
                                 .collect())
                         },
