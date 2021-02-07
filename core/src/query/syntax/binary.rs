@@ -1,3 +1,1 @@
-pub enum BinaryExpression {
-
-}
+pub enum BinaryExpression {}

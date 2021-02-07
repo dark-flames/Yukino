@@ -1,13 +1,13 @@
-use crate::query::syntax::literal::Literal;
-use crate::types::DatabaseType;
-use crate::query::syntax::ident::DatabaseIdent;
-use crate::query::syntax::unary::UnaryExpression;
 use crate::query::syntax::binary::BinaryExpression;
 use crate::query::syntax::function::FunctionCall;
+use crate::query::syntax::ident::DatabaseIdent;
+use crate::query::syntax::literal::Literal;
+use crate::query::syntax::unary::UnaryExpression;
+use crate::types::DatabaseType;
 
 pub enum TypeFlag {
     Resolved(DatabaseType),
-    Unresolved
+    Unresolved,
 }
 
 impl Default for TypeFlag {

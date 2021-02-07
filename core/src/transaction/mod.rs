@@ -1,7 +1,7 @@
+use crate::query::QueryBuilderFactory;
 use crate::repository::Repository;
 use crate::transaction::repository_container::RepositoryContainer;
 use crate::{Entity, EntityProxy};
-use crate::query::QueryBuilderFactory;
 
 mod repository_container;
 
