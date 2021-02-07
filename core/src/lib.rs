@@ -9,6 +9,7 @@ pub mod repository;
 pub mod resolver;
 mod transaction;
 pub mod types;
+pub mod query;
 
 pub use interface::*;
 pub use transaction::*;

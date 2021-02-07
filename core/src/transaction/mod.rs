@@ -1,6 +1,7 @@
 use crate::repository::Repository;
 use crate::transaction::repository_container::RepositoryContainer;
 use crate::{Entity, EntityProxy};
+use crate::query::QueryBuilderFactory;
 
 mod repository_container;
 
@@ -18,5 +19,9 @@ impl Transaction {
         value: impl FnOnce() -> E,
     ) -> P {
         P::create_proxy(value(), self)
+    }
+
+    pub fn create_query_builder(&self) -> QueryBuilderFactory {
+        QueryBuilderFactory::create(self)
     }
 }
