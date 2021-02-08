@@ -3,6 +3,7 @@ mod clauses;
 mod error;
 mod expression;
 mod function;
+mod helper;
 mod ident;
 mod literal;
 mod unary;

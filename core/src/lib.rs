@@ -1,5 +1,6 @@
 #![feature(associated_type_defaults)]
 #![feature(unsafe_cell_raw_get)]
+#![feature(in_band_lifetimes)]
 
 pub mod annotations;
 mod association;

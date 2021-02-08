@@ -1,5 +1,5 @@
-use crate::query::syntax::error::SyntaxError;
-use crate::query::syntax::expression::Expression;
+use crate::query::expr::error::SyntaxError;
+use crate::query::expr::expression::Expression;
 use crate::types::DatabaseType;
 
 #[derive(Copy, Clone)]

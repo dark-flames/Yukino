@@ -1,10 +1,11 @@
-use crate::query::syntax::binary::BinaryExpression;
-use crate::query::syntax::function::FunctionCall;
-use crate::query::syntax::ident::DatabaseIdent;
-use crate::query::syntax::literal::Literal;
-use crate::query::syntax::unary::UnaryExpression;
+use crate::query::expr::binary::BinaryExpression;
+use crate::query::expr::function::FunctionCall;
+use crate::query::expr::ident::DatabaseIdent;
+use crate::query::expr::literal::Literal;
+use crate::query::expr::unary::UnaryExpression;
 use crate::types::DatabaseType;
 
+#[derive(Eq, PartialEq, Debug)]
 pub enum TypeFlag {
     Resolved(DatabaseType),
     Unresolved,

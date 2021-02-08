@@ -1,4 +1,4 @@
-use crate::query::syntax::expression::TypeFlag;
+use crate::query::expr::expression::TypeFlag;
 use proc_macro2::Ident;
 
 pub enum Literal {
