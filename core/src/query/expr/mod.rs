@@ -6,6 +6,7 @@ mod function;
 mod helper;
 mod ident;
 mod literal;
+mod precedence;
 mod unary;
 
 pub use binary::*;

@@ -4,6 +4,8 @@ use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
 use crate::query::expr::unary::UnaryExpression;
 use crate::types::DatabaseType;
+use syn::parse::{Parse, ParseBuffer};
+use syn::Error;
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum TypeFlag {
@@ -23,4 +25,10 @@ pub enum Expression {
     UnaryExpression(UnaryExpression),
     BinaryExpression(BinaryExpression),
     Function(FunctionCall),
+}
+
+impl Parse for Expression {
+    fn parse<'a>(_input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
+        unimplemented!()
+    }
 }
