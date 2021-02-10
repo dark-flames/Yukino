@@ -1,12 +1,10 @@
-use crate::query::expr::expression::TypeFlag;
-use crate::query::expr::helper::Peekable;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Ident, Token};
+use crate::query::expr::helper::Peekable;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
-    segments: Vec<String>,
-    ty: TypeFlag,
+    segments: Vec<String>
 }
 
 impl Parse for DatabaseIdent {
@@ -26,8 +24,7 @@ impl Parse for DatabaseIdent {
         }
 
         Ok(DatabaseIdent {
-            segments,
-            ty: TypeFlag::default(),
+            segments
         })
     }
 }
@@ -48,8 +45,7 @@ fn test_ident() {
     assert_eq!(
         ident,
         DatabaseIdent {
-            segments: vec!["a".to_string(), "b".to_string(), "c".to_string()],
-            ty: TypeFlag::default()
+            segments: vec!["a".to_string(), "b".to_string(), "c".to_string()]
         }
     )
 }

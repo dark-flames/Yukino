@@ -1,13 +1,11 @@
-use crate::query::expr::expression::TypeFlag;
-use crate::query::expr::helper::Peekable;
 use proc_macro2::Ident;
-use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, Lit, Token};
+use syn::parse::{ParseBuffer, Parse};
+use syn::{Lit, Token, Error};
+use crate::query::expr::helper::Peekable;
 
-#[derive(Eq, PartialEq, Debug)]
 pub enum Literal {
-    Immediate { content: Lit, ty: TypeFlag },
-    External { ident: Ident, ty: TypeFlag },
+    Immediate(Lit),
+    External(Ident),
 }
 
 impl Parse for Literal {
@@ -15,15 +13,9 @@ impl Parse for Literal {
         let ahead = input.lookahead1();
         if ahead.peek(Token![@]) {
             input.parse::<Token![@]>()?;
-            Ok(Literal::External {
-                ident: input.parse()?,
-                ty: TypeFlag::Unresolved,
-            })
+            Ok(Literal::External(input.parse()?))
         } else if ahead.peek(Lit) {
-            Ok(Literal::Immediate {
-                content: input.parse()?,
-                ty: TypeFlag::default(),
-            })
+            Ok(Literal::Immediate(input.parse()?))
         } else {
             Err(input.error("Cannot parse into an literal"))
         }
@@ -44,10 +36,7 @@ fn test_value() {
         "foo"
     };
 
-    if let Literal::Immediate {
-        content: Lit::Str(lit),
-        ty: _,
-    } = value_lit
+    if let Literal::Immediate(Lit::Str(lit)) = value_lit
     {
         assert_eq!(lit.value(), "foo".to_string())
     } else {
@@ -58,7 +47,7 @@ fn test_value() {
         @bar
     };
 
-    if let Literal::External { ident, ty: _ } = value_external {
+    if let Literal::External(ident) = value_external {
         assert_eq!(ident.to_string(), "bar".to_string())
     } else {
         panic!();

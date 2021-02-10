@@ -1,15 +1,40 @@
-use crate::query::expr::error::SyntaxError;
 use crate::query::expr::expression::Expression;
-use crate::types::DatabaseType;
-
-#[derive(Copy, Clone)]
-pub struct FunctionDefinition {
-    pub ident: &'static str,
-    pub ty_interpreter: &'static dyn FnOnce(Vec<Expression>) -> Result<DatabaseType, SyntaxError>,
-}
+use proc_macro2::Ident;
+use syn::parse::{Parse, ParseBuffer};
+use syn::{parenthesized, Error, Token, Ident as IdentMark, token::Paren};
+use crate::query::expr::helper::Peekable;
 
 #[allow(dead_code)]
 pub struct FunctionCall {
-    function: FunctionDefinition,
+    ident: Ident,
     parameters: Vec<Expression>,
+}
+
+impl Parse for FunctionCall {
+    fn parse(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
+        let ident: Ident = input.parse()?;
+        let mut parameters: Vec<Expression> = vec![];
+        let parameter_content;
+        parenthesized!(parameter_content in input);
+        loop {
+            parameters.push(parameter_content.parse()?);
+
+            if !parameter_content.peek(Token![,]) {
+                break;
+            } else {
+                parameter_content.parse::<Token![,]>()?;
+            }
+        };
+
+        Ok(FunctionCall {
+            ident,
+            parameters
+        })
+    }
+}
+
+impl Peekable for FunctionCall {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
+        input.peek(IdentMark) && input.peek2(Paren)
+    }
 }

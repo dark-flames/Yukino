@@ -1,30 +1,16 @@
-use crate::query::expr::binary::BinaryExpression;
-use crate::query::expr::function::FunctionCall;
-use crate::query::expr::ident::DatabaseIdent;
+use syn::parse::{ParseBuffer, Parse};
 use crate::query::expr::literal::Literal;
-use crate::query::expr::unary::UnaryExpression;
-use crate::types::DatabaseType;
-use syn::parse::{Parse, ParseBuffer};
+use crate::query::expr::ident::DatabaseIdent;
 use syn::Error;
+use crate::query::expr::function::FunctionCall;
+use crate::query::expr::mathematical::ArithmeticOrLogicalExpression;
 
-#[derive(Eq, PartialEq, Debug)]
-pub enum TypeFlag {
-    Resolved(DatabaseType),
-    Unresolved,
-}
-
-impl Default for TypeFlag {
-    fn default() -> Self {
-        TypeFlag::Unresolved
-    }
-}
-
+#[allow(dead_code)]
 pub enum Expression {
     Literal(Literal),
     Ident(DatabaseIdent),
-    UnaryExpression(UnaryExpression),
-    BinaryExpression(BinaryExpression),
     Function(FunctionCall),
+    ArithmeticOrLogicalExpression(ArithmeticOrLogicalExpression),
 }
 
 impl Parse for Expression {

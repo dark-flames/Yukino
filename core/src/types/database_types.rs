@@ -12,6 +12,7 @@ use time::{Date, PrimitiveDateTime, Time};
 #[derive(Copy, Clone, ToTokens, Debug, Eq, PartialEq)]
 #[Iroha(mod_path = "yukino::types")]
 pub enum DatabaseType {
+    Bool,
     SmallInteger,
     UnsignedSmallInteger,
     Integer,
@@ -52,6 +53,7 @@ pub type ValuePack = HashMap<String, DatabaseValue>;
 /// Raw data of database. It can be automatically converted to and from variables in the entity.
 #[derive(Debug, Clone)]
 pub enum DatabaseValue {
+    Bool(bool),
     SmallInteger(i16),
     UnsignedSmallInteger(u16),
     Integer(i32),
@@ -99,6 +101,7 @@ impl DatabaseType {
                 | Self::Decimal(_)
                 | Self::Double
                 | Self::Float
+                | Self::Bool
         )
     }
 }
@@ -106,6 +109,7 @@ impl DatabaseType {
 impl From<&DatabaseValue> for DatabaseType {
     fn from(database_value: &DatabaseValue) -> Self {
         match database_value {
+            DatabaseValue::Bool(_) => DatabaseType::Bool,
             DatabaseValue::SmallInteger(_) => DatabaseType::SmallInteger,
             DatabaseValue::UnsignedSmallInteger(_) => DatabaseType::UnsignedSmallInteger,
             DatabaseValue::Integer(_) => DatabaseType::UnsignedInteger,
