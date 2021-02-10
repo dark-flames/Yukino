@@ -1,7 +1,7 @@
-use proc_macro2::Ident;
-use syn::parse::{ParseBuffer, Parse};
-use syn::{Lit, Token, Error};
 use crate::query::expr::helper::Peekable;
+use proc_macro2::Ident;
+use syn::parse::{Parse, ParseBuffer};
+use syn::{Error, Lit, Token};
 
 pub enum Literal {
     Immediate(Lit),
@@ -36,8 +36,7 @@ fn test_value() {
         "foo"
     };
 
-    if let Literal::Immediate(Lit::Str(lit)) = value_lit
-    {
+    if let Literal::Immediate(Lit::Str(lit)) = value_lit {
         assert_eq!(lit.value(), "foo".to_string())
     } else {
         panic!();

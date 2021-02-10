@@ -1,6 +1,7 @@
 mod expression;
-mod literal;
-mod ident;
-mod helper;
 mod function;
+mod helper;
+mod ident;
+mod literal;
 mod mathematical;
+mod precedence;

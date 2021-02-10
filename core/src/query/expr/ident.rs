@@ -1,10 +1,10 @@
+use crate::query::expr::helper::Peekable;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Ident, Token};
-use crate::query::expr::helper::Peekable;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
-    segments: Vec<String>
+    segments: Vec<String>,
 }
 
 impl Parse for DatabaseIdent {
@@ -23,9 +23,7 @@ impl Parse for DatabaseIdent {
             segments.push(input.parse::<Ident>()?.to_string())
         }
 
-        Ok(DatabaseIdent {
-            segments
-        })
+        Ok(DatabaseIdent { segments })
     }
 }
 

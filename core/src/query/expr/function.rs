@@ -1,8 +1,8 @@
 use crate::query::expr::expression::Expression;
+use crate::query::expr::helper::Peekable;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
-use syn::{parenthesized, Error, Token, Ident as IdentMark, token::Paren};
-use crate::query::expr::helper::Peekable;
+use syn::{parenthesized, token::Paren, Error, Ident as IdentMark, Token};
 
 #[allow(dead_code)]
 pub struct FunctionCall {
@@ -24,12 +24,9 @@ impl Parse for FunctionCall {
             } else {
                 parameter_content.parse::<Token![,]>()?;
             }
-        };
+        }
 
-        Ok(FunctionCall {
-            ident,
-            parameters
-        })
+        Ok(FunctionCall { ident, parameters })
     }
 }
 
