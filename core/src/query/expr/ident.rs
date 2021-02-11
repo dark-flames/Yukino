@@ -1,6 +1,6 @@
 use crate::query::expr::helper::Peekable;
 use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, Ident, Token, token::Paren};
+use syn::{token::Paren, Error, Ident, Token};
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {

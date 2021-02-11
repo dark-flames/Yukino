@@ -1,4 +1,5 @@
 use crate::query::expr::expression::Expression;
+use crate::query::expr::function::FunctionCall;
 use crate::query::expr::helper::Peekable;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
@@ -6,7 +7,6 @@ use crate::query::expr::precedence::Precedence;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{token::Paren, Error, Ident as IdentMark, Token};
-use crate::query::expr::function::FunctionCall;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ArithmeticOrLogicalExpression {
@@ -86,7 +86,7 @@ impl Parse for BinaryOperator {
             input.parse().map(BinaryOperator::BitAnd)
         } else if input.peek(Token![|]) {
             input.parse().map(BinaryOperator::BitOr)
-        }  else if input.peek(Token![<]) {
+        } else if input.peek(Token![<]) {
             input.parse().map(BinaryOperator::LT)
         } else if input.peek(Token![>]) {
             input.parse().map(BinaryOperator::GT)
@@ -99,7 +99,7 @@ impl Parse for BinaryOperator {
                 "xor" => Ok(BinaryOperator::Xor),
                 _ => Err(input.error("Unexpected binary logical operator")),
             }
-        }  else {
+        } else {
             Err(input.error("Cannot parse into an binary operator"))
         }
     }
@@ -274,17 +274,20 @@ impl ArithmeticOrLogicalExpression {
             if next_precedence > operator_precedence {
                 let operator = input.parse::<BinaryOperator>()?;
                 result = Expression::ArithmeticOrLogicalExpression(operator.construct_expr(
-                    result, Self::parse_right_expression(input, operator.precedence())?
+                    result,
+                    Self::parse_right_expression(input, operator.precedence())?,
                 ));
-
 
                 while let Some(next_precedence) = Precedence::peek(input) {
                     if next_precedence > operator_precedence {
                         let operator_item = input.parse::<BinaryOperator>()?;
 
-                        result = Expression::ArithmeticOrLogicalExpression(operator_item.construct_expr(
-                            result, Self::parse_right_expression(input, operator.precedence())?
-                        ));
+                        result = Expression::ArithmeticOrLogicalExpression(
+                            operator_item.construct_expr(
+                                result,
+                                Self::parse_right_expression(input, operator.precedence())?,
+                            ),
+                        );
                     } else {
                         break;
                     }

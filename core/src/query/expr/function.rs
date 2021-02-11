@@ -5,7 +5,6 @@ use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error, Ident as IdentMark, Token};
 
 #[derive(Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub struct FunctionCall {
     ident: Ident,
     parameters: Vec<Expression>,

@@ -9,7 +9,6 @@ use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error};
 
 #[derive(Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub enum Expression {
     Literal(Literal),
     Ident(DatabaseIdent),
@@ -22,10 +21,9 @@ impl Parse for Expression {
         let mut result = Self::parse_item(input)?;
 
         while BinaryOperator::peek(input) {
-            result = ArithmeticOrLogicalExpression::parse_operator_and_right_expression(
-                input, result,
-            )?;
-        };
+            result =
+                ArithmeticOrLogicalExpression::parse_operator_and_right_expression(input, result)?;
+        }
 
         Ok(result)
     }
@@ -66,5 +64,3 @@ fn test_expr_1() {
 
     assert_eq!(result, result2);
 }
-
-
