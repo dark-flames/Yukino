@@ -1,6 +1,6 @@
 use crate::query::expr::helper::Peekable;
 use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, Ident, Token};
+use syn::{Error, Ident, Token, token::Paren};
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
@@ -29,7 +29,7 @@ impl Parse for DatabaseIdent {
 
 impl Peekable for DatabaseIdent {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        input.peek(Ident)
+        input.peek(Ident) && !input.peek2(Paren)
     }
 }
 

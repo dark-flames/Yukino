@@ -4,6 +4,7 @@ use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error, Ident as IdentMark, Token};
 
+#[derive(Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub struct FunctionCall {
     ident: Ident,
@@ -19,10 +20,10 @@ impl Parse for FunctionCall {
         loop {
             parameters.push(parameter_content.parse()?);
 
-            if !parameter_content.peek(Token![,]) {
-                break;
-            } else {
+            if parameter_content.peek(Token![,]) {
                 parameter_content.parse::<Token![,]>()?;
+            } else {
+                break;
             }
         }
 

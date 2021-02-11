@@ -1,11 +1,14 @@
 use crate::query::expr::function::FunctionCall;
+use crate::query::expr::helper::Peekable;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
-use crate::query::expr::mathematical::{ArithmeticOrLogicalExpression, UnaryOperator, BinaryOperator};
+use crate::query::expr::mathematical::{
+    ArithmeticOrLogicalExpression, BinaryOperator, UnaryOperator,
+};
 use syn::parse::{Parse, ParseBuffer};
-use syn::{Error, parenthesized, token::Paren};
-use crate::query::expr::helper::Peekable;
+use syn::{parenthesized, token::Paren, Error};
 
+#[derive(Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum Expression {
     Literal(Literal),
@@ -18,14 +21,11 @@ impl Parse for Expression {
     fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
         let mut result = Self::parse_item(input)?;
 
-        while !input.is_empty() {
-            if BinaryOperator::peek(input) {
-                result =
-                    ArithmeticOrLogicalExpression::parse_operator_and_right_expression(input, result)?;
-            } else {
-                return Err(input.error("Unexpected expression part"));
-            }
-        }
+        while BinaryOperator::peek(input) {
+            result = ArithmeticOrLogicalExpression::parse_operator_and_right_expression(
+                input, result,
+            )?;
+        };
 
         Ok(result)
     }
@@ -52,4 +52,19 @@ impl Expression {
         }
     }
 }
+
+#[test]
+fn test_expr_1() {
+    use syn::parse_quote;
+    let result: Expression = parse_quote! {
+        @value + 10 * test.t == Sum(1, test.f) * 10 + 1 or true
+    };
+
+    let result2: Expression = parse_quote! {
+        ((@value + (10 * test.t)) == ((Sum(1, test.f) * 10) + 1)) or true
+    };
+
+    assert_eq!(result, result2);
+}
+
 

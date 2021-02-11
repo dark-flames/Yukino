@@ -1,8 +1,8 @@
 use proc_macro2::Ident;
 use syn::parse::ParseBuffer;
-use syn::{Token, Ident as IdentMark};
+use syn::{Ident as IdentMark, Token};
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Precedence {
     None,
     Or,
@@ -29,6 +29,10 @@ impl Precedence {
             Some(Precedence::Add)
         } else if input.peek(Token![>>]) | input.peek(Token![<<]) {
             Some(Precedence::BitShift)
+        } else if input.peek(Token![||]) {
+            Some(Precedence::Or)
+        } else if input.peek(Token![&&]) {
+            Some(Precedence::And)
         } else if input.peek(Token![&]) {
             Some(Precedence::BitAnd)
         } else if input.peek(Token![|]) {
@@ -51,10 +55,6 @@ impl Precedence {
                 "not" => Some(Precedence::Not),
                 _ => None,
             }
-        } else if input.peek(Token![||]) {
-            Some(Precedence::Or)
-        } else if input.peek(Token![&&]) {
-            Some(Precedence::And)
         } else {
             None
         }

@@ -3,6 +3,7 @@ use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Lit, Token};
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum Literal {
     Immediate(Lit),
     External(Ident),
@@ -24,7 +25,7 @@ impl Parse for Literal {
 
 impl Peekable for Literal {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        input.peek(Lit) || input.peek(Token![#])
+        input.peek(Lit) || input.peek(Token![@])
     }
 }
 
