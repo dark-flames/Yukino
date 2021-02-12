@@ -1,4 +1,4 @@
-use crate::query::expr::helper::Peekable;
+use crate::query::helper::Peekable;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{token::Paren, Error, Ident, Token};
 

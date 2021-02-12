@@ -1,5 +1,5 @@
 use crate::query::expr::function::FunctionCall;
-use crate::query::expr::helper::Peekable;
+use crate::query::helper::Peekable;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
 use crate::query::expr::mathematical::{
@@ -14,6 +14,15 @@ pub enum Expression {
     Ident(DatabaseIdent),
     Function(FunctionCall),
     ArithmeticOrLogicalExpression(ArithmeticOrLogicalExpression),
+}
+
+impl Peekable for Expression {
+    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
+        ArithmeticOrLogicalExpression::peek(input)
+            || DatabaseIdent::peek(input)
+            || FunctionCall::peek(input)
+            || Literal::peek(input)
+    }
 }
 
 impl Parse for Expression {

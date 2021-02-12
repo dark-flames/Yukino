@@ -1,5 +1,5 @@
 use crate::query::expr::expression::Expression;
-use crate::query::expr::helper::Peekable;
+use crate::query::helper::Peekable;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error, Ident as IdentMark, Token};

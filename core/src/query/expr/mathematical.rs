@@ -1,6 +1,6 @@
 use crate::query::expr::expression::Expression;
 use crate::query::expr::function::FunctionCall;
-use crate::query::expr::helper::Peekable;
+use crate::query::helper::Peekable;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
 use crate::query::expr::precedence::Precedence;
@@ -334,6 +334,6 @@ impl Parse for ArithmeticOrLogicalExpression {
 
 impl Peekable for ArithmeticOrLogicalExpression {
     fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        Precedence::peek(input).is_some()
+        UnaryOperator::peek(input) || input.peek(Paren)
     }
 }

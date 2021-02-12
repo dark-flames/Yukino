@@ -1,4 +1,4 @@
-use crate::query::expr::helper::Peekable;
+use crate::query::helper::Peekable;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Lit, Token};
