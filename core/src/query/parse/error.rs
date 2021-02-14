@@ -1,21 +1,23 @@
-use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::error::Error as StdError;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use thiserror::Error as ErrorDerive;
-
-
 
 #[derive(Debug)]
 pub struct Error {
     msg: String,
     content: String,
-    pos: usize
+    pos: usize,
 }
 
 impl StdError for Error {}
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "Error: {} at pos {} in `{}`", self.msg, self.pos, self.content)
+        write!(
+            f,
+            "Error: {} at pos {} in `{}`",
+            self.msg, self.pos, self.content
+        )
     }
 }
 
@@ -24,7 +26,7 @@ impl Error {
         Error {
             msg: msg.to_string(),
             content: content.to_string(),
-            pos: 0
+            pos: 0,
         }
     }
 }
@@ -32,7 +34,5 @@ impl Error {
 #[derive(ErrorDerive, Debug)]
 pub enum ParseError {
     #[error("Unknown token")]
-    UnknownToken
+    UnknownToken,
 }
-
-

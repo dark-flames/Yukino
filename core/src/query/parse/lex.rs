@@ -1,10 +1,10 @@
-use std::cell::Cell;
-use regex::{Regex, Captures};
+use crate::query::parse::error::{Error, ParseError};
 use crate::query::parse::parser::ParseBuffer;
-use crate::query::parse::error::{ParseError, Error};
+use regex::{Captures, Regex};
+use std::cell::Cell;
 
 pub enum Token {
-    Symbol(SymbolToken)
+    Symbol(SymbolToken),
 }
 
 pub trait ReadableToken {
@@ -12,17 +12,15 @@ pub trait ReadableToken {
 }
 
 pub enum SymbolToken {
-    Add
+    Add,
 }
 
 impl ReadableToken for SymbolToken {
     fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>> {
-        let pattern = vec![
-            (SymbolToken::Add, r"^\S*\+")
-        ];
+        let pattern = vec![(SymbolToken::Add, r"^\S*\+")];
         for (token, regex) in pattern {
             if buffer.parse(Regex::new(regex).unwrap()).is_some() {
-                return Some(Ok(Token::Symbol(token)))
+                return Some(Ok(Token::Symbol(token)));
             }
         }
 
@@ -32,7 +30,7 @@ impl ReadableToken for SymbolToken {
 
 pub struct LexBuffer<'a> {
     content: &'a str,
-    cursor: Cell<usize>
+    cursor: Cell<usize>,
 }
 
 impl<'a> LexBuffer<'a> {
@@ -57,9 +55,7 @@ impl<'a> LexBuffer<'a> {
     }
 
     pub fn parse(&self, regex: Regex) -> Option<Captures> {
-        let result = regex.captures(
-            self.rest()
-        );
+        let result = regex.captures(self.rest());
 
         if let Some(captures) = &result {
             self.handle_captures(captures);
@@ -71,10 +67,7 @@ impl<'a> LexBuffer<'a> {
     }
 
     pub fn error_head(&self, error: ParseError) -> Error {
-        Error::head(
-            self.rest(),
-            error
-        )
+        Error::head(self.rest(), error)
     }
 
     pub fn end(&self) -> bool {
@@ -84,19 +77,19 @@ impl<'a> LexBuffer<'a> {
 
 pub struct Lexer<'a> {
     buffer: LexBuffer<'a>,
-    seeds: Vec<Box<dyn ReadableToken>>
+    seeds: Vec<Box<dyn ReadableToken>>,
 }
 
 impl<'a> Lexer<'a> {
     pub fn new(content: &'a str) -> Lexer<'a> {
         let buffer = LexBuffer {
             content,
-            cursor: Cell::new(0)
+            cursor: Cell::new(0),
         };
         buffer.trim();
         Lexer {
             buffer,
-            seeds: vec![]
+            seeds: vec![],
         }
     }
 
@@ -112,20 +105,17 @@ impl<'a> Lexer<'a> {
             let mut matched = false;
             for seed in self.seeds.iter() {
                 if let Some(result) = seed.parse(&self.buffer) {
-                    tokens.push(result.map_err(
-                        |e| self.buffer.error_head(e)
-                    )?);
+                    tokens.push(result.map_err(|e| self.buffer.error_head(e))?);
                     matched = true;
                     break;
                 }
             }
 
             if !matched {
-                return Err(self.buffer.error_head(ParseError::UnknownToken))
+                return Err(self.buffer.error_head(ParseError::UnknownToken));
             }
         }
 
         Ok(ParseBuffer::new(tokens))
     }
 }
-
