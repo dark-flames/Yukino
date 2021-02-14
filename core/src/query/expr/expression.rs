@@ -1,10 +1,10 @@
 use crate::query::expr::function::FunctionCall;
-use crate::query::helper::Peekable;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
 use crate::query::expr::mathematical::{
     ArithmeticOrLogicalExpression, BinaryOperator, UnaryOperator,
 };
+use crate::query::helper::Peekable;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{parenthesized, token::Paren, Error};
 

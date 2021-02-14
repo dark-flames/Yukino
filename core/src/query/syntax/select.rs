@@ -1,8 +1,8 @@
 use crate::query::expr::Expression;
 use crate::query::helper::Peekable;
-use syn::parse::{ParseBuffer, Parse};
-use syn::{Token, Error, Ident as IdentMark};
 use proc_macro2::Ident;
+use syn::parse::{Parse, ParseBuffer};
+use syn::{Error, Ident as IdentMark, Token};
 
 pub enum SelectItem {
     All,
@@ -25,16 +25,22 @@ impl Parse for SelectItem {
         } else if let Ok(expr) = input.parse() {
             if input.peek(Token![as]) {
                 input.parse::<Token![as]>()?;
-                Ok(SelectItem::Alias {expr, alias: input.parse()?})
+                Ok(SelectItem::Alias {
+                    expr,
+                    alias: input.parse()?,
+                })
             } else if input.peek(IdentMark) {
                 let ident = input.parse::<Ident>()?;
 
                 if ident.to_string().to_lowercase() == "as" {
-                    Ok(SelectItem::Alias {expr, alias: input.parse()?})
+                    Ok(SelectItem::Alias {
+                        expr,
+                        alias: input.parse()?,
+                    })
                 } else {
                     Err(input.error("Cannot parse into SelectItem"))
                 }
-            } else{
+            } else {
                 Ok(SelectItem::Expr(expr))
             }
         } else {

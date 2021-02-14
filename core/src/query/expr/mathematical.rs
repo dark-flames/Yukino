@@ -1,9 +1,9 @@
 use crate::query::expr::expression::Expression;
 use crate::query::expr::function::FunctionCall;
-use crate::query::helper::Peekable;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
 use crate::query::expr::precedence::Precedence;
+use crate::query::helper::Peekable;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{token::Paren, Error, Ident as IdentMark, Token};

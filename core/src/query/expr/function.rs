@@ -6,7 +6,7 @@ use syn::{parenthesized, token::Paren, Error, Ident as IdentMark, Token};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionCall {
-    ident: Ident,
+    ident: String,
     parameters: Vec<Expression>,
 }
 
@@ -26,7 +26,7 @@ impl Parse for FunctionCall {
             }
         }
 
-        Ok(FunctionCall { ident, parameters })
+        Ok(FunctionCall { ident: ident.to_string(), parameters })
     }
 }
 
