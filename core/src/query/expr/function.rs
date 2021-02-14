@@ -26,7 +26,10 @@ impl Parse for FunctionCall {
             }
         }
 
-        Ok(FunctionCall { ident: ident.to_string(), parameters })
+        Ok(FunctionCall {
+            ident: ident.to_string(),
+            parameters,
+        })
     }
 }
 

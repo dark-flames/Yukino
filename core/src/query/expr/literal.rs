@@ -1,8 +1,8 @@
 use crate::query::helper::Peekable;
+use float_eq::float_eq;
 use proc_macro2::Ident;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Error, Lit, Token};
-use float_eq::float_eq;
 
 #[derive(Debug)]
 pub enum Literal {
@@ -42,7 +42,7 @@ impl Parse for Literal {
                 Lit::Bool(lit_bool) => Ok(Literal::Bool(lit_bool.value)),
                 Lit::Int(lit_int) => Ok(Literal::Int(lit_int.base10_parse()?)),
                 Lit::Float(lit_float) => Ok(Literal::Float(lit_float.base10_parse()?)),
-                _ => Err(input.error("Cannot parse into an literal"))
+                _ => Err(input.error("Cannot parse into an literal")),
             }
         } else {
             Err(input.error("Cannot parse into an literal"))

@@ -21,6 +21,7 @@ heck = "0.3"
 rand = "0.8.2"
 repository = "0.0.2"
 float_eq = "0.5.0"
+regex = "1.4.3"
 
 [features]
 default = ["mysql", "decimal", "json", "data-time"]

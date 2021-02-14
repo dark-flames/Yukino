@@ -4,3 +4,5 @@ pub mod expr;
 mod helper;
 mod query_builder;
 pub mod syntax;
+pub mod parse;
+
