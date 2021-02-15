@@ -1,8 +1,9 @@
 use crate::query::parse::error::{Error, ParseError};
-use crate::query::parse::parser::ParseBuffer;
+use crate::query::parse::parser::TokenStream;
 use regex::{Captures, Regex};
 use std::cell::Cell;
 
+#[derive(Clone)]
 pub enum Token {
     Symbol(SymbolToken),
 }
@@ -11,6 +12,7 @@ pub trait ReadableToken {
     fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>>;
 }
 
+#[derive(Clone)]
 pub enum SymbolToken {
     Add,
 }
@@ -98,7 +100,7 @@ impl<'a> Lexer<'a> {
         self
     }
 
-    pub fn exec(self) -> Result<ParseBuffer, Error> {
+    pub fn exec(self) -> Result<TokenStream, Error> {
         let mut tokens = vec![];
 
         while !self.buffer.end() {
@@ -116,6 +118,6 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Ok(ParseBuffer::new(tokens))
+        Ok(TokenStream::new(tokens))
     }
 }
