@@ -1,6 +1,7 @@
 use crate::query::parse::lex::Token;
+use crate::query::parse::{ParseError, Error};
 use std::cell::Cell;
-use crate::query::parse::ParseError;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub struct TokenStream {
     tokens: Vec<Token>,
@@ -10,7 +11,7 @@ pub struct TokenStream {
 #[derive(Clone)]
 pub struct ParseBuffer<'a> {
     tokens: &'a [Token],
-    cursor: Cell<usize>
+    cursor: Cell<usize>,
 }
 
 impl<'a> ParseBuffer<'a> {
@@ -22,26 +23,28 @@ impl<'a> ParseBuffer<'a> {
         E::peek(self)
     }
 
-    pub fn parse<E: Parse>(&mut self) -> Result<E, ParseError> {
-        let result = E::parse(self);
-
-        result
+    pub fn parse<E: Parse>(&mut self) -> Result<E, Error> {
+        E::parse(self)
     }
 
-    pub fn pop_token(&mut self, len: usize) -> Result<Vec<Token>, ParseError> {
+    pub fn pop_token(&mut self, len: usize) -> Result<Vec<Token>, Error> {
         if len > self.tokens.len() {
-            Err(ParseError::UnexpectTokenOffset(self.tokens.len(), len))
+            Err(self.error(ParseError::UnexpectTokenOffset(self.tokens.len(), len)))
         } else {
             let result = self.get_token().split_at(len).0;
 
             self.cursor.set(self.cursor.get() + len);
 
-            Ok(result.iter().cloned().collect())
+            Ok(result.to_vec())
         }
     }
 
     pub fn is_empty(&self) -> bool {
         self.cursor.get() == self.tokens.len()
+    }
+
+    pub fn error(&self, _error: ParseError) -> Error {
+        unimplemented!()
     }
 }
 
@@ -56,7 +59,7 @@ impl TokenStream {
     fn get_buffer(&self) -> ParseBuffer {
         ParseBuffer {
             tokens: self.tokens.as_slice(),
-            cursor: self.cursor.clone()
+            cursor: self.cursor.clone(),
         }
     }
 
@@ -64,20 +67,44 @@ impl TokenStream {
         self.get_buffer().peek::<E>()
     }
 
-    pub fn parse<E: Parse>(&self) -> Result<E, ParseError> {
+    pub fn parse<E: Parse>(&self) -> Result<E, Error> {
         let mut buffer = self.get_buffer();
         let result = buffer.parse::<E>();
         self.cursor.set(buffer.cursor.get());
         result
     }
 
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.cursor.get() == self.tokens.len()
+    }
+
+    pub fn len(&self) -> usize {
+        self.tokens.len()
     }
 }
 
-pub trait Parse where Self: Sized {
-    fn parse(buffer: &mut ParseBuffer) -> Result<Self, ParseError>;
+impl Display for TokenStream {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        let result = self.tokens.iter().map(
+            |token| token.to_string()
+        ).fold(
+            String::new(),
+            |mut carry, result| {
+                carry.push_str(&result);
+
+                carry
+            }
+        );
+
+        write!(f, "{}", result)
+    }
+}
+
+pub trait Parse
+where
+    Self: Sized,
+{
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error>;
 
     fn peek(buffer: &ParseBuffer) -> bool;
 }

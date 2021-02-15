@@ -2,32 +2,65 @@ use crate::query::parse::error::{Error, ParseError};
 use crate::query::parse::parser::TokenStream;
 use regex::{Captures, Regex};
 use std::cell::Cell;
+use crate::query::parse::Token::Symbol;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Clone)]
 pub enum Token {
     Symbol(SymbolToken),
 }
 
-pub trait ReadableToken {
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Symbol(symbol) => symbol.fmt(f)
+        }
+    }
+}
+
+pub trait ReadableToken: Display{
     fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>>;
 }
 
-#[derive(Clone)]
-pub enum SymbolToken {
-    Add,
-}
+macro_rules! symbol {
+    (
+        $(($token: tt $name: ident $pattern: expr)),*
+    ) => {
+        #[derive(Clone)]
+        pub enum SymbolToken {
+            $($name),*
+        }
 
-impl ReadableToken for SymbolToken {
-    fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>> {
-        let pattern = vec![(SymbolToken::Add, r"^\S*\+")];
-        for (token, regex) in pattern {
-            if buffer.parse(Regex::new(regex).unwrap()).is_some() {
-                return Some(Ok(Token::Symbol(token)));
+        impl ReadableToken for SymbolToken {
+            fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>> {
+                let pattern = vec![
+                    $((SymbolToken::$name, $pattern)),*
+                ];
+                for (token, regex) in pattern {
+                    if buffer.parse(Regex::new(regex).unwrap()).is_some() {
+                        return Some(Ok(Token::Symbol(token)));
+                    }
+                }
+
+                None
             }
         }
 
-        None
-    }
+        impl Display for SymbolToken {
+            fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+                write!(f, "{}", match self {
+                    $(SymbolToken::$name => $token),*
+                })
+            }
+        }
+    };
+}
+
+
+
+symbol! {
+    ("+" Add r"^\+"),
+    ("*" Mul r"^\*")
 }
 
 pub struct LexBuffer<'a> {
@@ -49,7 +82,7 @@ impl<'a> LexBuffer<'a> {
     }
 
     pub fn trim(&self) {
-        let whitespace_regex = Regex::new(r"^\S*").unwrap();
+        let whitespace_regex = Regex::new(r"^\s+").unwrap();
 
         if let Some(whitespace_result) = whitespace_regex.captures(self.rest()) {
             self.handle_captures(&whitespace_result)
@@ -73,7 +106,7 @@ impl<'a> LexBuffer<'a> {
     }
 
     pub fn end(&self) -> bool {
-        self.rest().is_empty()
+        self.cursor.get() >= self.content.len()
     }
 }
 
@@ -107,7 +140,8 @@ impl<'a> Lexer<'a> {
             let mut matched = false;
             for seed in self.seeds.iter() {
                 if let Some(result) = seed.parse(&self.buffer) {
-                    tokens.push(result.map_err(|e| self.buffer.error_head(e))?);
+                    let item = result.map_err(|e| self.buffer.error_head(e))?;
+                    tokens.push(item);
                     matched = true;
                     break;
                 }
@@ -120,4 +154,16 @@ impl<'a> Lexer<'a> {
 
         Ok(TokenStream::new(tokens))
     }
+}
+
+#[test]
+fn test_lex() {
+    let mut lexer = Lexer::new("  +  *  +  ");
+    lexer.push_seed(SymbolToken::Add);
+
+    let result = lexer.exec().unwrap();
+
+    assert_eq!(result.len(), 3);
+
+    assert_eq!(result.to_string(), "+*+".to_string());
 }

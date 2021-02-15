@@ -36,5 +36,5 @@ pub enum ParseError {
     #[error("Unknown token")]
     UnknownToken,
     #[error("length of token is {0}, got index: {1}")]
-    UnexpectTokenOffset(usize, usize)
+    UnexpectTokenOffset(usize, usize),
 }
