@@ -33,7 +33,6 @@ pub enum ArithmeticOrLogicalExpression {
     Xor(Box<Expression>, Box<Expression>),
 }
 
-
 pub enum BinaryOperator {
     BitXor(Token![^]),
     Multi(Token![*]),

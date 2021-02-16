@@ -1,9 +1,9 @@
 use crate::query::parse::error::{Error, ParseError};
 use crate::query::parse::parser::TokenStream;
-use regex::{Captures, Regex};
-use std::cell::Cell;
 use crate::query::parse::Token::Symbol;
+use regex::Regex;
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::str::Chars;
 
 #[derive(Clone)]
 pub enum Token {
@@ -13,13 +13,13 @@ pub enum Token {
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Symbol(symbol) => symbol.fmt(f)
+            Symbol(symbol) => symbol.fmt(f),
         }
     }
 }
 
-pub trait ReadableToken: Display{
-    fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>>;
+pub trait ReadableToken: Display {
+    fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>>;
 }
 
 macro_rules! symbol {
@@ -32,13 +32,18 @@ macro_rules! symbol {
         }
 
         impl ReadableToken for SymbolToken {
-            fn parse(&self, buffer: &LexBuffer) -> Option<Result<Token, ParseError>> {
+            fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>> {
                 let pattern = vec![
                     $((SymbolToken::$name, $pattern)),*
                 ];
                 for (token, regex) in pattern {
-                    if buffer.parse(Regex::new(regex).unwrap()).is_some() {
-                        return Some(Ok(Token::Symbol(token)));
+                    let result = Regex::new(regex).unwrap().captures(buffer.rest());
+                    let chars = result.as_ref().map(
+                        |caps| caps.get(0).unwrap().as_str().chars().count()
+                    ).unwrap_or(0);
+                    if result.is_some() {
+                        buffer.eat(chars);
+                        return Some(Ok(Token::Symbol(token)))
                     }
                 }
 
@@ -56,49 +61,34 @@ macro_rules! symbol {
     };
 }
 
-
-
 symbol! {
     ("+" Add r"^\+"),
     ("*" Mul r"^\*")
 }
 
 pub struct LexBuffer<'a> {
-    content: &'a str,
-    cursor: Cell<usize>,
+    content: Chars<'a>,
 }
 
 impl<'a> LexBuffer<'a> {
-    fn rest(&self) -> &str {
-        self.content.split_at(self.cursor.get()).1
+    pub fn rest(&self) -> &str {
+        self.content.as_str()
     }
 
-    fn handle_captures(&self, captures: &Captures) {
-        let mut cursor = self.cursor.get();
+    pub fn eat(&mut self, n: usize) {
+        for _ in 0..n {
+            self.content.next();
+        }
 
-        cursor += captures.get(0).unwrap().as_str().len();
-
-        self.cursor.set(cursor);
-    }
-
-    pub fn trim(&self) {
         let whitespace_regex = Regex::new(r"^\s+").unwrap();
+        let count = whitespace_regex
+            .captures(self.rest())
+            .map(|result| result.get(0).unwrap().as_str().chars().count())
+            .unwrap_or(0);
 
-        if let Some(whitespace_result) = whitespace_regex.captures(self.rest()) {
-            self.handle_captures(&whitespace_result)
+        for _ in 0..count {
+            self.content.next();
         }
-    }
-
-    pub fn parse(&self, regex: Regex) -> Option<Captures> {
-        let result = regex.captures(self.rest());
-
-        if let Some(captures) = &result {
-            self.handle_captures(captures);
-
-            self.trim()
-        }
-
-        result
     }
 
     pub fn error_head(&self, error: ParseError) -> Error {
@@ -106,7 +96,7 @@ impl<'a> LexBuffer<'a> {
     }
 
     pub fn end(&self) -> bool {
-        self.cursor.get() >= self.content.len()
+        self.rest().is_empty()
     }
 }
 
@@ -117,11 +107,10 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(content: &'a str) -> Lexer<'a> {
-        let buffer = LexBuffer {
-            content,
-            cursor: Cell::new(0),
+        let mut buffer = LexBuffer {
+            content: content.chars(),
         };
-        buffer.trim();
+        buffer.eat(0);
         Lexer {
             buffer,
             seeds: vec![],
@@ -133,13 +122,13 @@ impl<'a> Lexer<'a> {
         self
     }
 
-    pub fn exec(self) -> Result<TokenStream, Error> {
+    pub fn exec(mut self) -> Result<TokenStream, Error> {
         let mut tokens = vec![];
 
         while !self.buffer.end() {
             let mut matched = false;
             for seed in self.seeds.iter() {
-                if let Some(result) = seed.parse(&self.buffer) {
+                if let Some(result) = seed.parse(&mut self.buffer) {
                     let item = result.map_err(|e| self.buffer.error_head(e))?;
                     tokens.push(item);
                     matched = true;

@@ -1,5 +1,5 @@
 use crate::query::parse::lex::Token;
-use crate::query::parse::{ParseError, Error};
+use crate::query::parse::{Error, ParseError};
 use std::cell::Cell;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
@@ -85,15 +85,13 @@ impl TokenStream {
 
 impl Display for TokenStream {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let result = self.tokens.iter().map(
-            |token| token.to_string()
-        ).fold(
+        let result = self.tokens.iter().map(|token| token.to_string()).fold(
             String::new(),
             |mut carry, result| {
                 carry.push_str(&result);
 
                 carry
-            }
+            },
         );
 
         write!(f, "{}", result)
