@@ -89,6 +89,7 @@ impl Display for TokenStream {
             String::new(),
             |mut carry, result| {
                 carry.push_str(&result);
+                carry.push(' ');
 
                 carry
             },

@@ -8,6 +8,7 @@ use std::str::Chars;
 pub enum Token {
     Symbol(Symbol),
     Ident(Ident),
+    Keyword(Keyword),
 }
 
 impl Display for Token {
@@ -15,6 +16,7 @@ impl Display for Token {
         match self {
             Token::Symbol(symbol) => symbol.fmt(f),
             Token::Ident(ident) => ident.fmt(f),
+            Token::Keyword(keyword) => keyword.fmt(f),
         }
     }
 }
@@ -27,7 +29,7 @@ pub trait ReadableToken: Display {
         Self: Sized;
 }
 
-macro_rules! symbol {
+macro_rules! symbols {
     (
         $(($token: tt $name: ident $pattern: expr)),*
     ) => {
@@ -69,9 +71,53 @@ macro_rules! symbol {
     };
 }
 
-symbol! {
+symbols! {
     ("+" Add r"^\+"),
     ("*" Mul r"^\*")
+}
+
+macro_rules! keywords {
+    (
+        $(($token: tt $name: ident)),*
+    ) => {
+        #[derive(Clone)]
+        pub enum Keyword {
+            $($name),*
+        }
+
+        impl ReadableToken for Keyword {
+            fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>> {
+                let patterns = vec![
+                    $((Keyword::$name, $token.to_string())),*
+                ];
+                for (token, pattern) in patterns {
+                    let head: String = buffer.rest().chars().take(pattern.len()).collect();
+
+                    if head.to_lowercase() == pattern {
+                        buffer.eat(head.len());
+                        return Some(Ok(Token::Keyword(token)));
+                    };
+                };
+
+                None
+            }
+            fn seed() -> Self where Self: Sized {
+                Keyword::Select
+            }
+        }
+
+        impl Display for Keyword {
+            fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+                write!(f, "{}", match self {
+                    $(Keyword::$name => $token),*
+                })
+            }
+        }
+    };
+}
+
+keywords! {
+    ("select" Select)
 }
 
 #[derive(Clone)]
@@ -189,13 +235,17 @@ impl<'a> Lexer<'a> {
 
 #[test]
 fn test_lex() {
-    let mut lexer = Lexer::new("__ident_a + ident_b * IdentC");
+    let mut lexer = Lexer::new("sElect __ident_a + ident_b * IdentC");
+    lexer.push_seed(Keyword::seed());
     lexer.push_seed(Symbol::seed());
     lexer.push_seed(Ident::seed());
 
     let result = lexer.exec().unwrap();
 
-    assert_eq!(result.len(), 5);
+    assert_eq!(result.len(), 6);
 
-    assert_eq!(result.to_string(), "__ident_a+ident_b*IdentC".to_string());
+    assert_eq!(
+        result.to_string(),
+        "select __ident_a + ident_b * IdentC ".to_string()
+    );
 }
