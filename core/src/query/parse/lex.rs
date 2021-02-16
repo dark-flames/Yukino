@@ -1,25 +1,28 @@
 use crate::query::parse::error::{Error, ParseError};
 use crate::query::parse::parser::TokenStream;
-use crate::query::parse::Token::Symbol;
 use regex::Regex;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::Chars;
 
 #[derive(Clone)]
 pub enum Token {
-    Symbol(SymbolToken),
+    Symbol(Symbol),
+    Ident(Ident)
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Symbol(symbol) => symbol.fmt(f),
+            Token::Symbol(symbol) => symbol.fmt(f),
+            Token::Ident(ident) => ident.fmt(f)
         }
     }
 }
 
-pub trait ReadableToken: Display {
+pub trait ReadableToken: Display{
     fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>>;
+
+    fn seed() -> Self where Self: Sized;
 }
 
 macro_rules! symbol {
@@ -27,14 +30,14 @@ macro_rules! symbol {
         $(($token: tt $name: ident $pattern: expr)),*
     ) => {
         #[derive(Clone)]
-        pub enum SymbolToken {
+        pub enum Symbol {
             $($name),*
         }
 
-        impl ReadableToken for SymbolToken {
+        impl ReadableToken for Symbol {
             fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>> {
                 let pattern = vec![
-                    $((SymbolToken::$name, $pattern)),*
+                    $((Symbol::$name, $pattern)),*
                 ];
                 for (token, regex) in pattern {
                     let result = Regex::new(regex).unwrap().captures(buffer.rest());
@@ -49,12 +52,15 @@ macro_rules! symbol {
 
                 None
             }
+            fn seed() -> Self where Self: Sized {
+                Symbol::Add
+            }
         }
 
-        impl Display for SymbolToken {
+        impl Display for Symbol {
             fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
                 write!(f, "{}", match self {
-                    $(SymbolToken::$name => $token),*
+                    $(Symbol::$name => $token),*
                 })
             }
         }
@@ -64,6 +70,39 @@ macro_rules! symbol {
 symbol! {
     ("+" Add r"^\+"),
     ("*" Mul r"^\*")
+}
+
+#[derive(Clone)]
+pub struct Ident {
+    inner: String
+}
+
+impl Display for Ident {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        self.inner.fmt(f)
+    }
+}
+
+impl ReadableToken for Ident {
+    fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
+        let pattern = Regex::new(r"^([a-zA-Z][a-zA-Z0-9_]*)|(_[a-zA-Z0-9_]*)").unwrap();
+
+        let result = pattern.captures(buffer.rest())?;
+
+        let inner = result.get(0).unwrap().as_str().to_string();
+
+        buffer.eat(inner.len());
+
+        Some(Ok(Token::Ident(Ident {
+            inner
+        })))
+    }
+
+    fn seed() -> Self where Self: Sized {
+        Ident {
+            inner: "".to_string()
+        }
+    }
 }
 
 pub struct LexBuffer<'a> {
@@ -147,12 +186,13 @@ impl<'a> Lexer<'a> {
 
 #[test]
 fn test_lex() {
-    let mut lexer = Lexer::new("  +  *  +  ");
-    lexer.push_seed(SymbolToken::Add);
+    let mut lexer = Lexer::new("__ident_a + ident_b * IdentC");
+    lexer.push_seed(Symbol::seed());
+    lexer.push_seed(Ident::seed());
 
     let result = lexer.exec().unwrap();
 
-    assert_eq!(result.len(), 3);
+    assert_eq!(result.len(), 5);
 
-    assert_eq!(result.to_string(), "+*+".to_string());
+    assert_eq!(result.to_string(), "__ident_a+ident_b*IdentC".to_string());
 }
