@@ -7,22 +7,24 @@ use std::str::Chars;
 #[derive(Clone)]
 pub enum Token {
     Symbol(Symbol),
-    Ident(Ident)
+    Ident(Ident),
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Token::Symbol(symbol) => symbol.fmt(f),
-            Token::Ident(ident) => ident.fmt(f)
+            Token::Ident(ident) => ident.fmt(f),
         }
     }
 }
 
-pub trait ReadableToken: Display{
+pub trait ReadableToken: Display {
     fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>>;
 
-    fn seed() -> Self where Self: Sized;
+    fn seed() -> Self
+    where
+        Self: Sized;
 }
 
 macro_rules! symbol {
@@ -74,7 +76,7 @@ symbol! {
 
 #[derive(Clone)]
 pub struct Ident {
-    inner: String
+    inner: String,
 }
 
 impl Display for Ident {
@@ -93,14 +95,15 @@ impl ReadableToken for Ident {
 
         buffer.eat(inner.len());
 
-        Some(Ok(Token::Ident(Ident {
-            inner
-        })))
+        Some(Ok(Token::Ident(Ident { inner })))
     }
 
-    fn seed() -> Self where Self: Sized {
+    fn seed() -> Self
+    where
+        Self: Sized,
+    {
         Ident {
-            inner: "".to_string()
+            inner: "".to_string(),
         }
     }
 }
