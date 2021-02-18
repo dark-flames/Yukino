@@ -9,6 +9,7 @@ pub enum Token {
     Symbol(Symbol),
     Ident(Ident),
     Keyword(Keyword),
+    Lit(Literal),
 }
 
 impl Display for Token {
@@ -17,6 +18,7 @@ impl Display for Token {
             Token::Symbol(symbol) => symbol.fmt(f),
             Token::Ident(ident) => ident.fmt(f),
             Token::Keyword(keyword) => keyword.fmt(f),
+            Token::Lit(lit) => lit.fmt(f),
         }
     }
 }
@@ -154,6 +156,74 @@ impl ReadableToken for Ident {
     }
 }
 
+#[derive(Clone)]
+pub enum Literal {
+    Int(usize),
+    Float(String),
+    Bool(bool),
+    String(String),
+    External(Ident),
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Literal::Int(v) => v.fmt(f),
+            Literal::Float(s) => s.fmt(f),
+            Literal::Bool(v) => v.fmt(f),
+            Literal::String(s) => write!(f, "\"{}\"", s),
+            Literal::External(ident) => write!(f, "${}", ident),
+        }
+    }
+}
+
+impl ReadableToken for Literal {
+    fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
+        if let Some(result) = Regex::new(r"^\d+.\d+").unwrap().captures(buffer.rest()) {
+            let inner = result.get(0).unwrap().as_str().to_string();
+
+            buffer.eat(inner.len());
+
+            Some(Ok(Token::Lit(Literal::Float(inner))))
+        } else if let Some(result) = Regex::new(r"^(true)|(false)")
+            .unwrap()
+            .captures(buffer.rest())
+        {
+            let inner = result.get(0).unwrap().as_str().to_string();
+
+            buffer.eat(inner.len());
+
+            Some(Ok(if inner.as_str() == "true" {
+                Token::Lit(Literal::Bool(true))
+            } else {
+                Token::Lit(Literal::Bool(false))
+            }))
+        } else if let Some(result) = Regex::new("^\"(\\w+)\"").unwrap().captures(buffer.rest()) {
+            let size = result.get(0).unwrap().as_str().chars().count();
+            let inner = result.get(1).unwrap().as_str().to_string();
+
+            buffer.eat(size);
+
+            Some(Ok(Token::Lit(Literal::String(inner))))
+        } else if let Some(result) = Regex::new(r"^\d+").unwrap().captures(buffer.rest()) {
+            let inner = result.get(0).unwrap().as_str().to_string();
+
+            buffer.eat(inner.len());
+
+            Some(Ok(Token::Lit(Literal::Int(inner.parse().unwrap()))))
+        } else {
+            None
+        }
+    }
+
+    fn seed() -> Self
+    where
+        Self: Sized,
+    {
+        Literal::Bool(false)
+    }
+}
+
 pub struct LexBuffer<'a> {
     content: Chars<'a>,
 }
@@ -235,17 +305,18 @@ impl<'a> Lexer<'a> {
 
 #[test]
 fn test_lex() {
-    let mut lexer = Lexer::new("sElect __ident_a + ident_b * IdentC");
+    let mut lexer = Lexer::new("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"");
     lexer.push_seed(Keyword::seed());
     lexer.push_seed(Symbol::seed());
     lexer.push_seed(Ident::seed());
+    lexer.push_seed(Literal::seed());
 
     let result = lexer.exec().unwrap();
 
-    assert_eq!(result.len(), 6);
+    assert_eq!(result.len(), 10);
 
     assert_eq!(
         result.to_string(),
-        "select __ident_a + ident_b * IdentC ".to_string()
+        "select __ident_a + ident_b * IdentC + 1 + \"sdasds\" ".to_string()
     );
 }
