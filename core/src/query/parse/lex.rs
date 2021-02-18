@@ -23,10 +23,35 @@ impl Display for Token {
     }
 }
 
+impl ReadableToken for Token {
+    fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
+        let seeds = [
+            Keyword::seed(),
+            Symbol::seed(),
+            Ident::seed(),
+            Literal::seed()
+        ];
+
+        for seed in seeds.iter() {
+            if let Some(result) = seed.parse(buffer) {
+                return Some(result);
+            }
+        }
+
+        Some(Err(ParseError::UnknownToken))
+    }
+
+    fn seed() -> Box<dyn ReadableToken>
+    where
+        Self: Sized {
+        Box::new(Token::Symbol(Symbol::Add))
+    }
+}
+
 pub trait ReadableToken: Display {
     fn parse(&self, buffer: &mut LexBuffer) -> Option<Result<Token, ParseError>>;
 
-    fn seed() -> Self
+    fn seed() -> Box<dyn ReadableToken>
     where
         Self: Sized;
 }
@@ -58,8 +83,10 @@ macro_rules! symbols {
 
                 None
             }
-            fn seed() -> Self where Self: Sized {
-                Symbol::Add
+            fn seed() -> Box<dyn ReadableToken>
+                where
+                    Self: Sized {
+                Box::new(Symbol::Add)
             }
         }
 
@@ -103,8 +130,10 @@ macro_rules! keywords {
 
                 None
             }
-            fn seed() -> Self where Self: Sized {
-                Keyword::Select
+            fn seed() -> Box<dyn ReadableToken>
+                where
+                    Self: Sized {
+                Box::new(Keyword::Select)
             }
         }
 
@@ -146,13 +175,13 @@ impl ReadableToken for Ident {
         Some(Ok(Token::Ident(Ident { inner })))
     }
 
-    fn seed() -> Self
-    where
-        Self: Sized,
+    fn seed() -> Box<dyn ReadableToken>
+        where
+            Self: Sized
     {
-        Ident {
+        Box::new(Ident {
             inner: "".to_string(),
-        }
+        })
     }
 }
 
@@ -216,11 +245,11 @@ impl ReadableToken for Literal {
         }
     }
 
-    fn seed() -> Self
-    where
-        Self: Sized,
+    fn seed() -> Box<dyn ReadableToken>
+        where
+            Self: Sized
     {
-        Literal::Bool(false)
+        Box::new(Literal::Bool(false))
     }
 }
 
@@ -259,8 +288,7 @@ impl<'a> LexBuffer<'a> {
 }
 
 pub struct Lexer<'a> {
-    buffer: LexBuffer<'a>,
-    seeds: Vec<Box<dyn ReadableToken>>,
+    buffer: LexBuffer<'a>
 }
 
 impl<'a> Lexer<'a> {
@@ -270,33 +298,17 @@ impl<'a> Lexer<'a> {
         };
         buffer.eat(0);
         Lexer {
-            buffer,
-            seeds: vec![],
+            buffer
         }
-    }
-
-    pub fn push_seed(&mut self, seed: impl ReadableToken + 'static) -> &mut Self {
-        self.seeds.push(Box::new(seed));
-        self
     }
 
     pub fn exec(mut self) -> Result<TokenStream, Error> {
         let mut tokens = vec![];
 
         while !self.buffer.end() {
-            let mut matched = false;
-            for seed in self.seeds.iter() {
-                if let Some(result) = seed.parse(&mut self.buffer) {
-                    let item = result.map_err(|e| self.buffer.error_head(e))?;
-                    tokens.push(item);
-                    matched = true;
-                    break;
-                }
-            }
-
-            if !matched {
-                return Err(self.buffer.error_head(ParseError::UnknownToken));
-            }
+            tokens.push(Token::seed().parse(&mut self.buffer).unwrap().map_err(
+                |e| self.buffer.error_head(e)
+            )?)
         }
 
         Ok(TokenStream::new(tokens))
@@ -305,11 +317,7 @@ impl<'a> Lexer<'a> {
 
 #[test]
 fn test_lex() {
-    let mut lexer = Lexer::new("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"");
-    lexer.push_seed(Keyword::seed());
-    lexer.push_seed(Symbol::seed());
-    lexer.push_seed(Ident::seed());
-    lexer.push_seed(Literal::seed());
+    let lexer = Lexer::new("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"");
 
     let result = lexer.exec().unwrap();
 
