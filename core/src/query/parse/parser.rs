@@ -1,8 +1,22 @@
 use crate::query::parse::lex::Token;
-use crate::query::parse::{Error, ParseError, Lexer};
+use crate::query::parse::{Error, Lexer, ParseError};
 use std::cell::Cell;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
+
+fn tokens_to_string(tokens: &[Token], with_whitespace: bool) -> String {
+    tokens.iter().map(|token| token.to_string()).fold(
+        String::new(),
+        |mut carry, result| {
+            carry.push_str(&result);
+            if with_whitespace {
+                carry.push(' ');
+            }
+
+            carry
+        },
+    )
+}
 
 pub struct TokenStream {
     tokens: Vec<Token>,
@@ -28,7 +42,7 @@ impl<'a> ParseBuffer<'a> {
         E::parse(self)
     }
 
-    pub fn pop_token(&mut self, len: usize) -> Result<Vec<Token>, Error> {
+    pub fn pop_tokens(&mut self, len: usize) -> Result<Vec<Token>, Error> {
         if len > self.tokens.len() {
             Err(self.error(ParseError::UnexpectTokenOffset(self.tokens.len(), len)))
         } else {
@@ -40,12 +54,34 @@ impl<'a> ParseBuffer<'a> {
         }
     }
 
+    pub fn pop_token(&mut self) -> Result<Token, Error> {
+        self.pop_tokens(1).map(
+            |list| list.first().unwrap().clone()
+        )
+    }
+
+
     pub fn is_empty(&self) -> bool {
         self.cursor.get() == self.tokens.len()
     }
 
-    pub fn error(&self, _error: ParseError) -> Error {
-        unimplemented!()
+    pub fn error<T: Display>(&self, message: T) -> Error {
+        let mut content_cursor = self.cursor.get();
+
+        content_cursor = if content_cursor < 2 {
+            0
+        } else {
+            content_cursor - 2
+        };
+
+        let tokens = self.tokens.split_at(content_cursor).1;
+
+        let pre = tokens.split_at(self.cursor.get() - content_cursor).0;
+
+        let content = tokens_to_string(tokens, false);
+        let pos = tokens_to_string(pre, false).len();
+
+        Error::new(message, content, pos)
     }
 }
 
@@ -86,17 +122,7 @@ impl TokenStream {
 
 impl Display for TokenStream {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let result = self.tokens.iter().map(|token| token.to_string()).fold(
-            String::new(),
-            |mut carry, result| {
-                carry.push_str(&result);
-                carry.push(' ');
-
-                carry
-            },
-        );
-
-        write!(f, "{}", result)
+        tokens_to_string(&self.tokens, true).fmt(f)
     }
 }
 

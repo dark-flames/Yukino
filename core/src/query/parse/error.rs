@@ -29,6 +29,14 @@ impl Error {
             pos: 0,
         }
     }
+
+    pub fn new<E: Display, T: Display>(msg: E, content: T, pos: usize) -> Self {
+        Error {
+            msg: msg.to_string(),
+            content: content.to_string(),
+            pos,
+        }
+    }
 }
 
 #[derive(ErrorDerive, Debug)]
@@ -36,5 +44,5 @@ pub enum ParseError {
     #[error("Unknown token")]
     UnknownToken,
     #[error("length of token is {0}, got index: {1}")]
-    UnexpectTokenOffset(usize, usize),
+    UnexpectTokenOffset(usize, usize)
 }

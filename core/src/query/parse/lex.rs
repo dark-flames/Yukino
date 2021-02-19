@@ -103,7 +103,8 @@ macro_rules! symbols {
 
 symbols! {
     ("+" Add r"^\+"),
-    ("*" Mul r"^\*")
+    ("*" Mul r"^\*"),
+    ("." Dot r"^\.")
 }
 
 macro_rules! keywords {
@@ -321,7 +322,9 @@ impl<'a> Lexer<'a> {
 fn test_lex() {
     use std::str::FromStr;
 
-    let result = TokenStream::from_str("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"");
+    let result = TokenStream::from_str(
+        "sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\""
+    ).unwrap();
 
     assert_eq!(result.len(), 10);
 

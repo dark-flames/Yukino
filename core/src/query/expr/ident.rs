@@ -1,6 +1,5 @@
-use crate::query::helper::Peekable;
-use syn::parse::{Parse, ParseBuffer};
-use syn::{token::Paren, Error, Ident, Token};
+use crate::query::parse::{Parse, ParseBuffer, Error, Token, Symbol};
+use crate::query::expr::error::ExprParseError;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
@@ -8,37 +7,62 @@ pub struct DatabaseIdent {
 }
 
 impl Parse for DatabaseIdent {
-    fn parse<'a>(input: &'a ParseBuffer<'a>) -> Result<Self, Error> {
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
         let mut segments = vec![];
 
-        let ahead = input.lookahead1();
+        if !buffer.is_empty() {
+            while let Token::Ident(ident) = buffer.pop_token()? {
+                segments.push(ident.to_string());
 
-        if ahead.peek(Ident) {
-            segments.push(input.parse::<Ident>()?.to_string())
+                if buffer.is_empty() {
+                    return Ok(
+                        DatabaseIdent {
+                            segments
+                        }
+                    )
+                } else if let Token::Symbol(Symbol::Dot) = buffer.pop_token()? {
+                    continue;
+                } else {
+                    return Ok(
+                        DatabaseIdent {
+                            segments
+                        }
+                    )
+                }
+            }
         }
 
-        while input.peek(Token![.]) {
-            input.parse::<Token![.]>()?;
-
-            segments.push(input.parse::<Ident>()?.to_string())
-        }
-
-        Ok(DatabaseIdent { segments })
+        Err(buffer.error(ExprParseError::CannotParseIntoIdent))
     }
-}
 
-impl Peekable for DatabaseIdent {
-    fn peek<'a>(input: &'a ParseBuffer<'a>) -> bool {
-        input.peek(Ident) && !input.peek2(Paren)
+    fn peek(buffer: &ParseBuffer) -> bool {
+        let mut iter = buffer.get_token().iter();
+        let mut matched = false;
+
+        if !buffer.is_empty() {
+            while let Some(Token::Ident(_)) = iter.next() {
+                matched = true;
+                if buffer.is_empty() {
+                    break;
+                } else if let Some(Token::Symbol(Symbol::Dot)) = iter.next() {
+                    matched = false
+                } else {
+                    break;
+                }
+            }
+        }
+
+        matched
     }
 }
 
 #[test]
 fn test_ident() {
-    use syn::parse_quote;
-    let ident: DatabaseIdent = parse_quote! {
-        a.b.c
-    };
+    use crate::query::parse::TokenStream;
+    use std::str::FromStr;
+    let token_stream = TokenStream::from_str("a.b.c").unwrap();
+
+    let ident: DatabaseIdent = token_stream.parse().unwrap();
 
     assert_eq!(
         ident,
