@@ -1,5 +1,5 @@
-use crate::query::parse::{Parse, ParseBuffer, Error, Token, Symbol};
 use crate::query::expr::error::ExprParseError;
+use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
@@ -15,19 +15,11 @@ impl Parse for DatabaseIdent {
                 segments.push(ident.to_string());
 
                 if buffer.is_empty() {
-                    return Ok(
-                        DatabaseIdent {
-                            segments
-                        }
-                    )
+                    return Ok(DatabaseIdent { segments });
                 } else if let Token::Symbol(Symbol::Dot) = buffer.pop_token()? {
                     continue;
                 } else {
-                    return Ok(
-                        DatabaseIdent {
-                            segments
-                        }
-                    )
+                    return Ok(DatabaseIdent { segments });
                 }
             }
         }

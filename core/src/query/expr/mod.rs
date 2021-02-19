@@ -4,9 +4,9 @@ pub use ident::DatabaseIdent;
 pub use literal::Literal;
 pub use mathematical::ArithmeticOrLogicalExpression;
 
+mod error;
 mod expression;
 mod function;
 mod ident;
 mod literal;
 mod mathematical;
-mod error;

@@ -5,17 +5,17 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
 
 fn tokens_to_string(tokens: &[Token], with_whitespace: bool) -> String {
-    tokens.iter().map(|token| token.to_string()).fold(
-        String::new(),
-        |mut carry, result| {
+    tokens
+        .iter()
+        .map(|token| token.to_string())
+        .fold(String::new(), |mut carry, result| {
             carry.push_str(&result);
             if with_whitespace {
                 carry.push(' ');
             }
 
             carry
-        },
-    )
+        })
 }
 
 pub struct TokenStream {
@@ -55,11 +55,8 @@ impl<'a> ParseBuffer<'a> {
     }
 
     pub fn pop_token(&mut self) -> Result<Token, Error> {
-        self.pop_tokens(1).map(
-            |list| list.first().unwrap().clone()
-        )
+        self.pop_tokens(1).map(|list| list.first().unwrap().clone())
     }
-
 
     pub fn is_empty(&self) -> bool {
         self.cursor.get() == self.tokens.len()
