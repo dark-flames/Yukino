@@ -29,7 +29,7 @@ impl ReadableToken for Token {
             Keyword::seed(),
             Symbol::seed(),
             Ident::seed(),
-            Literal::seed()
+            Literal::seed(),
         ];
 
         for seed in seeds.iter() {
@@ -43,7 +43,8 @@ impl ReadableToken for Token {
 
     fn seed() -> Box<dyn ReadableToken>
     where
-        Self: Sized {
+        Self: Sized,
+    {
         Box::new(Token::Symbol(Symbol::Add))
     }
 }
@@ -176,8 +177,8 @@ impl ReadableToken for Ident {
     }
 
     fn seed() -> Box<dyn ReadableToken>
-        where
-            Self: Sized
+    where
+        Self: Sized,
     {
         Box::new(Ident {
             inner: "".to_string(),
@@ -246,8 +247,8 @@ impl ReadableToken for Literal {
     }
 
     fn seed() -> Box<dyn ReadableToken>
-        where
-            Self: Sized
+    where
+        Self: Sized,
     {
         Box::new(Literal::Bool(false))
     }
@@ -288,7 +289,7 @@ impl<'a> LexBuffer<'a> {
 }
 
 pub struct Lexer<'a> {
-    buffer: LexBuffer<'a>
+    buffer: LexBuffer<'a>,
 }
 
 impl<'a> Lexer<'a> {
@@ -297,18 +298,19 @@ impl<'a> Lexer<'a> {
             content: content.chars(),
         };
         buffer.eat(0);
-        Lexer {
-            buffer
-        }
+        Lexer { buffer }
     }
 
     pub fn exec(mut self) -> Result<TokenStream, Error> {
         let mut tokens = vec![];
 
         while !self.buffer.end() {
-            tokens.push(Token::seed().parse(&mut self.buffer).unwrap().map_err(
-                |e| self.buffer.error_head(e)
-            )?)
+            tokens.push(
+                Token::seed()
+                    .parse(&mut self.buffer)
+                    .unwrap()
+                    .map_err(|e| self.buffer.error_head(e))?,
+            )
         }
 
         Ok(TokenStream::new(tokens))
@@ -317,9 +319,9 @@ impl<'a> Lexer<'a> {
 
 #[test]
 fn test_lex() {
-    let lexer = Lexer::new("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"");
+    use std::str::FromStr;
 
-    let result = lexer.exec().unwrap();
+    let result = TokenStream::from_str("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"");
 
     assert_eq!(result.len(), 10);
 

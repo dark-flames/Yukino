@@ -1,7 +1,8 @@
 use crate::query::parse::lex::Token;
-use crate::query::parse::{Error, ParseError};
+use crate::query::parse::{Error, ParseError, Lexer};
 use std::cell::Cell;
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::str::FromStr;
 
 pub struct TokenStream {
     tokens: Vec<Token>,
@@ -96,6 +97,14 @@ impl Display for TokenStream {
         );
 
         write!(f, "{}", result)
+    }
+}
+
+impl FromStr for TokenStream {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Lexer::new(s).exec()
     }
 }
 
