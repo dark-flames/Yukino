@@ -1,6 +1,6 @@
-use float_eq::float_eq;
-use crate::query::parse::{Parse, ParseBuffer, Error, Lit, Token, Symbol};
 use crate::query::expr::error::ExprParseError;
+use crate::query::parse::{Error, Lit, Parse, ParseBuffer, Symbol, Token};
+use float_eq::float_eq;
 
 #[derive(Debug)]
 pub enum Literal {
@@ -16,13 +16,13 @@ impl Literal {
     pub fn from_lit(lit: Lit) -> Result<Self, ExprParseError> {
         Ok(match lit {
             Lit::Int(v) => Literal::Int(v as i64),
-            Lit::Float(v) => Literal::Float(v.parse().map_err(
-                |_| ExprParseError::CannotParseFloat(v)
-            )?),
+            Lit::Float(v) => {
+                Literal::Float(v.parse().map_err(|_| ExprParseError::CannotParseFloat(v))?)
+            }
             Lit::Bool(v) => Literal::Bool(v),
             Lit::String(s) => Literal::Str(s),
             Lit::Char(c) => Literal::Char(c),
-            Lit::External(i) => Literal::External(i.to_string())
+            Lit::External(i) => Literal::External(i.to_string()),
         })
     }
 }
@@ -48,16 +48,14 @@ impl Parse for Literal {
         let first = buffer.pop_token()?;
 
         if let Token::Lit(lit) = first {
-            Ok(Literal::from_lit(lit).map_err(
-                |e| buffer.error_at(e, before_cursor)
-            )?)
+            Ok(Literal::from_lit(lit).map_err(|e| buffer.error_at(e, before_cursor))?)
         } else if let Token::Symbol(Symbol::Minus) = first {
             let next = buffer.parse::<Literal>()?;
 
             match next {
                 Literal::Int(value) => Ok(Literal::Int(-value)),
                 Literal::Float(value) => Ok(Literal::Float(-value)),
-                _ => Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, before_cursor))
+                _ => Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, before_cursor)),
             }
         } else {
             Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, before_cursor))
@@ -84,4 +82,18 @@ impl Parse for Literal {
             false
         }
     }
+}
+
+#[test]
+fn test_lit() {
+    use crate::query::parse::TokenStream;
+    use std::str::FromStr;
+    let token_stream = TokenStream::from_str("---114514").unwrap();
+
+    let lit: Literal = token_stream.parse().unwrap();
+
+    assert_eq!(
+        lit,
+        Literal::Int(-114514)
+    )
 }

@@ -25,12 +25,7 @@ impl Display for Token {
 
 impl ReadableToken for Token {
     fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
-        let seeds = [
-            Keyword::seed(),
-            Symbol::seed(),
-            Ident::seed(),
-            Lit::seed(),
-        ];
+        let seeds = [Keyword::seed(), Symbol::seed(), Ident::seed(), Lit::seed()];
 
         for seed in seeds.iter() {
             if let Some(result) = seed.parse(buffer) {
@@ -214,7 +209,7 @@ impl Display for Lit {
 
 impl ReadableToken for Lit {
     fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
-        if let Some(result) = Regex::new(r"^\d+.\d+").unwrap().captures(buffer.rest()) {
+        if let Some(result) = Regex::new(r"^\d+\.\d+").unwrap().captures(buffer.rest()) {
             let inner = result.get(0).unwrap().as_str().to_string();
 
             buffer.eat(inner.len());
@@ -244,7 +239,9 @@ impl ReadableToken for Lit {
             let size = result.get(0).unwrap().as_str().chars().count();
 
             if result.get(1).unwrap().as_str().chars().count() != 1 {
-                return Some(Err(ParseError::UnexpectChar(result.get(1).unwrap().as_str().to_string())))
+                return Some(Err(ParseError::UnexpectChar(
+                    result.get(1).unwrap().as_str().to_string(),
+                )));
             }
             let char = result.get(1).unwrap().as_str().chars().next().unwrap();
 

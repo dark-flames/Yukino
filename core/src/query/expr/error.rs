@@ -7,5 +7,5 @@ pub enum ExprParseError {
     #[error("Cannot parse token stream into Literal")]
     CannotParseIntoLit,
     #[error("Cannot parse \"{0}\" into string")]
-    CannotParseFloat(String)
+    CannotParseFloat(String),
 }
