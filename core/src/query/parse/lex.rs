@@ -4,12 +4,12 @@ use regex::Regex;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::Chars;
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum Token {
     Symbol(Symbol),
     Ident(Ident),
     Keyword(Keyword),
-    Lit(Literal),
+    Lit(Lit),
 }
 
 impl Display for Token {
@@ -29,7 +29,7 @@ impl ReadableToken for Token {
             Keyword::seed(),
             Symbol::seed(),
             Ident::seed(),
-            Literal::seed(),
+            Lit::seed(),
         ];
 
         for seed in seeds.iter() {
@@ -61,7 +61,7 @@ macro_rules! symbols {
     (
         $(($token: tt $name: ident $pattern: expr)),*
     ) => {
-        #[derive(Clone)]
+        #[derive(Clone, Eq, PartialEq)]
         pub enum Symbol {
             $($name),*
         }
@@ -103,6 +103,7 @@ macro_rules! symbols {
 
 symbols! {
     ("+" Add r"^\+"),
+    ("-" Minus r"^-"),
     ("*" Mul r"^\*"),
     ("." Dot r"^\.")
 }
@@ -111,7 +112,7 @@ macro_rules! keywords {
     (
         $(($token: tt $name: ident)),*
     ) => {
-        #[derive(Clone)]
+        #[derive(Clone, Eq, PartialEq)]
         pub enum Keyword {
             $($name),*
         }
@@ -153,7 +154,7 @@ keywords! {
     ("select" Select)
 }
 
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Ident {
     inner: String,
 }
@@ -187,35 +188,38 @@ impl ReadableToken for Ident {
     }
 }
 
-#[derive(Clone)]
-pub enum Literal {
+// todo: escape character, float,  int
+#[derive(Clone, Eq, PartialEq)]
+pub enum Lit {
     Int(usize),
     Float(String),
     Bool(bool),
     String(String),
+    Char(char),
     External(Ident),
 }
 
-impl Display for Literal {
+impl Display for Lit {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Literal::Int(v) => v.fmt(f),
-            Literal::Float(s) => s.fmt(f),
-            Literal::Bool(v) => v.fmt(f),
-            Literal::String(s) => write!(f, "\"{}\"", s),
-            Literal::External(ident) => write!(f, "${}", ident),
+            Lit::Int(v) => v.fmt(f),
+            Lit::Float(s) => s.fmt(f),
+            Lit::Bool(v) => v.fmt(f),
+            Lit::String(s) => write!(f, "\"{}\"", s),
+            Lit::Char(c) => write!(f, r"'{}'", c),
+            Lit::External(ident) => write!(f, "${}", ident),
         }
     }
 }
 
-impl ReadableToken for Literal {
+impl ReadableToken for Lit {
     fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
         if let Some(result) = Regex::new(r"^\d+.\d+").unwrap().captures(buffer.rest()) {
             let inner = result.get(0).unwrap().as_str().to_string();
 
             buffer.eat(inner.len());
 
-            Some(Ok(Token::Lit(Literal::Float(inner))))
+            Some(Ok(Token::Lit(Lit::Float(inner))))
         } else if let Some(result) = Regex::new(r"^(true)|(false)")
             .unwrap()
             .captures(buffer.rest())
@@ -225,9 +229,9 @@ impl ReadableToken for Literal {
             buffer.eat(inner.len());
 
             Some(Ok(if inner.as_str() == "true" {
-                Token::Lit(Literal::Bool(true))
+                Token::Lit(Lit::Bool(true))
             } else {
-                Token::Lit(Literal::Bool(false))
+                Token::Lit(Lit::Bool(false))
             }))
         } else if let Some(result) = Regex::new("^\"(\\w+)\"").unwrap().captures(buffer.rest()) {
             let size = result.get(0).unwrap().as_str().chars().count();
@@ -235,13 +239,24 @@ impl ReadableToken for Literal {
 
             buffer.eat(size);
 
-            Some(Ok(Token::Lit(Literal::String(inner))))
+            Some(Ok(Token::Lit(Lit::String(inner))))
+        } else if let Some(result) = Regex::new(r"^'(\\w+)'").unwrap().captures(buffer.rest()) {
+            let size = result.get(0).unwrap().as_str().chars().count();
+
+            if result.get(1).unwrap().as_str().chars().count() != 1 {
+                return Some(Err(ParseError::UnexpectChar(result.get(1).unwrap().as_str().to_string())))
+            }
+            let char = result.get(1).unwrap().as_str().chars().next().unwrap();
+
+            buffer.eat(size);
+
+            Some(Ok(Token::Lit(Lit::Char(char))))
         } else if let Some(result) = Regex::new(r"^\d+").unwrap().captures(buffer.rest()) {
             let inner = result.get(0).unwrap().as_str().to_string();
 
             buffer.eat(inner.len());
 
-            Some(Ok(Token::Lit(Literal::Int(inner.parse().unwrap()))))
+            Some(Ok(Token::Lit(Lit::Int(inner.parse().unwrap()))))
         } else {
             None
         }
@@ -251,7 +266,7 @@ impl ReadableToken for Literal {
     where
         Self: Sized,
     {
-        Box::new(Literal::Bool(false))
+        Box::new(Lit::Bool(false))
     }
 }
 

@@ -45,4 +45,6 @@ pub enum ParseError {
     UnknownToken,
     #[error("length of token is {0}, got index: {1}")]
     UnexpectTokenOffset(usize, usize),
+    #[error("Can not parse into char: {0}")]
+    UnexpectChar(String)
 }

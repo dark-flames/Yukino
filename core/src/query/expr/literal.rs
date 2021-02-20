@@ -1,13 +1,30 @@
 use float_eq::float_eq;
+use crate::query::parse::{Parse, ParseBuffer, Error, Lit, Token, Symbol};
+use crate::query::expr::error::ExprParseError;
 
 #[derive(Debug)]
 pub enum Literal {
     Bool(bool),
-    Int(usize),
+    Int(i64),
     Float(f64),
     Str(String),
     Char(char),
     External(String),
+}
+
+impl Literal {
+    pub fn from_lit(lit: Lit) -> Result<Self, ExprParseError> {
+        Ok(match lit {
+            Lit::Int(v) => Literal::Int(v as i64),
+            Lit::Float(v) => Literal::Float(v.parse().map_err(
+                |_| ExprParseError::CannotParseFloat(v)
+            )?),
+            Lit::Bool(v) => Literal::Bool(v),
+            Lit::String(s) => Literal::Str(s),
+            Lit::Char(c) => Literal::Char(c),
+            Lit::External(i) => Literal::External(i.to_string())
+        })
+    }
 }
 
 impl PartialEq for Literal {
@@ -24,3 +41,47 @@ impl PartialEq for Literal {
 }
 
 impl Eq for Literal {}
+
+impl Parse for Literal {
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
+        let before_cursor = buffer.cursor();
+        let first = buffer.pop_token()?;
+
+        if let Token::Lit(lit) = first {
+            Ok(Literal::from_lit(lit).map_err(
+                |e| buffer.error_at(e, before_cursor)
+            )?)
+        } else if let Token::Symbol(Symbol::Minus) = first {
+            let next = buffer.parse::<Literal>()?;
+
+            match next {
+                Literal::Int(value) => Ok(Literal::Int(-value)),
+                Literal::Float(value) => Ok(Literal::Float(-value)),
+                _ => Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, before_cursor))
+            }
+        } else {
+            Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, before_cursor))
+        }
+    }
+
+    fn peek(buffer: &ParseBuffer) -> bool {
+        let mut iter = buffer.get_tokens().iter();
+        let mut current = iter.next();
+        let mut minus = false;
+
+        while let Some(Token::Symbol(Symbol::Minus)) = current {
+            minus = true;
+            current = iter.next();
+        }
+
+        if let Some(Token::Lit(lit)) = current {
+            if minus {
+                matches!(lit, Lit::Int(_) | Lit::Float(_))
+            } else {
+                true
+            }
+        } else {
+            false
+        }
+    }
+}

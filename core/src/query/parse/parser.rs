@@ -30,7 +30,7 @@ pub struct ParseBuffer<'a> {
 }
 
 impl<'a> ParseBuffer<'a> {
-    pub fn get_token(&self) -> &[Token] {
+    pub fn get_tokens(&self) -> &[Token] {
         self.tokens.split_at(self.cursor.get()).1
     }
 
@@ -44,9 +44,9 @@ impl<'a> ParseBuffer<'a> {
 
     pub fn pop_tokens(&mut self, len: usize) -> Result<Vec<Token>, Error> {
         if len > self.tokens.len() {
-            Err(self.error(ParseError::UnexpectTokenOffset(self.tokens.len(), len)))
+            Err(self.error_head(ParseError::UnexpectTokenOffset(self.tokens.len(), len)))
         } else {
-            let result = self.get_token().split_at(len).0;
+            let result = self.get_tokens().split_at(len).0;
 
             self.cursor.set(self.cursor.get() + len);
 
@@ -62,8 +62,8 @@ impl<'a> ParseBuffer<'a> {
         self.cursor.get() == self.tokens.len()
     }
 
-    pub fn error<T: Display>(&self, message: T) -> Error {
-        let mut content_cursor = self.cursor.get();
+    pub fn error_at<T: Display>(&self, message: T, cursor: usize) -> Error {
+        let mut content_cursor = cursor;
 
         content_cursor = if content_cursor < 2 {
             0
@@ -73,12 +73,24 @@ impl<'a> ParseBuffer<'a> {
 
         let tokens = self.tokens.split_at(content_cursor).1;
 
-        let pre = tokens.split_at(self.cursor.get() - content_cursor).0;
+        let pre = tokens.split_at(cursor - content_cursor).0;
 
         let content = tokens_to_string(tokens, false);
         let pos = tokens_to_string(pre, false).len();
 
         Error::new(message, content, pos)
+    }
+
+    pub fn error_head<T: Display>(&self, message: T) -> Error {
+        self.error_at(message, self.cursor.get())
+    }
+
+    pub fn error_offset<T: Display>(&self, message: T, offset: isize) -> Error {
+        self.error_at(message, ((self.cursor.get() as isize) + offset) as usize)
+    }
+
+    pub fn cursor(&self) -> usize {
+        self.cursor.get()
     }
 }
 

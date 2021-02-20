@@ -24,11 +24,11 @@ impl Parse for DatabaseIdent {
             }
         }
 
-        Err(buffer.error(ExprParseError::CannotParseIntoIdent))
+        Err(buffer.error_head(ExprParseError::CannotParseIntoIdent))
     }
 
     fn peek(buffer: &ParseBuffer) -> bool {
-        let mut iter = buffer.get_token().iter();
+        let mut iter = buffer.get_tokens().iter();
         let mut matched = false;
 
         if !buffer.is_empty() {
