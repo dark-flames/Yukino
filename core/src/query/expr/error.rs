@@ -6,6 +6,8 @@ pub enum ExprParseError {
     CannotParseIntoIdent,
     #[error("Cannot parse token stream into Literal")]
     CannotParseIntoLit,
+    #[error("Cannot parse token stream into Function")]
+    CannotParseIntoFunction,
     #[error("Cannot parse \"{0}\" into string")]
     CannotParseFloat(String),
 }

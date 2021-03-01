@@ -38,6 +38,10 @@ impl<'a> ParseBuffer<'a> {
         E::peek(self)
     }
 
+    pub fn peek_token(&self, token: Token) -> bool {
+        Some(&token) == self.tokens.first()
+    }
+
     pub fn parse<E: Parse>(&mut self) -> Result<E, Error> {
         E::parse(self)
     }

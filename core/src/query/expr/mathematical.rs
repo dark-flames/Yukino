@@ -1,4 +1,6 @@
 use crate::query::expr::expression::Expression;
+
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Eq, PartialEq)]
 pub enum ArithmeticOrLogicalExpression {
     BitInverse(Box<Expression>),

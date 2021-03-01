@@ -97,11 +97,9 @@ impl<E: Entity + Clone> ValueConverter<AssociatedEntity<E>> for AssociatedEntity
                 Ok(associated_result
                     .into_iter()
                     .filter_map(|(column, value)| {
-                        if let Some(current_column_name) = reverse_map.get(&column) {
-                            Some((current_column_name.clone(), value))
-                        } else {
-                            None
-                        }
+                        reverse_map.get(&column).map(|current_column_name|
+                            (current_column_name.clone(), value)
+                        )
                     })
                     .collect())
             }
@@ -171,11 +169,9 @@ impl<E: Entity + Clone> ValueConverter<Option<AssociatedEntity<E>>>
                 Ok(associated_result
                     .into_iter()
                     .filter_map(|(column, value)| {
-                        if let Some(current_column_name) = reverse_map.get(&column) {
-                            Some((current_column_name.clone(), value))
-                        } else {
-                            None
-                        }
+                        reverse_map.get(&column).map(|current_column_name|
+                            (current_column_name.clone(), value)
+                        )
                     })
                     .collect())
             }

@@ -92,8 +92,5 @@ fn test_lit() {
 
     let lit: Literal = token_stream.parse().unwrap();
 
-    assert_eq!(
-        lit,
-        Literal::Int(-114514)
-    )
+    assert_eq!(lit, Literal::Int(-114514))
 }

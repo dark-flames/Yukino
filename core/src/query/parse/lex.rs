@@ -100,7 +100,10 @@ symbols! {
     ("+" Add r"^\+"),
     ("-" Minus r"^-"),
     ("*" Mul r"^\*"),
-    ("." Dot r"^\.")
+    ("." Dot r"^\."),
+    ("," Comma r"^,"),
+    ("(" ParenLeft r"^\("),
+    (")" ParenRight r"^\)")
 }
 
 macro_rules! keywords {

@@ -45,7 +45,7 @@ impl SchemaResolver {
         input: ItemStruct,
         type_path_resolver: &TypePathResolver,
     ) -> Result<(), SynError> {
-        let entity_annotation = match input
+        let entity_annotation = input
             .attrs
             .iter()
             .filter_map(|attr| {
@@ -55,11 +55,7 @@ impl SchemaResolver {
                     None
                 }
             })
-            .next()
-        {
-            Some(annotation) => Some(annotation?),
-            None => None,
-        };
+            .next().map_or(Ok(None), |v| v.map(Some))?;
 
         if let Fields::Named(named_fields) = &input.fields {
             let entity_name = self
