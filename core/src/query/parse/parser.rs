@@ -1,5 +1,4 @@
-use crate::query::parse::lex::Token;
-use crate::query::parse::{Error, Lexer, ParseError};
+use crate::query::parse::{Error, Lexer, ParseError, Token};
 use std::cell::Cell;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
@@ -34,12 +33,16 @@ impl<'a> ParseBuffer<'a> {
         self.tokens.split_at(self.cursor.get()).1
     }
 
+    pub fn get_token(&self) -> Option<&Token> {
+        self.tokens.first()
+    }
+
     pub fn peek<E: Parse>(&self) -> bool {
         E::peek(self)
     }
 
     pub fn peek_token(&self, token: Token) -> bool {
-        Some(&token) == self.tokens.first()
+        Some(&token) == self.get_token()
     }
 
     pub fn parse<E: Parse>(&mut self) -> Result<E, Error> {

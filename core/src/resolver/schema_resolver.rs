@@ -55,7 +55,8 @@ impl SchemaResolver {
                     None
                 }
             })
-            .next().map_or(Ok(None), |v| v.map(Some))?;
+            .next()
+            .map_or(Ok(None), |v| v.map(Some))?;
 
         if let Fields::Named(named_fields) = &input.fields {
             let entity_name = self

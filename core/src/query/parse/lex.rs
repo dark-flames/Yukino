@@ -103,7 +103,8 @@ symbols! {
     ("." Dot r"^\."),
     ("," Comma r"^,"),
     ("(" ParenLeft r"^\("),
-    (")" ParenRight r"^\)")
+    (")" ParenRight r"^\)"),
+    ("~" Tilde r"^~")
 }
 
 macro_rules! keywords {
@@ -149,6 +150,10 @@ macro_rules! keywords {
 }
 
 keywords! {
+    ("not" Not),
+    ("and" And),
+    ("or" Or),
+    ("xor" Xor),
     ("select" Select)
 }
 

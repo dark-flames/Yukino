@@ -10,4 +10,6 @@ pub enum ExprParseError {
     CannotParseIntoFunction,
     #[error("Cannot parse \"{0}\" into string")]
     CannotParseFloat(String),
+    #[error("Expect an unary operator here")]
+    CannotParseIntoUnaryOperator,
 }

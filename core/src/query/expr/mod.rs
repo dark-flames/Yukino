@@ -10,3 +10,4 @@ mod function;
 mod ident;
 mod literal;
 mod mathematical;
+mod precedence;
