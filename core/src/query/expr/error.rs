@@ -14,4 +14,8 @@ pub enum ExprParseError {
     CannotParseIntoUnaryOperator,
     #[error("Expect an binary operator here")]
     CannotParseIntoBinaryOperator,
+    #[error("Expect some token")]
+    CannotParseIntoExpression,
+    #[error("Unmatched parenthesis missing ')'")]
+    CannotFindRightParen
 }

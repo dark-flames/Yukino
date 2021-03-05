@@ -99,6 +99,18 @@ impl<'a> ParseBuffer<'a> {
     pub fn cursor(&self) -> usize {
         self.cursor.get()
     }
+
+    pub fn split_at(&mut self, offset: usize) -> ParseBuffer {
+        let old_cursor = self.cursor();
+        let new_cursor = old_cursor + offset;
+
+        self.cursor.set(new_cursor);
+
+        ParseBuffer {
+            tokens: self.tokens.split_at(new_cursor).0.split_at(old_cursor).1,
+            cursor: Cell::new(0)
+        }
+    }
 }
 
 impl TokenStream {

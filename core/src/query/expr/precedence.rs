@@ -1,4 +1,4 @@
-use crate::query::expr::mathematical::UnaryOperator;
+use crate::query::expr::unary::UnaryOperator;
 use crate::query::expr::{DatabaseIdent, FunctionCall, Literal};
 use crate::query::parse::ParseBuffer;
 
