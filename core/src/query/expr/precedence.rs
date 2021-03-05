@@ -1,6 +1,6 @@
-use crate::query::parse::{ParseBuffer};
-use crate::query::expr::{FunctionCall, DatabaseIdent, Literal};
 use crate::query::expr::mathematical::UnaryOperator;
+use crate::query::expr::{DatabaseIdent, FunctionCall, Literal};
+use crate::query::parse::ParseBuffer;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Precedence {
@@ -18,7 +18,7 @@ pub enum Precedence {
     BitInverse,
     Ident,
     FunctionCall,
-    Lit
+    Lit,
 }
 
 impl Precedence {

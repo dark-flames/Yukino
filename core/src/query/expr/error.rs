@@ -12,4 +12,6 @@ pub enum ExprParseError {
     CannotParseFloat(String),
     #[error("Expect an unary operator here")]
     CannotParseIntoUnaryOperator,
+    #[error("Expect an binary operator here")]
+    CannotParseIntoBinaryOperator,
 }

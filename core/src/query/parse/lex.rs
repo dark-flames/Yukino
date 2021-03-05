@@ -97,14 +97,27 @@ macro_rules! symbols {
 }
 
 symbols! {
+    ("<<" LeftShift r"^<<"),
+    (">>" RightShift r"^>>"),
+    (">=" GreaterEqual r"^>="),
+    ("<=" LessEqual r"^<="),
+    ("==" Equal r"^=="),
+    ("!=" NotEqual r"^!="),
+    (">" Greater r"^>"),
+    ("<" Less r"^<"),
     ("+" Add r"^\+"),
     ("-" Minus r"^-"),
     ("*" Mul r"^\*"),
+    ("/" Div r"^\/"),
+    ("%" Mod r"^\%"),
     ("." Dot r"^\."),
     ("," Comma r"^,"),
     ("(" ParenLeft r"^\("),
     (")" ParenRight r"^\)"),
-    ("~" Tilde r"^~")
+    ("^" Caret r"^\^"),
+    ("~" Tilde r"^~"),
+    ("&" And r"^&"),
+    ("|" Or r"^\|")
 }
 
 macro_rules! keywords {
