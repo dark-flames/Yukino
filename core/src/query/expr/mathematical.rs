@@ -141,14 +141,15 @@ impl BinaryOperator {
             BinaryOperator::BitLeftShift | BinaryOperator::BitRightShift => Precedence::BitShift,
             BinaryOperator::BitAnd => Precedence::BitAnd,
             BinaryOperator::BitOr => Precedence::BitOr,
-            BinaryOperator::GT | BinaryOperator::LT
-                | BinaryOperator::GTE
-                | BinaryOperator::LTE
-                | BinaryOperator::EQ
-                | BinaryOperator::NEQ => Precedence::Comparison,
+            BinaryOperator::GT
+            | BinaryOperator::LT
+            | BinaryOperator::GTE
+            | BinaryOperator::LTE
+            | BinaryOperator::EQ
+            | BinaryOperator::NEQ => Precedence::Comparison,
             BinaryOperator::And => Precedence::And,
             BinaryOperator::Or => Precedence::Or,
-            BinaryOperator::Xor => Precedence::Xor
+            BinaryOperator::Xor => Precedence::Xor,
         }
     }
 
@@ -170,7 +171,9 @@ impl BinaryOperator {
             BinaryOperator::Add => BinaryExpression::Add(boxed_left, boxed_right),
             BinaryOperator::Sub => BinaryExpression::Sub(boxed_left, boxed_right),
             BinaryOperator::BitLeftShift => BinaryExpression::BitLeftShift(boxed_left, boxed_right),
-            BinaryOperator::BitRightShift => BinaryExpression::BitRightShift(boxed_left, boxed_right),
+            BinaryOperator::BitRightShift => {
+                BinaryExpression::BitRightShift(boxed_left, boxed_right)
+            }
             BinaryOperator::BitAnd => BinaryExpression::BitAnd(boxed_left, boxed_right),
             BinaryOperator::BitOr => BinaryExpression::BitOr(boxed_left, boxed_right),
             BinaryOperator::GT => BinaryExpression::GT(boxed_left, boxed_right),
