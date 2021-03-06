@@ -42,8 +42,10 @@ impl Parse for FunctionCall {
     }
 
     fn peek(buffer: &ParseBuffer) -> bool {
-        let mut buffer_cloned = buffer.clone();
+        let mut tokens = buffer.get_tokens().iter();
 
-        matches!(buffer_cloned.parse::<FunctionCall>(), Ok(_))
+        matches!(tokens.next(), Some(Token::Ident(_)))
+            && matches!(tokens.next(), Some(Token::Symbol(Symbol::ParenLeft)))
+            && tokens.any(|token| matches!(token, Token::Symbol(Symbol::ParenRight)))
     }
 }

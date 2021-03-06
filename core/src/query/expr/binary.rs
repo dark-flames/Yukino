@@ -4,6 +4,7 @@ use crate::query::expr::precedence::Precedence;
 use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token};
 
 #[allow(clippy::upper_case_acronyms)]
+#[derive(Debug)]
 pub enum BinaryOperator {
     BitXor,
     Multi,
@@ -163,21 +164,19 @@ impl BinaryExpression {
             BinaryExpression::NEQ(_, _) => BinaryOperator::NEQ,
             BinaryExpression::And(_, _) => BinaryOperator::And,
             BinaryExpression::Or(_, _) => BinaryOperator::Or,
-            BinaryExpression::Xor(_, _) => BinaryOperator::Xor
+            BinaryExpression::Xor(_, _) => BinaryOperator::Xor,
         }
     }
 
-    pub fn parse_right_side(buffer: &mut ParseBuffer, left: Expression) -> Result<BinaryExpression, Error> {
+    pub fn parse_right_side(
+        buffer: &mut ParseBuffer,
+        left: Expression,
+    ) -> Result<BinaryExpression, Error> {
         let head = buffer.cursor();
         let operator: BinaryOperator = buffer.parse()?;
 
-        let right = Expression::parse_item_with_precedence(
-            buffer,
-            operator.precedence()
-        )?.ok_or_else(|| buffer.error_at(
-            ExprParseError::CannotParseIntoExpression,
-            head
-        ))?;
+        let right = Expression::parse_item_with_precedence(buffer, operator.precedence())?
+            .ok_or_else(|| buffer.error_at(ExprParseError::CannotParseIntoExpression, head))?;
 
         Ok(operator.with_expr(left, right))
     }

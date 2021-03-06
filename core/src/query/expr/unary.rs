@@ -1,9 +1,7 @@
-use crate::query::parse::{
-    Parse, ParseBuffer, Error, Token, Symbol, Keyword
-};
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::precedence::Precedence;
 use crate::query::expr::Expression;
+use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token};
 
 pub enum UnaryOperator {
     BitInverse,
@@ -61,13 +59,8 @@ impl Parse for UnaryExpression {
         let head = buffer.cursor();
         let operator: UnaryOperator = buffer.parse()?;
 
-        let right = Expression::parse_item_with_precedence(
-            buffer,
-            operator.precedence()
-        )?.ok_or_else(|| buffer.error_at(
-            ExprParseError::CannotParseIntoExpression,
-            head
-        ))?;
+        let right = Expression::parse_item_with_precedence(buffer, operator.precedence())?
+            .ok_or_else(|| buffer.error_at(ExprParseError::CannotParseIntoExpression, head))?;
 
         Ok(operator.with_expr(right))
     }

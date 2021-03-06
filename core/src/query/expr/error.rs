@@ -17,5 +17,5 @@ pub enum ExprParseError {
     #[error("Expect some token")]
     CannotParseIntoExpression,
     #[error("Unmatched parenthesis missing ')'")]
-    CannotFindRightParen
+    CannotFindRightParen,
 }

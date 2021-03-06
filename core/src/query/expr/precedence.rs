@@ -1,9 +1,11 @@
+use crate::query::expr::binary::BinaryOperator;
 use crate::query::expr::unary::UnaryOperator;
 use crate::query::expr::{DatabaseIdent, FunctionCall, Literal};
 use crate::query::parse::ParseBuffer;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Precedence {
+    None,
     Or,
     Xor,
     And,
@@ -22,8 +24,8 @@ pub enum Precedence {
 }
 
 impl Precedence {
-    pub fn peek(buffer: &ParseBuffer) -> Self {
-        if buffer.peek::<Literal>() {
+    pub fn peek(buffer: &ParseBuffer) -> Option<Self> {
+        Some(if buffer.peek::<Literal>() {
             Precedence::Lit
         } else if buffer.peek::<FunctionCall>() {
             Precedence::FunctionCall
@@ -31,8 +33,10 @@ impl Precedence {
             Precedence::Ident
         } else if buffer.peek::<UnaryOperator>() {
             UnaryOperator::peek_operator(buffer).unwrap().precedence()
+        } else if buffer.peek::<BinaryOperator>() {
+            BinaryOperator::peek_operator(buffer).unwrap().precedence()
         } else {
-            unreachable!()
-        }
+            return None;
+        })
     }
 }

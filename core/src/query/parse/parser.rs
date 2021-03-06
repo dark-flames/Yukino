@@ -34,7 +34,7 @@ impl<'a> ParseBuffer<'a> {
     }
 
     pub fn get_token(&self) -> Option<&Token> {
-        self.tokens.first()
+        self.get_tokens().first()
     }
 
     pub fn peek<E: Parse>(&self) -> bool {
@@ -50,11 +50,10 @@ impl<'a> ParseBuffer<'a> {
     }
 
     pub fn pop_tokens(&mut self, len: usize) -> Result<Vec<Token>, Error> {
-        if len > self.tokens.len() {
+        if len > self.get_tokens().len() {
             Err(self.error_head(ParseError::UnexpectTokenOffset(self.tokens.len(), len)))
         } else {
             let result = self.get_tokens().split_at(len).0;
-
             self.cursor.set(self.cursor.get() + len);
 
             Ok(result.to_vec())
@@ -108,7 +107,7 @@ impl<'a> ParseBuffer<'a> {
 
         ParseBuffer {
             tokens: self.tokens.split_at(new_cursor).0.split_at(old_cursor).1,
-            cursor: Cell::new(0)
+            cursor: Cell::new(0),
         }
     }
 }

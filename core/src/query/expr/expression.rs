@@ -1,11 +1,11 @@
+use crate::query::expr::binary::{BinaryExpression, BinaryOperator};
+use crate::query::expr::error::ExprParseError;
 use crate::query::expr::function::FunctionCall;
 use crate::query::expr::ident::DatabaseIdent;
 use crate::query::expr::literal::Literal;
-use crate::query::expr::binary::{BinaryExpression, BinaryOperator};
 use crate::query::expr::precedence::Precedence;
-use crate::query::parse::{Error, Parse, ParseBuffer, Token, Symbol};
-use crate::query::expr::error::ExprParseError;
 use crate::query::expr::unary::{UnaryExpression, UnaryOperator};
+use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expression {
@@ -13,16 +13,21 @@ pub enum Expression {
     Binary(BinaryExpression),
     Ident(DatabaseIdent),
     Function(FunctionCall),
-    Literal(Literal)
+    Literal(Literal),
 }
 
 impl Parse for Expression {
-    fn parse(_buffer: &mut ParseBuffer) -> Result<Self, Error> {
-        unimplemented!()
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
+        let head = buffer.cursor();
+
+        Expression::parse_item_with_precedence(buffer, Precedence::None)?
+            .ok_or_else(|| buffer.error_at(ExprParseError::CannotParseIntoExpression, head))
     }
 
-    fn peek(_buffer: &ParseBuffer) -> bool {
-        unimplemented!()
+    fn peek(buffer: &ParseBuffer) -> bool {
+        let mut buffer_cloned = buffer.clone();
+
+        matches!(buffer_cloned.parse::<Expression>(), Ok(_))
     }
 }
 
@@ -33,16 +38,18 @@ impl Expression {
     ) -> Result<Option<Self>, Error> {
         let head = buffer.cursor();
         let mut result = if buffer.peek_token(Token::Symbol(Symbol::ParenLeft)) {
-            let offset = buffer.get_tokens().iter().position(
-                |token| matches!(token, Token::Symbol(Symbol::ParenRight))
-            ).ok_or_else(|| buffer.error_at(
-                ExprParseError::CannotFindRightParen,
-                head
-            ))?;
+            buffer.pop_token()?;
+            let offset = buffer
+                .get_tokens()
+                .iter()
+                .position(|token| matches!(token, Token::Symbol(Symbol::ParenRight)))
+                .ok_or_else(|| buffer.error_at(ExprParseError::CannotFindRightParen, head))?;
 
             let mut new_buffer = buffer.split_at(offset);
 
             let expr = new_buffer.parse::<Expression>()?;
+
+            assert!(new_buffer.is_empty());
 
             buffer.pop_token()?;
 
@@ -59,29 +66,47 @@ impl Expression {
             if precedence <= operator.precedence() {
                 Expression::Unary(buffer.parse()?)
             } else {
-                return Ok(None)
+                return Ok(None);
             }
         } else {
-            return Err(buffer.error_at(
-                ExprParseError::CannotParseIntoExpression,
-                head
-            ))
+            return Err(buffer.error_at(ExprParseError::CannotParseIntoExpression, head));
         };
 
         while !buffer.is_empty() {
-            if let Ok(operator) = BinaryOperator::peek_operator(buffer) {
-                if precedence <= operator.precedence() {
-                    result = Expression::Binary(
-                        BinaryExpression::parse_right_side(buffer, result)?
-                    );
-                } else {
-                    break;
-                }
+            let operator = BinaryOperator::peek_operator(buffer)?;
+            if precedence <= operator.precedence() {
+                result = Expression::Binary(BinaryExpression::parse_right_side(buffer, result)?);
             } else {
                 break;
             }
-        };
+        }
 
         Ok(Some(result))
     }
+}
+
+#[test]
+fn test_expr() {
+    use crate::query::parse::TokenStream;
+    use std::str::FromStr;
+
+    let token_stream = TokenStream::from_str("-5 + (1 + ~2) * 10").unwrap();
+
+    let result: Expression = token_stream.parse().unwrap();
+
+    assert_eq!(
+        result,
+        Expression::Binary(BinaryExpression::Add(
+            Box::new(Expression::Literal(Literal::Int(-5))),
+            Box::new(Expression::Binary(BinaryExpression::Multi(
+                Box::new(Expression::Binary(BinaryExpression::Add(
+                    Box::new(Expression::Literal(Literal::Int(1))),
+                    Box::new(Expression::Unary(UnaryExpression::BitInverse(Box::new(
+                        Expression::Literal(Literal::Int(2))
+                    ))))
+                ))),
+                Box::new(Expression::Literal(Literal::Int(10)))
+            )))
+        ))
+    )
 }
