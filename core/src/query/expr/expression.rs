@@ -73,7 +73,6 @@ impl Expression {
         };
 
         while let Ok(operator) = BinaryOperator::peek_operator(buffer) {
-
             if precedence <= operator.precedence() {
                 result = Expression::Binary(BinaryExpression::parse_right_side(buffer, result)?);
             } else {
@@ -91,28 +90,27 @@ fn test_expr() {
     use std::str::FromStr;
 
     let token_stream = TokenStream::from_str(
-        "-5 + (1 + ~2) * 10.0 <= test(table.column.a, \"やりますねぇ\", false)"
-    ).unwrap();
+        "-5 + (1 + ~2) * 10.0 <= test(table.column.a, \"やりますねぇ\", false)",
+    )
+    .unwrap();
 
     let result: Expression = token_stream.parse().unwrap();
 
     assert_eq!(
         result,
         Expression::Binary(BinaryExpression::LTE(
-            Box::new(Expression::Binary(
-                BinaryExpression::Add(
-                    Box::new(Expression::Literal(Literal::Int(-5))),
-                    Box::new(Expression::Binary(BinaryExpression::Multi(
-                        Box::new(Expression::Binary(BinaryExpression::Add(
-                            Box::new(Expression::Literal(Literal::Int(1))),
-                            Box::new(Expression::Unary(UnaryExpression::BitInverse(Box::new(
-                                Expression::Literal(Literal::Int(2))
-                            ))))
-                        ))),
-                        Box::new(Expression::Literal(Literal::Float(10.0)))
-                    )))
-                )
-            )),
+            Box::new(Expression::Binary(BinaryExpression::Add(
+                Box::new(Expression::Literal(Literal::Int(-5))),
+                Box::new(Expression::Binary(BinaryExpression::Multi(
+                    Box::new(Expression::Binary(BinaryExpression::Add(
+                        Box::new(Expression::Literal(Literal::Int(1))),
+                        Box::new(Expression::Unary(UnaryExpression::BitInverse(Box::new(
+                            Expression::Literal(Literal::Int(2))
+                        ))))
+                    ))),
+                    Box::new(Expression::Literal(Literal::Float(10.0)))
+                )))
+            ))),
             Box::new(Expression::Function(FunctionCall {
                 ident: "test".to_string(),
                 parameters: vec![

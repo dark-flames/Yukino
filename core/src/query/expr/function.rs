@@ -28,7 +28,7 @@ impl Parse for FunctionCall {
                             )
                         }
                     }
-                };
+                }
 
                 Ok(FunctionCall {
                     ident: ident.to_string(),
@@ -56,9 +56,8 @@ fn test_function_peek() {
     use crate::query::parse::TokenStream;
     use std::str::FromStr;
 
-    let token_stream = TokenStream::from_str(
-        "test(table.column.a, \"やりますねぇ\", false)"
-    ).unwrap();
+    let token_stream =
+        TokenStream::from_str("test(table.column.a, \"やりますねぇ\", false)").unwrap();
 
     assert!(token_stream.peek::<FunctionCall>())
 }

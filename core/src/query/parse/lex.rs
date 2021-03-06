@@ -356,7 +356,8 @@ fn test_lex() {
     use std::str::FromStr;
 
     let result =
-        TokenStream::from_str("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\" + false").unwrap();
+        TokenStream::from_str("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\" + false")
+            .unwrap();
 
     assert_eq!(result.len(), 12);
 
