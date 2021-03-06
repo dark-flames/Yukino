@@ -25,7 +25,7 @@ impl Display for Token {
 
 impl ReadableToken for Token {
     fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
-        let seeds = [Keyword::seed(), Symbol::seed(), Ident::seed(), Lit::seed()];
+        let seeds = [Keyword::seed(), Symbol::seed(), Lit::seed(), Ident::seed()];
 
         for seed in seeds.iter() {
             if let Some(result) = seed.parse(buffer) {
@@ -236,7 +236,7 @@ impl ReadableToken for Lit {
             buffer.eat(inner.len());
 
             Some(Ok(Token::Lit(Lit::Float(inner))))
-        } else if let Some(result) = Regex::new(r"^(true)|(false)")
+        } else if let Some(result) = Regex::new(r"^(true)|^(false)")
             .unwrap()
             .captures(buffer.rest())
         {
@@ -356,12 +356,12 @@ fn test_lex() {
     use std::str::FromStr;
 
     let result =
-        TokenStream::from_str("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\"").unwrap();
+        TokenStream::from_str("sElect __ident_a + ident_b * IdentC + 1 + \"sdasds\" + false").unwrap();
 
-    assert_eq!(result.len(), 10);
+    assert_eq!(result.len(), 12);
 
     assert_eq!(
         result.to_string(),
-        "select __ident_a + ident_b * IdentC + 1 + \"sdasds\" ".to_string()
+        "select __ident_a + ident_b * IdentC + 1 + \"sdasds\" + false ".to_string()
     );
 }

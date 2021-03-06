@@ -72,8 +72,8 @@ impl Expression {
             return Err(buffer.error_at(ExprParseError::CannotParseIntoExpression, head));
         };
 
-        while !buffer.is_empty() {
-            let operator = BinaryOperator::peek_operator(buffer)?;
+        while let Ok(operator) = BinaryOperator::peek_operator(buffer) {
+
             if precedence <= operator.precedence() {
                 result = Expression::Binary(BinaryExpression::parse_right_side(buffer, result)?);
             } else {
@@ -90,23 +90,39 @@ fn test_expr() {
     use crate::query::parse::TokenStream;
     use std::str::FromStr;
 
-    let token_stream = TokenStream::from_str("-5 + (1 + ~2) * 10").unwrap();
+    let token_stream = TokenStream::from_str(
+        "-5 + (1 + ~2) * 10.0 <= test(table.column.a, \"やりますねぇ\", false)"
+    ).unwrap();
 
     let result: Expression = token_stream.parse().unwrap();
 
     assert_eq!(
         result,
-        Expression::Binary(BinaryExpression::Add(
-            Box::new(Expression::Literal(Literal::Int(-5))),
-            Box::new(Expression::Binary(BinaryExpression::Multi(
-                Box::new(Expression::Binary(BinaryExpression::Add(
-                    Box::new(Expression::Literal(Literal::Int(1))),
-                    Box::new(Expression::Unary(UnaryExpression::BitInverse(Box::new(
-                        Expression::Literal(Literal::Int(2))
-                    ))))
-                ))),
-                Box::new(Expression::Literal(Literal::Int(10)))
-            )))
+        Expression::Binary(BinaryExpression::LTE(
+            Box::new(Expression::Binary(
+                BinaryExpression::Add(
+                    Box::new(Expression::Literal(Literal::Int(-5))),
+                    Box::new(Expression::Binary(BinaryExpression::Multi(
+                        Box::new(Expression::Binary(BinaryExpression::Add(
+                            Box::new(Expression::Literal(Literal::Int(1))),
+                            Box::new(Expression::Unary(UnaryExpression::BitInverse(Box::new(
+                                Expression::Literal(Literal::Int(2))
+                            ))))
+                        ))),
+                        Box::new(Expression::Literal(Literal::Float(10.0)))
+                    )))
+                )
+            )),
+            Box::new(Expression::Function(FunctionCall {
+                ident: "test".to_string(),
+                parameters: vec![
+                    Expression::Ident(DatabaseIdent {
+                        segments: vec!["table".to_string(), "column".to_string(), "a".to_string()]
+                    }),
+                    Expression::Literal(Literal::Str("やりますねぇ".to_string())),
+                    Expression::Literal(Literal::Bool(false)),
+                ]
+            }))
         ))
     )
 }

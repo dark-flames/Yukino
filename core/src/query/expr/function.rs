@@ -4,8 +4,8 @@ use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionCall {
-    ident: String,
-    parameters: Vec<Expression>,
+    pub ident: String,
+    pub parameters: Vec<Expression>,
 }
 
 impl Parse for FunctionCall {
@@ -15,9 +15,10 @@ impl Parse for FunctionCall {
         if let Token::Ident(ident) = buffer.pop_token()? {
             if let Token::Symbol(Symbol::ParenLeft) = buffer.pop_token()? {
                 let mut parameters = vec![];
-                while buffer.peek::<Expression>() {
+                loop {
                     let expr = buffer.parse()?;
                     parameters.push(expr);
+
                     match buffer.pop_token()? {
                         Token::Symbol(Symbol::Comma) => continue,
                         Token::Symbol(Symbol::ParenRight) => break,
@@ -27,7 +28,7 @@ impl Parse for FunctionCall {
                             )
                         }
                     }
-                }
+                };
 
                 Ok(FunctionCall {
                     ident: ident.to_string(),
@@ -48,4 +49,16 @@ impl Parse for FunctionCall {
             && matches!(tokens.next(), Some(Token::Symbol(Symbol::ParenLeft)))
             && tokens.any(|token| matches!(token, Token::Symbol(Symbol::ParenRight)))
     }
+}
+
+#[test]
+fn test_function_peek() {
+    use crate::query::parse::TokenStream;
+    use std::str::FromStr;
+
+    let token_stream = TokenStream::from_str(
+        "test(table.column.a, \"やりますねぇ\", false)"
+    ).unwrap();
+
+    assert!(token_stream.peek::<FunctionCall>())
 }

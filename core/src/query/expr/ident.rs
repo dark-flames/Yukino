@@ -3,7 +3,7 @@ use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
-    segments: Vec<String>,
+    pub segments: Vec<String>,
 }
 
 impl Parse for DatabaseIdent {
@@ -11,12 +11,14 @@ impl Parse for DatabaseIdent {
         let mut segments = vec![];
 
         if !buffer.is_empty() {
-            while let Token::Ident(ident) = buffer.pop_token()? {
+            while let Some(Token::Ident(ident)) = buffer.get_token() {
                 segments.push(ident.to_string());
+                buffer.pop_token()?;
 
                 if buffer.is_empty() {
                     return Ok(DatabaseIdent { segments });
-                } else if let Token::Symbol(Symbol::Dot) = buffer.pop_token()? {
+                } else if let Some(Token::Symbol(Symbol::Dot)) = buffer.get_token() {
+                    buffer.pop_token()?;
                     continue;
                 } else {
                     return Ok(DatabaseIdent { segments });
