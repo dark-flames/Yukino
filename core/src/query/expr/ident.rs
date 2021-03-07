@@ -1,6 +1,7 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::parse::{Error, Parse, ParseBuffer, Peek, Symbol, Token};
 
+// todo: Reserved Words
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
     pub segments: Vec<String>,

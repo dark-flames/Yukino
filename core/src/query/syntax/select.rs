@@ -1,14 +1,16 @@
 use crate::query::expr::Expression;
-use crate::query::parse::{Error, Ident, Keyword, Parse, ParseBuffer, Token};
+use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Token};
 use crate::query::syntax::error::SyntaxError;
 
+
+// todo: Reserved Words
 #[allow(dead_code)]
 pub struct Select {
     pub items: Vec<SelectItem>,
     pub from: From,
     pub where_clause: Option<Expression>,
     pub group_by: Option<Group>,
-    pub order_by: Vec<Order>,
+    pub order_by: Vec<OrderByItem>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -30,7 +32,7 @@ impl Parse for SelectItem {
 
                 result
             } else {
-                Err(buffer.error_head(SyntaxError::ExpectAnAlias))
+                Err(buffer.error_head(SyntaxError::UnexpectedAlias))
             }?)
         } else {
             None
@@ -40,7 +42,6 @@ impl Parse for SelectItem {
     }
 }
 
-#[allow(dead_code)]
 pub enum Order {
     Desc,
     Asc,
@@ -60,16 +61,42 @@ impl Parse for Order {
     }
 }
 
-#[allow(dead_code)]
+
 pub struct OrderByItem {
-    order_by: Expression,
-    order: Order,
+    pub order_by: Expression,
+    pub order: Order,
 }
 
-#[allow(dead_code)]
-pub enum From {
-    Entity(Ident),
-    Alias { entity: Ident, alias: Ident },
+impl Parse for OrderByItem {
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
+        Ok(OrderByItem {
+            order_by: buffer.parse()?,
+            order: buffer.parse()?
+        })
+    }
+}
+
+pub struct From {
+    pub entity: String,
+    pub alias: String
+}
+
+impl Parse for From {
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
+        let cursor = buffer.cursor();
+        if let Token::Ident(entity) = buffer.pop_token()? {
+            if let Token::Ident(alias) = buffer.pop_token()? {
+                Ok(From {
+                    entity: entity.to_string(),
+                    alias: alias.to_string()
+                })
+            } else {
+                Err(buffer.error_at(SyntaxError::UnexpectedAlias, cursor))
+            }
+        } else {
+            Err(buffer.error_at(SyntaxError::UnexpectedEntityName, cursor))
+        }
+    }
 }
 
 #[allow(dead_code)]
