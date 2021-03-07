@@ -14,9 +14,9 @@ Yukino is an ORM framework for Rust
 This project is built with Rust Stable.
 1. setup test schema
 ```shell script
-cargo run --bin cli setup
+cargo run --package yukino-test-entity --bin cli setup
 ```
 2. run cargo test
 ```shell script
-cargo test
+cargo test --all-target
 ```

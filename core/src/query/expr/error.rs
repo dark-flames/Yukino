@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum ExprParseError {
     #[error("Cannot parse token stream into DatabaseIdent")]
     CannotParseIntoIdent,
+    #[error("Unexpected '*' in database ident")]
+    UnexpectedAny,
     #[error("Cannot parse token stream into Literal")]
     CannotParseIntoLit,
     #[error("Cannot parse token stream into Function")]
@@ -12,7 +14,7 @@ pub enum ExprParseError {
     CannotParseFloat(String),
     #[error("Expect an unary operator here")]
     CannotParseIntoUnaryOperator,
-    #[error("Expect an binary operator here")]
+    #[error("Expect a binary operator here")]
     CannotParseIntoBinaryOperator,
     #[error("Expect some token")]
     CannotParseIntoExpression,

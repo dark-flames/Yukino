@@ -8,17 +8,32 @@ pub struct DatabaseIdent {
 
 impl Parse for DatabaseIdent {
     fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
+        let cursor = buffer.cursor();
         let mut segments = vec![];
 
         if !buffer.is_empty() {
-            while let Some(Token::Ident(ident)) = buffer.get_token() {
-                segments.push(ident.to_string());
+            while let Some(token) = buffer.get_token() {
+                let any = match token {
+                    Token::Ident(ident) => {
+                        segments.push(ident.to_string());
+                        false
+                    },
+                    Token::Symbol(Symbol::Mul) => {
+                        segments.push("*".to_string());
+                        true
+                    },
+                    _ => break
+                };
+
                 buffer.pop_token()?;
 
                 if buffer.is_empty() {
                     return Ok(DatabaseIdent { segments });
                 } else if let Some(Token::Symbol(Symbol::Dot)) = buffer.get_token() {
                     buffer.pop_token()?;
+                    if any {
+                        return Err(buffer.error_at(ExprParseError::UnexpectedAny, cursor))
+                    }
                     continue;
                 } else {
                     return Ok(DatabaseIdent { segments });
@@ -26,7 +41,7 @@ impl Parse for DatabaseIdent {
             }
         }
 
-        Err(buffer.error_head(ExprParseError::CannotParseIntoIdent))
+        Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, cursor))
     }
 
     fn peek(buffer: &ParseBuffer) -> bool {
@@ -34,11 +49,21 @@ impl Parse for DatabaseIdent {
         let mut matched = false;
 
         if !buffer.is_empty() {
-            while let Some(Token::Ident(_)) = iter.next() {
+            while let Some(token) = iter.next() {
+                let any = match token {
+                    Token::Ident(_) => false,
+                    Token::Symbol(Symbol::Mul) => true,
+                    _ => break
+                };
+
                 matched = true;
                 if buffer.is_empty() {
                     break;
                 } else if let Some(Token::Symbol(Symbol::Dot)) = iter.next() {
+                    if any {
+                        return false;
+                    };
+
                     matched = false
                 } else {
                     break;

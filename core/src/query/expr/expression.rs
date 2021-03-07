@@ -90,7 +90,7 @@ fn test_expr() {
     use std::str::FromStr;
 
     let token_stream = TokenStream::from_str(
-        "-5 + (1 + ~2) * 10.0 <= test(table.column.a, \"やりますねぇ\", false)",
+        "-5 + (1 + ~2) * 10.0 <= test(table.column.*, \"やりますねぇ\", false)",
     )
     .unwrap();
 
@@ -115,7 +115,7 @@ fn test_expr() {
                 ident: "test".to_string(),
                 parameters: vec![
                     Expression::Ident(DatabaseIdent {
-                        segments: vec!["table".to_string(), "column".to_string(), "a".to_string()]
+                        segments: vec!["table".to_string(), "column".to_string(), "*".to_string()]
                     }),
                     Expression::Literal(Literal::Str("やりますねぇ".to_string())),
                     Expression::Literal(Literal::Bool(false)),

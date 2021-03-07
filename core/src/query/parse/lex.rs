@@ -167,7 +167,8 @@ keywords! {
     ("and" And),
     ("or" Or),
     ("xor" Xor),
-    ("select" Select)
+    ("select" Select),
+    ("as" As)
 }
 
 #[derive(Clone, Eq, PartialEq)]
