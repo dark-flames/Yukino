@@ -170,6 +170,7 @@ where
 
 pub trait Peek
 where
-    Self: Sized {
+    Self: Sized,
+{
     fn peek(buffer: &ParseBuffer) -> bool;
 }

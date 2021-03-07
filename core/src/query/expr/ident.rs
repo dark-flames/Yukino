@@ -1,5 +1,5 @@
 use crate::query::expr::error::ExprParseError;
-use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token, Peek};
+use crate::query::parse::{Error, Parse, ParseBuffer, Peek, Symbol, Token};
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {

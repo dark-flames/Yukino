@@ -1,5 +1,5 @@
 use crate::query::expr::error::ExprParseError;
-use crate::query::parse::{Error, Lit, Parse, ParseBuffer, Symbol, Token, Peek};
+use crate::query::parse::{Error, Lit, Parse, ParseBuffer, Peek, Symbol, Token};
 use float_eq::float_eq;
 
 #[derive(Debug)]

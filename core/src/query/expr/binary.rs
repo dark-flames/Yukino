@@ -1,7 +1,7 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::expression::Expression;
 use crate::query::expr::precedence::Precedence;
-use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token, Peek};
+use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Peek, Symbol, Token};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]

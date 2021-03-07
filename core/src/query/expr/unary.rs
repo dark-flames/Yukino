@@ -1,7 +1,7 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::precedence::Precedence;
 use crate::query::expr::Expression;
-use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token, Peek};
+use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Peek, Symbol, Token};
 
 pub enum UnaryOperator {
     BitInverse,

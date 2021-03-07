@@ -1,6 +1,6 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::expression::Expression;
-use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token, Peek};
+use crate::query::parse::{Error, Parse, ParseBuffer, Peek, Symbol, Token};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionCall {
