@@ -46,6 +46,20 @@ pub enum Order {
     Asc,
 }
 
+impl Parse for Order {
+    fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error> {
+        let result = match buffer.get_token() {
+            Some(Token::Keyword(Keyword::Asc)) => Ok(Order::Asc),
+            Some(Token::Keyword(Keyword::Desc)) => Ok(Order::Desc),
+            _ => Err(buffer.error_head(SyntaxError::CannotParseIntoOrder)),
+        }?;
+
+        buffer.pop_token()?;
+
+        Ok(result)
+    }
+}
+
 #[allow(dead_code)]
 pub struct OrderByItem {
     order_by: Expression,
