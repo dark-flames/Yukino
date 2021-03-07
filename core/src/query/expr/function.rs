@@ -1,6 +1,6 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::expression::Expression;
-use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
+use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token, Peek};
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FunctionCall {
@@ -41,7 +41,9 @@ impl Parse for FunctionCall {
             Err(buffer.error_at(ExprParseError::CannotParseIntoFunction, cursor))
         }
     }
+}
 
+impl Peek for FunctionCall {
     fn peek(buffer: &ParseBuffer) -> bool {
         let mut tokens = buffer.get_tokens().iter();
 

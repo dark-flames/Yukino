@@ -1,5 +1,5 @@
 use crate::query::expr::error::ExprParseError;
-use crate::query::parse::{Error, Lit, Parse, ParseBuffer, Symbol, Token};
+use crate::query::parse::{Error, Lit, Parse, ParseBuffer, Symbol, Token, Peek};
 use float_eq::float_eq;
 
 #[derive(Debug)]
@@ -61,7 +61,9 @@ impl Parse for Literal {
             Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, before_cursor))
         }
     }
+}
 
+impl Peek for Literal {
     fn peek(buffer: &ParseBuffer) -> bool {
         let mut iter = buffer.get_tokens().iter();
         let mut current = iter.next();

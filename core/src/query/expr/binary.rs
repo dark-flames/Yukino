@@ -1,7 +1,7 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::expression::Expression;
 use crate::query::expr::precedence::Precedence;
-use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token};
+use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token, Peek};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
@@ -53,7 +53,9 @@ impl Parse for BinaryOperator {
             _ => Err(buffer.error_at(ExprParseError::CannotParseIntoBinaryOperator, cursor)),
         }
     }
+}
 
+impl Peek for BinaryOperator {
     fn peek(buffer: &ParseBuffer) -> bool {
         let mut buffer_cloned = buffer.clone();
 

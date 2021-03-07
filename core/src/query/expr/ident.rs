@@ -1,5 +1,5 @@
 use crate::query::expr::error::ExprParseError;
-use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
+use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token, Peek};
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct DatabaseIdent {
@@ -17,12 +17,12 @@ impl Parse for DatabaseIdent {
                     Token::Ident(ident) => {
                         segments.push(ident.to_string());
                         false
-                    },
+                    }
                     Token::Symbol(Symbol::Mul) => {
                         segments.push("*".to_string());
                         true
-                    },
-                    _ => break
+                    }
+                    _ => break,
                 };
 
                 buffer.pop_token()?;
@@ -32,7 +32,7 @@ impl Parse for DatabaseIdent {
                 } else if let Some(Token::Symbol(Symbol::Dot)) = buffer.get_token() {
                     buffer.pop_token()?;
                     if any {
-                        return Err(buffer.error_at(ExprParseError::UnexpectedAny, cursor))
+                        return Err(buffer.error_at(ExprParseError::UnexpectedAny, cursor));
                     }
                     continue;
                 } else {
@@ -43,7 +43,9 @@ impl Parse for DatabaseIdent {
 
         Err(buffer.error_at(ExprParseError::CannotParseIntoIdent, cursor))
     }
+}
 
+impl Peek for DatabaseIdent {
     fn peek(buffer: &ParseBuffer) -> bool {
         let mut iter = buffer.get_tokens().iter();
         let mut matched = false;
@@ -53,7 +55,7 @@ impl Parse for DatabaseIdent {
                 let any = match token {
                     Token::Ident(_) => false,
                     Token::Symbol(Symbol::Mul) => true,
-                    _ => break
+                    _ => break,
                 };
 
                 matched = true;

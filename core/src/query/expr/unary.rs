@@ -1,7 +1,7 @@
 use crate::query::expr::error::ExprParseError;
 use crate::query::expr::precedence::Precedence;
 use crate::query::expr::Expression;
-use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token};
+use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Symbol, Token, Peek};
 
 pub enum UnaryOperator {
     BitInverse,
@@ -17,7 +17,9 @@ impl Parse for UnaryOperator {
             _ => Err(buffer.error_at(ExprParseError::CannotParseIntoUnaryOperator, cursor)),
         }
     }
+}
 
+impl Peek for UnaryOperator {
     fn peek(buffer: &ParseBuffer) -> bool {
         buffer.peek_token(Token::Symbol(Symbol::Tilde))
             || buffer.peek_token(Token::Keyword(Keyword::Not))
@@ -64,7 +66,9 @@ impl Parse for UnaryExpression {
 
         Ok(operator.with_expr(right))
     }
+}
 
+impl Peek for UnaryExpression {
     fn peek(buffer: &ParseBuffer) -> bool {
         buffer.peek::<UnaryOperator>()
     }

@@ -1,2 +1,2 @@
-pub mod select;
 mod error;
+pub mod select;

@@ -37,7 +37,7 @@ impl<'a> ParseBuffer<'a> {
         self.get_tokens().first()
     }
 
-    pub fn peek<E: Parse>(&self) -> bool {
+    pub fn peek<E: Peek>(&self) -> bool {
         E::peek(self)
     }
 
@@ -127,7 +127,7 @@ impl TokenStream {
         }
     }
 
-    pub fn peek<E: Parse>(&self) -> bool {
+    pub fn peek<E: Peek>(&self) -> bool {
         self.get_buffer().peek::<E>()
     }
 
@@ -166,6 +166,10 @@ where
     Self: Sized,
 {
     fn parse(buffer: &mut ParseBuffer) -> Result<Self, Error>;
+}
 
+pub trait Peek
+where
+    Self: Sized {
     fn peek(buffer: &ParseBuffer) -> bool;
 }

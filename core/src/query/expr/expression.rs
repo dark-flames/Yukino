@@ -23,12 +23,6 @@ impl Parse for Expression {
         Expression::parse_item_with_precedence(buffer, Precedence::None)?
             .ok_or_else(|| buffer.error_at(ExprParseError::CannotParseIntoExpression, head))
     }
-
-    fn peek(buffer: &ParseBuffer) -> bool {
-        let mut buffer_cloned = buffer.clone();
-
-        matches!(buffer_cloned.parse::<Expression>(), Ok(_))
-    }
 }
 
 impl Expression {
