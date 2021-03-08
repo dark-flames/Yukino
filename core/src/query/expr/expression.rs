@@ -7,6 +7,7 @@ use crate::query::expr::precedence::Precedence;
 use crate::query::expr::unary::{UnaryExpression, UnaryOperator};
 use crate::query::parse::{Error, Parse, ParseBuffer, Symbol, Token};
 
+// todo: Subquery
 #[derive(Debug, Eq, PartialEq)]
 pub enum Expression {
     Unary(UnaryExpression),

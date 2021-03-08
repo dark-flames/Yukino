@@ -49,6 +49,18 @@ impl<'a> ParseBuffer<'a> {
         E::parse(self)
     }
 
+    pub fn parse_token(&mut self, token: Token) -> Result<Token, Error> {
+        match self.get_token() {
+            Some(h) if h == &token => {
+                let result = self.pop_token()?;
+
+                Ok(result)
+            }
+            Some(h) => Err(self.error_head(format!("Expected {}, found {}", token, h))),
+            _ => Err(self.error_head(ParseError::UnexpectTokenOffset(self.tokens.len(), 1))),
+        }
+    }
+
     pub fn pop_tokens(&mut self, len: usize) -> Result<Vec<Token>, Error> {
         if len > self.get_tokens().len() {
             Err(self.error_head(ParseError::UnexpectTokenOffset(self.tokens.len(), len)))
