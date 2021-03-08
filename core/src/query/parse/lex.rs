@@ -191,7 +191,7 @@ impl Display for Ident {
 
 impl ReadableToken for Ident {
     fn parse(&self, buffer: &mut LexBuffer<'a>) -> Option<Result<Token, ParseError>> {
-        let pattern = Regex::new(r"^([a-zA-Z][a-zA-Z0-9_]*)|(_[a-zA-Z0-9_]*)").unwrap();
+        let pattern = Regex::new(r"^([a-zA-Z][a-zA-Z0-9_]*)|^(_[a-zA-Z0-9_]*)").unwrap();
 
         let result = pattern.captures(buffer.rest())?;
 

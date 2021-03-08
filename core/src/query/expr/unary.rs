@@ -29,7 +29,7 @@ impl Peek for UnaryOperator {
 impl UnaryOperator {
     pub fn precedence(&self) -> Precedence {
         match self {
-            UnaryOperator::BitInverse => Precedence::BitInverse,
+            UnaryOperator::BitInverse => Precedence::BitReverse,
             UnaryOperator::Not => Precedence::Not,
         }
     }

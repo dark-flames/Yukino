@@ -1,0 +1,117 @@
+// Basic
+whitespaces = _{ WHITE_SPACE* }
+
+// Ident
+database_ident = @{ ident ~ (WHITE_SPACE* ~ "." ~ whitespaces ~ ident)* }
+
+ident = {
+    (ASCII_ALPHA~("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*) |
+    ("_"+ ~ (ASCII_ALPHA|ASCII_ALPHANUMERIC)+ ~ ("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*)
+}
+
+// Keyword
+
+keyword_select = { ^"select" }
+keyword_from = { ^"from" }
+keyword_where = { ^"where" }
+
+// Symbol
+plus  = { "+" }
+minus = { "-" }
+multi = { "*" }
+div = { "/" }
+modulo = { "%" }
+left_shift = { "<<" }
+right_shift = { ">>" }
+bit_and = { "&" }
+bit_or = { "|" }
+bit_xor = { "^" }
+bit_reverse = { "~" }
+
+compare_operator = !{ bigger_than_or_equal | less_than_or_equal | not_equal | bigger_than | less_than | equal }
+less_than = { "<" }
+less_than_or_equal = { "<=" }
+bigger_than = { ">" }
+bigger_than_or_equal = { ">=" }
+equal = { "=" }
+not_equal = { "!=" | "<>" }
+
+bool_and = { ^"and" }
+bool_or = { ^"or" }
+bool_xor = { ^"xor" }
+bool_not = {^"not"}
+
+paren_left = {"("}
+paren_right = {")"}
+
+comma = {","}
+
+// Literal
+literal = { bool | int | float | string | char | external_ident | null }
+/// null
+null = {^"null"}
+/// boolean
+true_lit  = { ^"true" }
+false_lit = { ^"false" }
+bool  = { true_lit | false_lit }
+/// int
+digit = _{ '0'..'9' }
+int   =  { "-"? ~ whitespaces ~ digit ~ (digit | "_")* }
+/// float
+exp   = _{ ^"e" ~ (plus | minus)? ~ int }
+float = {
+    "-"? ~ whitespaces ~ int ~ "." ~ int? ~ exp? |
+    int ~ exp
+}
+/// string
+char_item = {
+    !("\"" | "\\") ~ ANY
+    | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
+    | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
+}
+string_inner = @{char_item*}
+string = {"\"" ~ string_inner ~ "\""}
+char = {"\'" ~ char_item ~ "\'"}
+
+/// external
+external_ident = {"$" ~ whitespaces ~ ident}
+
+unknown_type = !{ database_ident | external_ident | function_call }
+
+// Function
+
+function_call = {ident ~ whitespaces ~ paren_left ~ (whitespaces ~ expr ~ whitespaces ~ comma)* ~ whitespaces ~ paren_right}
+
+// Expression
+expr = { bool_expr | int_expr | float_expr}
+/// bool
+bool_factor = { unknown_type | cmp_expr | bool | (paren_left ~ whitespaces ~ bool_expr ~ whitespaces ~ paren_right)}
+bool_not_expr = { bool_factor | (bool_not ~ whitespaces ~ bool_not_expr) }
+bool_and_expr = { bool_not_expr ~ (whitespaces ~ bool_and ~ whitespaces ~ bool_not_expr)* }
+bool_xor_expr = { bool_and_expr ~ (whitespaces ~ bool_xor ~ whitespaces ~ bool_and_expr)* }
+bool_expr = { bool_xor_expr ~ (whitespaces ~ bool_or ~ whitespaces ~ bool_xor_expr)* }
+
+/// integer
+int_factor = { unknown_type | int |  (paren_left ~ whitespaces ~ int_expr ~ whitespaces ~ paren_right)}
+int_bit_reverse_expr = { int_factor | (bit_reverse ~ whitespaces ~ int_bit_reverse_expr) }
+int_bit_xor_expr = { int_bit_reverse_expr ~ (whitespaces ~ bit_xor ~ whitespaces ~ int_bit_xor_expr)* }
+int_term_expr = { int_bit_xor_expr ~ (whitespaces ~ (multi | div | modulo) ~ whitespaces ~ int_term_expr)* }
+int_add_expr = { int_term_expr ~ (whitespaces ~ (plus | multi) ~ whitespaces ~ int_add_expr)* }
+int_bit_shift_expr = { int_add_expr ~ (whitespaces ~ (left_shift | right_shift) ~ whitespaces ~ int_bit_shift_expr)* }
+int_bit_and_expr = { int_bit_shift_expr ~ (whitespaces ~ bit_and ~ whitespaces ~ int_bit_and_expr)* }
+int_expr = { int_bit_and_expr ~ (whitespaces ~ bit_or ~ whitespaces ~ int_expr)* }
+
+/// float
+float_factor = { unknown_type | float }
+float_term_expr = { float_factor | float_factor ~ (whitespaces ~ (multi | div | modulo) ~ whitespaces ~ float_term_expr)* }
+float_expr = { float_term_expr ~ (whitespaces ~ (plus | multi) ~ whitespaces ~ float_expr)* }
+
+/// numeric
+numeric_expr = {int_expr | float_expr}
+cmp_expr = { numeric_expr ~ whitespaces ~ compare_operator ~ whitespaces ~ numeric_expr }
+
+
+
+
+
+

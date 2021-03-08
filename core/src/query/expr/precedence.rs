@@ -17,7 +17,7 @@ pub enum Precedence {
     Add,
     Term,
     BitXor,
-    BitInverse,
+    BitReverse,
     Ident,
     FunctionCall,
     Lit,
