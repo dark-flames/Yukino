@@ -1,34 +1,49 @@
 // Basic
-whitespaces = _{ WHITE_SPACE* }
+query = {SOI ~ query_content ~ EOI}
 
-// Ident
-database_ident = @{ ident ~ (WHITE_SPACE* ~ "." ~ whitespaces ~ ident)* }
+query_content = { select_query }
 
-ident = {
-    (ASCII_ALPHA~("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*) |
-    ("_"+ ~ (ASCII_ALPHA|ASCII_ALPHANUMERIC)+ ~ ("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*)
-}
+whitespaces = { " "+ }
+
+WHITESPACE = _{ " " | "\n" | "\r" }
+
 
 // Keyword
+keyword = {
+    keyword_select | keyword_from | keyword_as | keyword_where | keyword_group_by |
+    keyword_group_by | keyword_having | keyword_order_by | keyword_limit | keyword_offset
+}
+keyword_select = _{ ^"select" }
+keyword_from = _{ ^"from" }
+keyword_as = _{ ^"as" }
+keyword_where = _{ ^"where" }
+keyword_group_by = _{ ^"group" ~ ^"by" }
+keyword_having = _{ ^"having" }
+keyword_order_by = _{ ^"order" ~ ^"by" }
+keyword_limit = _{ ^"limit" }
+keyword_offset = _{ ^"offset" }
 
-keyword_select = { ^"select" }
-keyword_from = { ^"from" }
-keyword_where = { ^"where" }
+// Ident
 
-// Symbol
+ident = @{
+    !keyword ~ ((ASCII_ALPHA ~ ("_" | ASCII_ALPHA | ASCII_ALPHANUMERIC)*) |
+        ("_"+ ~ (ASCII_ALPHA|ASCII_ALPHANUMERIC)+ ~ ("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*))
+}
+
+// Operator
 plus  = { "+" }
 minus = { "-" }
 multi = { "*" }
-div = { "/" }
+div = { "/"  }
 modulo = { "%" }
-left_shift = { "<<" }
+left_shift = { "<<"}
 right_shift = { ">>" }
 bit_and = { "&" }
 bit_or = { "|" }
 bit_xor = { "^" }
-bit_reverse = { "~" }
+bit_reverse = {  "~" }
 
-compare_operator = !{ bigger_than_or_equal | less_than_or_equal | not_equal | bigger_than | less_than | equal }
+compare_operator = { bigger_than_or_equal | less_than_or_equal | not_equal | bigger_than | less_than | equal }
 less_than = { "<" }
 less_than_or_equal = { "<=" }
 bigger_than = { ">" }
@@ -36,35 +51,37 @@ bigger_than_or_equal = { ">=" }
 equal = { "=" }
 not_equal = { "!=" | "<>" }
 
-bool_and = { ^"and" }
-bool_or = { ^"or" }
-bool_xor = { ^"xor" }
-bool_not = {^"not"}
+bool_and = { ^"and"}
+bool_or = { !(^"order") ~ ^"or"}
+bool_xor = { ^"xor"}
+bool_not = { ^"not"}
 
-paren_left = {"("}
-paren_right = {")"}
+paren_left = _{ "(" }
+paren_right = _{ ")" }
 
-comma = {","}
+comma = _{ "," }
 
 // Literal
 literal = { bool | int | float | string | char | external_ident | null }
 /// null
-null = {^"null"}
+null = { ^"null"}
 /// boolean
-true_lit  = { ^"true" }
-false_lit = { ^"false" }
+true_lit  = { ^"true"}
+false_lit = { ^"false"}
 bool  = { true_lit | false_lit }
 /// int
 digit = _{ '0'..'9' }
-int   =  { "-"? ~ whitespaces ~ digit ~ (digit | "_")* }
+unsigned_int = @{ digit ~ (digit | "_")* }
+int = @{ "-"? ~ unsigned_int }
+
 /// float
-exp   = _{ ^"e" ~ (plus | minus)? ~ int }
-float = {
-    "-"? ~ whitespaces ~ int ~ "." ~ int? ~ exp? |
+exp   = @{ ^"e" ~ int }
+float = @{
+    int ~ "." ~ unsigned_int? ~ exp? |
     int ~ exp
 }
 /// string
-char_item = {
+char_item = @{
     !("\"" | "\\") ~ ANY
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
@@ -74,44 +91,69 @@ string = {"\"" ~ string_inner ~ "\""}
 char = {"\'" ~ char_item ~ "\'"}
 
 /// external
-external_ident = {"$" ~ whitespaces ~ ident}
+external_ident = {"$" ~ ident}
 
-unknown_type = !{ database_ident | external_ident | function_call }
+unknown_type = _{ column_ident | external_ident | function_call }
 
 // Function
 
-function_call = {ident ~ whitespaces ~ paren_left ~ (whitespaces ~ expr ~ whitespaces ~ comma)* ~ whitespaces ~ paren_right}
+function_call = {ident  ~ paren_left ~ ( expr ~ comma )*  ~ paren_right }
 
 // Expression
-expr = { bool_expr | int_expr | float_expr}
-/// bool
-bool_factor = { unknown_type | cmp_expr | bool | (paren_left ~ whitespaces ~ bool_expr ~ whitespaces ~ paren_right)}
-bool_not_expr = { bool_factor | (bool_not ~ whitespaces ~ bool_not_expr) }
-bool_and_expr = { bool_not_expr ~ (whitespaces ~ bool_and ~ whitespaces ~ bool_not_expr)* }
-bool_xor_expr = { bool_and_expr ~ (whitespaces ~ bool_xor ~ whitespaces ~ bool_and_expr)* }
-bool_expr = { bool_xor_expr ~ (whitespaces ~ bool_or ~ whitespaces ~ bool_xor_expr)* }
 
-/// integer
-int_factor = { unknown_type | int |  (paren_left ~ whitespaces ~ int_expr ~ whitespaces ~ paren_right)}
-int_bit_reverse_expr = { int_factor | (bit_reverse ~ whitespaces ~ int_bit_reverse_expr) }
-int_bit_xor_expr = { int_bit_reverse_expr ~ (whitespaces ~ bit_xor ~ whitespaces ~ int_bit_xor_expr)* }
-int_term_expr = { int_bit_xor_expr ~ (whitespaces ~ (multi | div | modulo) ~ whitespaces ~ int_term_expr)* }
-int_add_expr = { int_term_expr ~ (whitespaces ~ (plus | multi) ~ whitespaces ~ int_add_expr)* }
-int_bit_shift_expr = { int_add_expr ~ (whitespaces ~ (left_shift | right_shift) ~ whitespaces ~ int_bit_shift_expr)* }
-int_bit_and_expr = { int_bit_shift_expr ~ (whitespaces ~ bit_and ~ whitespaces ~ int_bit_and_expr)* }
-int_expr = { int_bit_and_expr ~ (whitespaces ~ bit_or ~ whitespaces ~ int_expr)* }
-
-/// float
-float_factor = { unknown_type | float }
-float_term_expr = { float_factor | float_factor ~ (whitespaces ~ (multi | div | modulo) ~ whitespaces ~ float_term_expr)* }
-float_expr = { float_term_expr ~ (whitespaces ~ (plus | multi) ~ whitespaces ~ float_expr)* }
-
-/// numeric
-numeric_expr = {int_expr | float_expr}
-cmp_expr = { numeric_expr ~ whitespaces ~ compare_operator ~ whitespaces ~ numeric_expr }
+expr_factor = _{ literal | function_call | column_ident | (paren_left  ~ expr ~ paren_right)}
+bit_reverse_expr = { expr_factor | (bit_reverse ~ bit_reverse_expr) }
+bit_xor_expr = { bit_reverse_expr ~ ( bit_xor ~ bit_xor_expr)* }
+term_expr = { bit_xor_expr ~ ((multi | div | modulo) ~ term_expr)* }
+add_expr = { term_expr ~ ((plus | multi) ~ add_expr)* }
+bit_shift_expr = { add_expr ~ ((left_shift | right_shift) ~ bit_shift_expr)* }
+bit_and_expr = { bit_shift_expr ~ (bit_and ~ bit_and_expr)* }
+bit_or_expr = { bit_and_expr ~ (bit_or ~ bit_or_expr)* }
+cmp_expr = { bit_or_expr ~ (compare_operator ~ bit_or_expr)* }
+not_expr = { cmp_expr | (bool_not ~ not_expr) }
+and_expr = { not_expr ~ (bool_and ~ not_expr)* }
+xor_expr = { and_expr ~ (bool_xor ~ and_expr)* }
+expr = { xor_expr ~ (bool_or ~ xor_expr)* }
 
 
+// Clauses
+database_ident = _{ ("\"" ~ ident ~ "\"") | ident  }
+any = {"*"}
+column_ident = { multi | database_ident ~ ("." ~ database_ident)* ~  ("." ~ any)?}
 
+table_alias = { (keyword_as)? ~ database_ident }
+expr_alias = { (keyword_as)? ~ database_ident }
 
+/// From clause
+from_clause = { keyword_from ~ database_ident ~ table_alias? }
 
+/// Where clause
+where_clause = { keyword_where ~ expr }
 
+/// GroupBy clause
+group_by_clause = { keyword_group_by ~ expr ~ having_clause? }
+
+/// Having clause
+having_clause = { keyword_having ~ expr }
+
+/// Select clause
+select_item = { expr ~ expr_alias? }
+select_clause = { keyword_select ~ select_item ~ ( comma ~ select_item)* }
+
+/// Order clause
+order_asc = @{^"asc"}
+order_desc = @{ ^"desc"}
+order = { order_asc | order_desc }
+order_by_clause = { keyword_order_by ~ expr ~ order }
+
+/// Limit clause
+limit_clause = { keyword_limit ~ unsigned_int }
+
+/// Offset clause
+offset_clause = { keyword_offset ~ unsigned_int }
+
+// Query
+
+select_query = {
+    select_clause ~ from_clause ~ where_clause? ~ group_by_clause? ~ order_by_clause? ~ limit_clause? ~ offset_clause?
+}
