@@ -163,19 +163,19 @@ macro_rules! keywords {
 }
 
 keywords! {
-    ("not" Not),
     ("and" And),
-    ("or" Or),
-    ("xor" Xor),
-    ("select" Select),
-    ("from" From),
-    ("where" Where),
-    ("group by" GroupBy),
-    ("having" Having),
-    ("order by" OrderBy),
+    ("asc" Asc),
     ("as" As),
     ("desc" Desc),
-    ("asc" Asc)
+    ("from" From),
+    ("group by" GroupBy),
+    ("having" Having),
+    ("not" Not),
+    ("order by" OrderBy),
+    ("or" Or),
+    ("select" Select),
+    ("where" Where),
+    ("xor" Xor)
 }
 
 #[derive(Clone, Eq, PartialEq)]

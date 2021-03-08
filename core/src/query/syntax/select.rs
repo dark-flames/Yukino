@@ -3,7 +3,8 @@ use crate::query::parse::{Error, Keyword, Parse, ParseBuffer, Peek, Symbol, Toke
 use crate::query::syntax::error::SyntaxError;
 
 // todo: Reserved Words
-#[allow(dead_code)]
+// todo: join
+#[derive(Debug, Eq, PartialEq)]
 pub struct Select {
     pub items: Vec<SelectItem>,
     pub from: From,
@@ -26,6 +27,8 @@ impl Parse for Select {
             if !buffer.peek_token(Token::Symbol(Symbol::Comma)) {
                 break;
             }
+
+            buffer.parse_token(Token::Symbol(Symbol::Comma))?;
         }
 
         buffer.parse_token(Token::Keyword(Keyword::From))?;
@@ -70,6 +73,8 @@ impl Parse for Select {
                 if !buffer.peek_token(Token::Symbol(Symbol::Comma)) {
                     break;
                 }
+
+                buffer.parse_token(Token::Symbol(Symbol::Comma))?;
             }
 
             items
@@ -122,6 +127,7 @@ impl Parse for SelectItem {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum Order {
     Desc,
     Asc,
@@ -141,6 +147,7 @@ impl Parse for Order {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct OrderByItem {
     pub order_by: Expression,
     pub order: Order,
@@ -155,6 +162,7 @@ impl Parse for OrderByItem {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct From {
     pub entity: String,
     pub alias: String,
@@ -178,7 +186,7 @@ impl Parse for From {
     }
 }
 
-#[allow(dead_code)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Group {
     pub group_by: Expression,
     pub having: Option<Expression>,
@@ -206,4 +214,54 @@ fn test_select_item() {
             alias: Some("s".to_string())
         }
     )
+}
+
+#[test]
+fn test_select() {
+    use crate::query::parse::TokenStream;
+    use crate::query::expr::{FunctionCall, DatabaseIdent, BinaryExpression, Literal};
+    use std::str::FromStr;
+
+    let query = TokenStream::from_str(
+        "SELECT count(*), sum(t.count) AS sum FROM test t WHERE t.id <= 100 GROUP BY t.ty having t.ty != 3 ORDER BY t.ty DESC "
+    ).unwrap();
+
+    let result: Select = query.parse().unwrap();
+
+    assert_eq!(result, Select {
+        items: vec![
+            SelectItem {
+                expr: Expression::Function(FunctionCall {
+                    ident: "count".to_string(),
+                    parameters: vec![Expression::Ident(DatabaseIdent {segments: vec!["*".to_string()]})]
+                }),
+                alias: None
+            },
+            SelectItem {
+                expr: Expression::Function(FunctionCall {
+                    ident: "sum".to_string(),
+                    parameters: vec![
+                        Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "count".to_string()]})
+                    ]
+                }),
+                alias: Some("sum".to_string())
+            },
+        ],
+        from: From { entity: "test".to_string(), alias: "t".to_string() },
+        where_clause: Some(Expression::Binary(BinaryExpression::LTE(
+            Box::new(Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "id".to_string()]})),
+            Box::new(Expression::Literal(Literal::Int(100))),
+        ))),
+        group: Some(Group {
+            group_by: Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "ty".to_string()]}),
+            having: Some(Expression::Binary(BinaryExpression::NEQ(
+                Box::new(Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "ty".to_string()]})),
+                Box::new(Expression::Literal(Literal::Int(3))),
+            )))
+        }),
+        order_by: vec![OrderByItem {
+            order_by: Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "ty".to_string()]}),
+            order: Order::Desc
+        }]
+    });
 }
