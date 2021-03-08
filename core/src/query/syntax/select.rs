@@ -218,8 +218,8 @@ fn test_select_item() {
 
 #[test]
 fn test_select() {
+    use crate::query::expr::{BinaryExpression, DatabaseIdent, FunctionCall, Literal};
     use crate::query::parse::TokenStream;
-    use crate::query::expr::{FunctionCall, DatabaseIdent, BinaryExpression, Literal};
     use std::str::FromStr;
 
     let query = TokenStream::from_str(
@@ -228,40 +228,56 @@ fn test_select() {
 
     let result: Select = query.parse().unwrap();
 
-    assert_eq!(result, Select {
-        items: vec![
-            SelectItem {
-                expr: Expression::Function(FunctionCall {
-                    ident: "count".to_string(),
-                    parameters: vec![Expression::Ident(DatabaseIdent {segments: vec!["*".to_string()]})]
-                }),
-                alias: None
+    assert_eq!(
+        result,
+        Select {
+            items: vec![
+                SelectItem {
+                    expr: Expression::Function(FunctionCall {
+                        ident: "count".to_string(),
+                        parameters: vec![Expression::Ident(DatabaseIdent {
+                            segments: vec!["*".to_string()]
+                        })]
+                    }),
+                    alias: None
+                },
+                SelectItem {
+                    expr: Expression::Function(FunctionCall {
+                        ident: "sum".to_string(),
+                        parameters: vec![Expression::Ident(DatabaseIdent {
+                            segments: vec!["t".to_string(), "count".to_string()]
+                        })]
+                    }),
+                    alias: Some("sum".to_string())
+                },
+            ],
+            from: From {
+                entity: "test".to_string(),
+                alias: "t".to_string()
             },
-            SelectItem {
-                expr: Expression::Function(FunctionCall {
-                    ident: "sum".to_string(),
-                    parameters: vec![
-                        Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "count".to_string()]})
-                    ]
+            where_clause: Some(Expression::Binary(BinaryExpression::LTE(
+                Box::new(Expression::Ident(DatabaseIdent {
+                    segments: vec!["t".to_string(), "id".to_string()]
+                })),
+                Box::new(Expression::Literal(Literal::Int(100))),
+            ))),
+            group: Some(Group {
+                group_by: Expression::Ident(DatabaseIdent {
+                    segments: vec!["t".to_string(), "ty".to_string()]
                 }),
-                alias: Some("sum".to_string())
-            },
-        ],
-        from: From { entity: "test".to_string(), alias: "t".to_string() },
-        where_clause: Some(Expression::Binary(BinaryExpression::LTE(
-            Box::new(Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "id".to_string()]})),
-            Box::new(Expression::Literal(Literal::Int(100))),
-        ))),
-        group: Some(Group {
-            group_by: Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "ty".to_string()]}),
-            having: Some(Expression::Binary(BinaryExpression::NEQ(
-                Box::new(Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "ty".to_string()]})),
-                Box::new(Expression::Literal(Literal::Int(3))),
-            )))
-        }),
-        order_by: vec![OrderByItem {
-            order_by: Expression::Ident(DatabaseIdent {segments: vec!["t".to_string(), "ty".to_string()]}),
-            order: Order::Desc
-        }]
-    });
+                having: Some(Expression::Binary(BinaryExpression::NEQ(
+                    Box::new(Expression::Ident(DatabaseIdent {
+                        segments: vec!["t".to_string(), "ty".to_string()]
+                    })),
+                    Box::new(Expression::Literal(Literal::Int(3))),
+                )))
+            }),
+            order_by: vec![OrderByItem {
+                order_by: Expression::Ident(DatabaseIdent {
+                    segments: vec!["t".to_string(), "ty".to_string()]
+                }),
+                order: Order::Desc
+            }]
+        }
+    );
 }
