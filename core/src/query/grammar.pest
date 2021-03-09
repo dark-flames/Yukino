@@ -3,15 +3,13 @@ query = {SOI ~ query_content ~ EOI}
 
 query_content = { select_query }
 
-whitespaces = { " "+ }
-
 WHITESPACE = _{ " " | "\n" | "\r" }
 
-
 // Keyword
-keyword = {
+keyword = _{
     keyword_select | keyword_from | keyword_as | keyword_where | keyword_group_by |
-    keyword_group_by | keyword_having | keyword_order_by | keyword_limit | keyword_offset
+    keyword_group_by | keyword_having | keyword_order_by | keyword_limit | keyword_offset | keyword_join | keyword_on |
+    keyword_left | keyword_right | keyword_full | keyword_inner | keyword_natural
 }
 keyword_select = _{ ^"select" }
 keyword_from = _{ ^"from" }
@@ -22,6 +20,15 @@ keyword_having = _{ ^"having" }
 keyword_order_by = _{ ^"order" ~ ^"by" }
 keyword_limit = _{ ^"limit" }
 keyword_offset = _{ ^"offset" }
+keyword_join = _{ ^"join" }
+keyword_on = _{ ^"on" }
+keyword_left = @{ ^"left" }
+keyword_right = @{ ^"right" }
+keyword_full = @{ ^"full" }
+keyword_inner = @{ ^"inner" }
+keyword_outer = @{ ^"outer"}
+keyword_natural = _{ ^"natrue" }
+keyword_cross = _{ ^"cross" }
 
 // Ident
 
@@ -117,7 +124,7 @@ expr = { xor_expr ~ (bool_or ~ xor_expr)* }
 
 
 // Clauses
-database_ident = _{ ("\"" ~ ident ~ "\"") | ident  }
+database_ident = { ("\"" ~ ident ~ "\"") | ident  }
 any = {"*"}
 column_ident = { multi | database_ident ~ ("." ~ database_ident)* ~  ("." ~ any)?}
 
@@ -125,7 +132,16 @@ table_alias = { (keyword_as)? ~ database_ident }
 expr_alias = { (keyword_as)? ~ database_ident }
 
 /// From clause
-from_clause = { keyword_from ~ database_ident ~ table_alias? }
+table_reference = {database_ident ~ table_alias?}
+from_clause = { keyword_from ~ table_reference ~ join_clause* }
+
+/// Join clause
+qualified_join_type = {((keyword_left | keyword_right | keyword_full) ~ keyword_outer?) | keyword_inner?}
+cross_join = { keyword_cross ~ keyword_join ~ table_reference }
+natural_join = { keyword_natural ~ qualified_join_type ~ keyword_join ~ table_reference }
+join_on = { qualified_join_type ~ keyword_join ~ table_reference ~ keyword_on ~ expr }
+
+join_clause = { cross_join | natural_join | join_on }
 
 /// Where clause
 where_clause = { keyword_where ~ expr }
