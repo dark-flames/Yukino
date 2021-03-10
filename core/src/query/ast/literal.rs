@@ -247,9 +247,10 @@ impl Node for Literal {
         let location: Location = (&pair).into();
         match pair.as_rule() {
             Rule::literal => {
-                let inner = pair.into_inner().next().ok_or_else(
-                    || location.error(SyntaxError::UnexpectedPair("literal"))
-                )?;
+                let inner = pair
+                    .into_inner()
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("literal")))?;
 
                 Ok(match inner.as_rule() {
                     Rule::bool => Literal::Boolean(Boolean::from_pair(inner)?),
@@ -260,7 +261,7 @@ impl Node for Literal {
                     Rule::null => Literal::Null(Null::from_pair(inner)?),
                     _ => return Err(location.error(SyntaxError::UnexpectedPair("literal"))),
                 })
-            },
+            }
             _ => Err(location.error(SyntaxError::UnexpectedPair("literal"))),
         }
     }
@@ -283,27 +284,84 @@ fn test_literal() {
     use crate::query::grammar::Grammar;
 
     fn assert_parse_result(input: &'static str, lit: Literal) {
-        let pair = Grammar::parse(Rule::literal, input).unwrap().next().unwrap();
+        let pair = Grammar::parse(Rule::literal, input)
+            .unwrap()
+            .next()
+            .unwrap();
 
         assert_eq!(Literal::from_pair(pair).unwrap(), lit);
     }
 
     let location = Location::Pos(0);
 
-    assert_parse_result("true", Literal::Boolean(Boolean{ value: true, location}));
-    assert_parse_result("false", Literal::Boolean(Boolean { value: false, location}));
+    assert_parse_result(
+        "true",
+        Literal::Boolean(Boolean {
+            value: true,
+            location,
+        }),
+    );
+    assert_parse_result(
+        "false",
+        Literal::Boolean(Boolean {
+            value: false,
+            location,
+        }),
+    );
 
-    assert_parse_result("114514", Literal::Integer(Integer{ value: 114514, location}));
-    assert_parse_result("-114514", Literal::Integer(Integer { value: -114514, location}));
+    assert_parse_result(
+        "114514",
+        Literal::Integer(Integer {
+            value: 114514,
+            location,
+        }),
+    );
+    assert_parse_result(
+        "-114514",
+        Literal::Integer(Integer {
+            value: -114514,
+            location,
+        }),
+    );
 
-    assert_parse_result("114.514", Literal::Float(Float{ value: 114.514, location}));
-    assert_parse_result("-1e10", Literal::Float(Float { value: -1e10, location}));
+    assert_parse_result(
+        "114.514",
+        Literal::Float(Float {
+            value: 114.514,
+            location,
+        }),
+    );
+    assert_parse_result(
+        "-1e10",
+        Literal::Float(Float {
+            value: -1e10,
+            location,
+        }),
+    );
 
-    assert_parse_result("\"\\n\\rtest\"", Literal::String(Str { value: "\\n\\rtest".to_string(), location}));
+    assert_parse_result(
+        "\"\\n\\rtest\"",
+        Literal::String(Str {
+            value: "\\n\\rtest".to_string(),
+            location,
+        }),
+    );
 
-    assert_parse_result("$__external_value", Literal::External(ExternalValue { ident: "__external_value".to_string(), location}));
-    assert_parse_result("$externa1_value", Literal::External(ExternalValue { ident: "externa1_value".to_string(), location}));
+    assert_parse_result(
+        "$__external_value",
+        Literal::External(ExternalValue {
+            ident: "__external_value".to_string(),
+            location,
+        }),
+    );
+    assert_parse_result(
+        "$externa1_value",
+        Literal::External(ExternalValue {
+            ident: "externa1_value".to_string(),
+            location,
+        }),
+    );
 
-    assert_parse_result("Null", Literal::Null(Null {location}));
-    assert_parse_result("null", Literal::Null(Null {location}));
+    assert_parse_result("Null", Literal::Null(Null { location }));
+    assert_parse_result("null", Literal::Null(Null { location }));
 }
