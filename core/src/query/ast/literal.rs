@@ -2,11 +2,22 @@ use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::location::Location;
 use crate::query::ast::node::{Node, QueryPair};
 use crate::query::grammar::Rule;
+use float_eq::float_eq;
+use std::cmp::PartialEq;
 
+#[derive(Debug, Clone)]
 pub struct Boolean {
     pub value: bool,
     location: Location,
 }
+
+impl PartialEq for Boolean {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for Boolean {}
 
 impl Node for Boolean {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
@@ -44,10 +55,19 @@ fn test_bool() {
     assert!(!lit2.value);
 }
 
+#[derive(Debug, Clone)]
 pub struct Integer {
     pub value: i128,
     location: Location,
 }
+
+impl PartialEq for Integer {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for Integer {}
 
 impl Node for Integer {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
@@ -70,27 +90,19 @@ impl Node for Integer {
     }
 }
 
-#[test]
-fn test_integer() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
-
-    let result1 = Grammar::parse(Rule::int, "114514").unwrap().next().unwrap();
-    let result2 = Grammar::parse(Rule::int, "-114514")
-        .unwrap()
-        .next()
-        .unwrap();
-
-    let lit1 = Integer::from_pair(result1).unwrap();
-    let lit2 = Integer::from_pair(result2).unwrap();
-    assert_eq!(lit1.value, 114514);
-    assert_eq!(lit2.value, -114514);
-}
-
+#[derive(Debug, Clone)]
 pub struct Float {
     pub value: f64,
     location: Location,
 }
+
+impl PartialEq for Float {
+    fn eq(&self, other: &Self) -> bool {
+        float_eq!(self.value, other.value, ulps <= 4)
+    }
+}
+
+impl Eq for Float {}
 
 impl Node for Float {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
@@ -113,31 +125,19 @@ impl Node for Float {
     }
 }
 
-#[test]
-fn test_float() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
-    use float_eq::assert_float_eq;
-
-    let result1 = Grammar::parse(Rule::float, "114.514")
-        .unwrap()
-        .next()
-        .unwrap();
-    let result2 = Grammar::parse(Rule::float, "-1e10")
-        .unwrap()
-        .next()
-        .unwrap();
-
-    let lit1 = Float::from_pair(result1).unwrap();
-    let lit2 = Float::from_pair(result2).unwrap();
-    assert_float_eq!(lit1.value, 114.514, ulps <= 4);
-    assert_float_eq!(lit2.value, -1e10, ulps <= 4);
-}
-
+#[derive(Debug, Clone)]
 pub struct Str {
     pub value: String,
     location: Location,
 }
+
+impl PartialEq for Str {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for Str {}
 
 impl Node for Str {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
@@ -165,24 +165,19 @@ impl Node for Str {
     }
 }
 
-#[test]
-fn test_string() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
-
-    let result = Grammar::parse(Rule::string, "\"\\n\\rtest\"")
-        .unwrap()
-        .next()
-        .unwrap();
-
-    let lit = Str::from_pair(result).unwrap();
-    assert_eq!(lit.value, "\\n\\rtest");
-}
-
+#[derive(Debug, Clone)]
 pub struct ExternalValue {
     pub ident: String,
     location: Location,
 }
+
+impl PartialEq for ExternalValue {
+    fn eq(&self, other: &Self) -> bool {
+        self.ident == other.ident
+    }
+}
+
+impl Eq for ExternalValue {}
 
 impl Node for ExternalValue {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
@@ -210,43 +205,18 @@ impl Node for ExternalValue {
     }
 }
 
-#[test]
-fn test_external_value() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
-
-    let result1 = Grammar::parse(Rule::external_ident, "$__external_value")
-        .unwrap()
-        .next()
-        .unwrap();
-
-    let result2 = Grammar::parse(Rule::external_ident, "$externa1_value")
-        .unwrap()
-        .next()
-        .unwrap();
-
-    let lit1 = ExternalValue::from_pair(result1).unwrap();
-    let lit2 = ExternalValue::from_pair(result2).unwrap();
-    assert_eq!(lit1.ident, "__external_value");
-    assert_eq!(lit2.ident, "externa1_value");
-}
-
+#[derive(Debug, Clone)]
 pub struct Null {
     location: Location,
 }
 
-#[test]
-fn test_null() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
-
-    let result1 = Grammar::parse(Rule::null, "null").unwrap().next().unwrap();
-
-    let result2 = Grammar::parse(Rule::null, "NULL").unwrap().next().unwrap();
-
-    Null::from_pair(result1).unwrap();
-    Null::from_pair(result2).unwrap();
+impl PartialEq for Null {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
 }
+
+impl Eq for Null {}
 
 impl Node for Null {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
@@ -262,6 +232,7 @@ impl Node for Null {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Literal {
     Boolean(Boolean),
     Integer(Integer),
@@ -269,4 +240,70 @@ pub enum Literal {
     String(Str),
     External(ExternalValue),
     Null(Null),
+}
+
+impl Node for Literal {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location: Location = (&pair).into();
+        match pair.as_rule() {
+            Rule::literal => {
+                let inner = pair.into_inner().next().ok_or_else(
+                    || location.error(SyntaxError::UnexpectedPair("literal"))
+                )?;
+
+                Ok(match inner.as_rule() {
+                    Rule::bool => Literal::Boolean(Boolean::from_pair(inner)?),
+                    Rule::int => Literal::Integer(Integer::from_pair(inner)?),
+                    Rule::float => Literal::Float(Float::from_pair(inner)?),
+                    Rule::string => Literal::String(Str::from_pair(inner)?),
+                    Rule::external_ident => Literal::External(ExternalValue::from_pair(inner)?),
+                    Rule::null => Literal::Null(Null::from_pair(inner)?),
+                    _ => return Err(location.error(SyntaxError::UnexpectedPair("literal"))),
+                })
+            },
+            _ => Err(location.error(SyntaxError::UnexpectedPair("literal"))),
+        }
+    }
+
+    fn location(&self) -> Location {
+        match self {
+            Literal::Boolean(lit) => lit.location(),
+            Literal::Integer(lit) => lit.location(),
+            Literal::Float(lit) => lit.location(),
+            Literal::String(lit) => lit.location(),
+            Literal::External(lit) => lit.location(),
+            Literal::Null(lit) => lit.location(),
+        }
+    }
+}
+
+#[test]
+fn test_literal() {
+    use crate::pest::Parser;
+    use crate::query::grammar::Grammar;
+
+    fn assert_parse_result(input: &'static str, lit: Literal) {
+        let pair = Grammar::parse(Rule::literal, input).unwrap().next().unwrap();
+
+        assert_eq!(Literal::from_pair(pair).unwrap(), lit);
+    }
+
+    let location = Location::Pos(0);
+
+    assert_parse_result("true", Literal::Boolean(Boolean{ value: true, location}));
+    assert_parse_result("false", Literal::Boolean(Boolean { value: false, location}));
+
+    assert_parse_result("114514", Literal::Integer(Integer{ value: 114514, location}));
+    assert_parse_result("-114514", Literal::Integer(Integer { value: -114514, location}));
+
+    assert_parse_result("114.514", Literal::Float(Float{ value: 114.514, location}));
+    assert_parse_result("-1e10", Literal::Float(Float { value: -1e10, location}));
+
+    assert_parse_result("\"\\n\\rtest\"", Literal::String(Str { value: "\\n\\rtest".to_string(), location}));
+
+    assert_parse_result("$__external_value", Literal::External(ExternalValue { ident: "__external_value".to_string(), location}));
+    assert_parse_result("$externa1_value", Literal::External(ExternalValue { ident: "externa1_value".to_string(), location}));
+
+    assert_parse_result("Null", Literal::Null(Null {location}));
+    assert_parse_result("null", Literal::Null(Null {location}));
 }
