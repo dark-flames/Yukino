@@ -69,7 +69,7 @@ paren_right = _{ ")" }
 comma = _{ "," }
 
 // Literal
-literal = { bool | int | float | string | char | external_ident | null }
+literal = { bool| float | int | string | char | external_ident | null }
 /// null
 null = { ^"null"}
 /// boolean

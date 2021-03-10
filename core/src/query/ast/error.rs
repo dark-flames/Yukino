@@ -22,5 +22,7 @@ pub enum SyntaxError {
     #[error("Expected pair to be a '{0}'")]
     UnexpectedPair(&'static str),
     #[error("Cannot parse \"{0}\" into Integer")]
-    CannotParseInteger(String)
+    CannotParseIntoInteger(String),
+    #[error("Cannot parse \"{0}\" into Float")]
+    CannotParseIntoFloat(String),
 }
