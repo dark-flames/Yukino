@@ -73,9 +73,9 @@ literal = { bool | int | float | string | char | external_ident | null }
 /// null
 null = { ^"null"}
 /// boolean
-true_lit  = { ^"true"}
-false_lit = { ^"false"}
-bool  = { true_lit | false_lit }
+bool_true  = @{ ^"true"}
+bool_false = @{ ^"false"}
+bool  = { bool_true | bool_false }
 /// int
 digit = _{ '0'..'9' }
 unsigned_int = @{ digit ~ (digit | "_")* }
@@ -154,19 +154,19 @@ having_clause = { keyword_having ~ expr }
 
 /// Select clause
 select_item = { expr ~ expr_alias? }
-select_clause = { keyword_select ~ select_item ~ ( comma ~ select_item)* }
+select_clause = { keyword_select ~ select_item ~ (comma ~ select_item)* }
 
 /// Order clause
-order_asc = @{^"asc"}
-order_desc = @{ ^"desc"}
+order_asc = @{ ^"asc" }
+order_desc = @{ ^"desc" }
 order = { order_asc | order_desc }
 order_by_clause = { keyword_order_by ~ expr ~ order }
 
 /// Limit clause
-limit_clause = { keyword_limit ~ unsigned_int }
+limit_clause = { keyword_limit ~ int }
 
 /// Offset clause
-offset_clause = { keyword_offset ~ unsigned_int }
+offset_clause = { keyword_offset ~ int }
 
 // Query
 

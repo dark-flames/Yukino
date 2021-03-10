@@ -2,6 +2,10 @@
 #![feature(unsafe_cell_raw_get)]
 #![feature(in_band_lifetimes)]
 
+#[macro_use]
+extern crate pest_derive;
+extern crate pest;
+
 pub mod annotations;
 mod association;
 pub mod definitions;
