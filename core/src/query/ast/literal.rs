@@ -5,7 +5,7 @@ use crate::query::grammar::Rule;
 
 pub struct Boolean {
     pub value: bool,
-    pub location: Location,
+    location: Location,
 }
 
 impl Node for Boolean {
@@ -23,6 +23,10 @@ impl Node for Boolean {
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("bool"))),
         }
+    }
+
+    fn location(&self) -> Location {
+        self.location
     }
 }
 
@@ -42,7 +46,7 @@ fn test_bool() {
 
 pub struct Integer {
     pub value: i128,
-    pub location: Location,
+    location: Location,
 }
 
 impl Node for Integer {
@@ -59,6 +63,10 @@ impl Node for Integer {
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("int"))),
         }
+    }
+
+    fn location(&self) -> Location {
+        self.location
     }
 }
 
@@ -79,9 +87,8 @@ fn test_integer() {
     assert_eq!(lit2.value, -114514);
 }
 
-#[allow(dead_code)]
 pub struct Float {
-    value: f64,
+    pub value: f64,
     location: Location,
 }
 
@@ -99,6 +106,10 @@ impl Node for Float {
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("float"))),
         }
+    }
+
+    fn location(&self) -> Location {
+        self.location
     }
 }
 
@@ -123,9 +134,8 @@ fn test_float() {
     assert_float_eq!(lit2.value, -1e10, ulps <= 4);
 }
 
-#[allow(dead_code)]
 pub struct Str {
-    value: String,
+    pub value: String,
     location: Location,
 }
 
@@ -149,6 +159,10 @@ impl Node for Str {
             _ => Err(location.error(SyntaxError::UnexpectedPair("string"))),
         }
     }
+
+    fn location(&self) -> Location {
+        self.location
+    }
 }
 
 #[test]
@@ -165,9 +179,8 @@ fn test_string() {
     assert_eq!(lit.value, "\\n\\rtest");
 }
 
-#[allow(dead_code)]
 pub struct ExternalValue {
-    ident: String,
+    pub ident: String,
     location: Location,
 }
 
@@ -190,6 +203,10 @@ impl Node for ExternalValue {
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("external_ident"))),
         }
+    }
+
+    fn location(&self) -> Location {
+        self.location
     }
 }
 
@@ -214,11 +231,42 @@ fn test_external_value() {
     assert_eq!(lit2.ident, "externa1_value");
 }
 
+pub struct Null {
+    location: Location,
+}
+
+#[test]
+fn test_null() {
+    use crate::pest::Parser;
+    use crate::query::grammar::Grammar;
+
+    let result1 = Grammar::parse(Rule::null, "null").unwrap().next().unwrap();
+
+    let result2 = Grammar::parse(Rule::null, "NULL").unwrap().next().unwrap();
+
+    Null::from_pair(result1).unwrap();
+    Null::from_pair(result2).unwrap();
+}
+
+impl Node for Null {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location: Location = (&pair).into();
+        match pair.as_rule() {
+            Rule::null => Ok(Null { location }),
+            _ => Err(location.error(SyntaxError::UnexpectedPair("null"))),
+        }
+    }
+
+    fn location(&self) -> Location {
+        self.location
+    }
+}
+
 pub enum Literal {
     Boolean(Boolean),
     Integer(Integer),
     Float(Float),
     String(Str),
     External(ExternalValue),
-    Null,
+    Null(Null),
 }

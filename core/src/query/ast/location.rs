@@ -3,7 +3,7 @@ use crate::query::grammar::Rule;
 use pest::error::InputLocation;
 use pest::{iterators::Pair, Position, Span};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum Location {
     Pos(usize),
     Span(usize, usize),
@@ -21,7 +21,7 @@ impl Location {
     pub fn error(&self, error: SyntaxError) -> SyntaxErrorWithPos {
         SyntaxErrorWithPos {
             error,
-            location: self.clone(),
+            location: *self,
         }
     }
 }
