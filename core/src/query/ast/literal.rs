@@ -44,6 +44,41 @@ pub struct Integer {
     pub value: i128,
     pub location: Location,
 }
+
+impl Node for Integer {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location: Location = (&pair).into();
+        match pair.as_rule() {
+            Rule::int => {
+                let inner = pair.as_str().to_string();
+                let value = inner.parse().map_err(
+                    |_| location.error(SyntaxError::CannotParseInteger(inner))
+                )?;
+
+                Ok(Integer {
+                    value,
+                    location
+                })
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("bool"))),
+        }
+    }
+}
+
+#[test]
+pub fn test_integer() {
+    use crate::pest::Parser;
+    use crate::query::grammar::Grammar;
+
+    let result1 = Grammar::parse(Rule::int, "114514").unwrap().next().unwrap();
+    let result2 = Grammar::parse(Rule::int, "-114514").unwrap().next().unwrap();
+
+    let lit1 = Integer::from_pair(result1).unwrap();
+    let lit2 = Integer::from_pair(result2).unwrap();
+    assert_eq!(lit1.value, 114514);
+    assert_eq!(lit2.value, -114514);
+}
+
 pub enum Literal {
     Boolean(Boolean),
     Integer,

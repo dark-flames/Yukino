@@ -78,7 +78,7 @@ bool_false = @{ ^"false"}
 bool  = { bool_true | bool_false }
 /// int
 digit = _{ '0'..'9' }
-unsigned_int = @{ digit ~ (digit | "_")* }
+unsigned_int = @{ digit ~ (digit)* }
 int = @{ "-"? ~ unsigned_int }
 
 /// float
