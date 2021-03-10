@@ -27,7 +27,7 @@ impl Node for Boolean {
 }
 
 #[test]
-pub fn test_bool() {
+fn test_bool() {
     use crate::pest::Parser;
     use crate::query::grammar::Grammar;
 
@@ -63,7 +63,7 @@ impl Node for Integer {
 }
 
 #[test]
-pub fn test_integer() {
+fn test_integer() {
     use crate::pest::Parser;
     use crate::query::grammar::Grammar;
 
@@ -103,7 +103,7 @@ impl Node for Float {
 }
 
 #[test]
-pub fn test_float() {
+fn test_float() {
     use crate::pest::Parser;
     use crate::query::grammar::Grammar;
     use float_eq::assert_float_eq;
@@ -123,11 +123,49 @@ pub fn test_float() {
     assert_float_eq!(lit2.value, -1e10, ulps <= 4);
 }
 
+#[allow(dead_code)]
+pub struct Str {
+    value: String,
+    location: Location
+}
+
+impl Node for Str {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location: Location = (&pair).into();
+        match pair.as_rule() {
+            Rule::string => {
+                let inner_pair = pair.into_inner().next().ok_or_else(
+                    || location.error(SyntaxError::UnexpectedPair("string_inner"))
+                )?;
+
+                let value = match inner_pair.as_rule() {
+                    Rule::string_inner => Ok(inner_pair.as_str().to_string()),
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("string_inner")))
+                }?;
+
+                Ok(Str { value, location })
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("string"))),
+        }
+    }
+}
+
+#[test]
+fn test_string() {
+    use crate::pest::Parser;
+    use crate::query::grammar::Grammar;
+
+    let result = Grammar::parse(Rule::string, "\"\\n\\rtest\"").unwrap().next().unwrap();
+
+    let lit = Str::from_pair(result).unwrap();
+    assert_eq!(lit.value, "\\n\\rtest");
+}
+
 pub enum Literal {
     Boolean(Boolean),
     Integer(Integer),
     Float(Float),
-    String,
+    String(Str),
     Char,
     External,
     Null,
