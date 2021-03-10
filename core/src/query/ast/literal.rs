@@ -126,7 +126,7 @@ fn test_float() {
 #[allow(dead_code)]
 pub struct Str {
     value: String,
-    location: Location
+    location: Location,
 }
 
 impl Node for Str {
@@ -134,13 +134,14 @@ impl Node for Str {
         let location: Location = (&pair).into();
         match pair.as_rule() {
             Rule::string => {
-                let inner_pair = pair.into_inner().next().ok_or_else(
-                    || location.error(SyntaxError::UnexpectedPair("string_inner"))
-                )?;
+                let inner_pair = pair
+                    .into_inner()
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("string_inner")))?;
 
                 let value = match inner_pair.as_rule() {
                     Rule::string_inner => Ok(inner_pair.as_str().to_string()),
-                    _ => Err(location.error(SyntaxError::UnexpectedPair("string_inner")))
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("string_inner"))),
                 }?;
 
                 Ok(Str { value, location })
@@ -155,10 +156,62 @@ fn test_string() {
     use crate::pest::Parser;
     use crate::query::grammar::Grammar;
 
-    let result = Grammar::parse(Rule::string, "\"\\n\\rtest\"").unwrap().next().unwrap();
+    let result = Grammar::parse(Rule::string, "\"\\n\\rtest\"")
+        .unwrap()
+        .next()
+        .unwrap();
 
     let lit = Str::from_pair(result).unwrap();
     assert_eq!(lit.value, "\\n\\rtest");
+}
+
+#[allow(dead_code)]
+pub struct ExternalValue {
+    ident: String,
+    location: Location,
+}
+
+impl Node for ExternalValue {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location: Location = (&pair).into();
+        match pair.as_rule() {
+            Rule::external_ident => {
+                let inner_pair = pair
+                    .into_inner()
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("ident")))?;
+
+                let ident = match inner_pair.as_rule() {
+                    Rule::ident => Ok(inner_pair.as_str().to_string()),
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("ident"))),
+                }?;
+
+                Ok(ExternalValue { ident, location })
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("external_ident"))),
+        }
+    }
+}
+
+#[test]
+fn test_external_value() {
+    use crate::pest::Parser;
+    use crate::query::grammar::Grammar;
+
+    let result1 = Grammar::parse(Rule::external_ident, "$__external_value")
+        .unwrap()
+        .next()
+        .unwrap();
+
+    let result2 = Grammar::parse(Rule::external_ident, "$externa1_value")
+        .unwrap()
+        .next()
+        .unwrap();
+
+    let lit1 = ExternalValue::from_pair(result1).unwrap();
+    let lit2 = ExternalValue::from_pair(result2).unwrap();
+    assert_eq!(lit1.ident, "__external_value");
+    assert_eq!(lit2.ident, "externa1_value");
 }
 
 pub enum Literal {
@@ -166,7 +219,6 @@ pub enum Literal {
     Integer(Integer),
     Float(Float),
     String(Str),
-    Char,
-    External,
+    External(ExternalValue),
     Null,
 }

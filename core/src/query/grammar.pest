@@ -69,7 +69,7 @@ paren_right = _{ ")" }
 comma = _{ "," }
 
 // Literal
-literal = { bool| float | int | string | char | external_ident | null }
+literal = { bool| float | int | string | external_ident | null }
 /// null
 null = { ^"null"}
 /// boolean
@@ -93,10 +93,8 @@ char_item = @{
     | "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t")
     | "\\" ~ ("u" ~ ASCII_HEX_DIGIT{4})
 }
-string_inner = @{char_item*}
+string_inner = @{ char_item* }
 string = {"\"" ~ string_inner ~ "\""}
-char = {"\'" ~ char_item ~ "\'"}
-
 /// external
 external_ident = {"$" ~ ident}
 
