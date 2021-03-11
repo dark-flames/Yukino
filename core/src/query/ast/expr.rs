@@ -1,9 +1,9 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::func::FunctionCall;
 use crate::query::ast::ident::ColumnIdent;
 use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
 use crate::query::ast::{Literal, Location};
 use crate::query::grammar::Rule;
-use crate::query::ast::func::FunctionCall;
 
 type BoxedExpr = Box<Expr>;
 
@@ -50,12 +50,13 @@ impl Expr {
 
                 match inner.as_rule() {
                     Rule::literal => Literal::from_pair(inner).map(Expr::Literal),
-                    Rule::function_call => {
-                        FunctionCall::from_pair(inner).map(Expr::FunctionCall)
-                    }
+                    Rule::function_call => FunctionCall::from_pair(inner).map(Expr::FunctionCall),
                     Rule::column_ident => ColumnIdent::from_pair(inner).map(Expr::ColumnIdent),
                     Rule::expr => Self::from_pair(inner),
-                    _ => Err(Location::from(&inner).error(SyntaxError::UnexpectedPair("expr_factor"))),
+                    _ => {
+                        Err(Location::from(&inner)
+                            .error(SyntaxError::UnexpectedPair("expr_factor")))
+                    }
                 }
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("expr_factor"))),
@@ -273,7 +274,7 @@ impl FromPair<Expr> for Unary {
                     Ok(Expr::Unary(Unary {
                         operator: UnaryOperator::Not,
                         right: Box::new(right),
-                        location
+                        location,
                     }))
                 } else if let Some(Some(UnaryOperator::Not)) = inner
                     .next()
@@ -303,7 +304,7 @@ impl FromPair<Expr> for Unary {
                     Ok(Expr::Unary(Unary {
                         operator: UnaryOperator::BitReverse,
                         right: Box::new(right),
-                        location
+                        location,
                     }))
                 } else if let Some(Some(UnaryOperator::BitReverse)) = inner
                     .next()

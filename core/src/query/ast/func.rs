@@ -1,13 +1,13 @@
+use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::expr::Expr;
-use crate::query::ast::traits::{FromPair, QueryPair, Locatable};
-use crate::query::ast::error::{SyntaxErrorWithPos, SyntaxError};
+use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
 use crate::query::ast::Location;
 use crate::query::grammar::Rule;
 
 pub struct FunctionCall {
     pub ident: String,
     pub parameters: Vec<Expr>,
-    location: Location
+    location: Location,
 }
 
 impl FromPair for FunctionCall {
@@ -18,19 +18,13 @@ impl FromPair for FunctionCall {
             Rule::function_call => {
                 let mut inner = pair.into_inner();
 
-                let ident_pair = inner.next().ok_or_else(
-                    || location.error(
-                        SyntaxError::UnexpectedPair("ident")
-                    )
-                )?;
+                let ident_pair = inner
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("ident")))?;
 
                 let ident = match ident_pair.as_rule() {
-                    Rule::ident => {
-                        Ok(ident_pair.as_str().to_string())
-                    },
-                    _ => Err(location.error(
-                        SyntaxError::UnexpectedPair("ident")
-                    ))
+                    Rule::ident => Ok(ident_pair.as_str().to_string()),
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("ident"))),
                 }?;
                 let mut parameters = vec![];
 
@@ -41,10 +35,10 @@ impl FromPair for FunctionCall {
                 Ok(FunctionCall {
                     ident,
                     parameters,
-                    location
+                    location,
                 })
-            },
-            _ => Err(location.error(SyntaxError::UnexpectedPair("function_call")))
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("function_call"))),
         }
     }
 }
