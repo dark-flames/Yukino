@@ -1,6 +1,6 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::location::Location;
-use crate::query::ast::traits::{Node, QueryPair};
+use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
 use crate::query::grammar::Rule;
 use float_eq::float_eq;
 use std::cmp::PartialEq;
@@ -19,7 +19,7 @@ impl PartialEq for Boolean {
 
 impl Eq for Boolean {}
 
-impl Node for Boolean {
+impl FromPair for Boolean {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -35,7 +35,9 @@ impl Node for Boolean {
             _ => Err(location.error(SyntaxError::UnexpectedPair("bool"))),
         }
     }
+}
 
+impl Locatable for Boolean {
     fn location(&self) -> Location {
         self.location
     }
@@ -69,7 +71,7 @@ impl PartialEq for Integer {
 
 impl Eq for Integer {}
 
-impl Node for Integer {
+impl FromPair for Integer {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -84,7 +86,9 @@ impl Node for Integer {
             _ => Err(location.error(SyntaxError::UnexpectedPair("int"))),
         }
     }
+}
 
+impl Locatable for Integer {
     fn location(&self) -> Location {
         self.location
     }
@@ -104,7 +108,7 @@ impl PartialEq for Float {
 
 impl Eq for Float {}
 
-impl Node for Float {
+impl FromPair for Float {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -119,7 +123,9 @@ impl Node for Float {
             _ => Err(location.error(SyntaxError::UnexpectedPair("float"))),
         }
     }
+}
 
+impl Locatable for Float {
     fn location(&self) -> Location {
         self.location
     }
@@ -139,7 +145,7 @@ impl PartialEq for Str {
 
 impl Eq for Str {}
 
-impl Node for Str {
+impl FromPair for Str {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -159,7 +165,9 @@ impl Node for Str {
             _ => Err(location.error(SyntaxError::UnexpectedPair("string"))),
         }
     }
+}
 
+impl Locatable for Str {
     fn location(&self) -> Location {
         self.location
     }
@@ -179,7 +187,7 @@ impl PartialEq for ExternalValue {
 
 impl Eq for ExternalValue {}
 
-impl Node for ExternalValue {
+impl FromPair for ExternalValue {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -199,7 +207,9 @@ impl Node for ExternalValue {
             _ => Err(location.error(SyntaxError::UnexpectedPair("external_ident"))),
         }
     }
+}
 
+impl Locatable for ExternalValue {
     fn location(&self) -> Location {
         self.location
     }
@@ -218,7 +228,7 @@ impl PartialEq for Null {
 
 impl Eq for Null {}
 
-impl Node for Null {
+impl FromPair for Null {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -226,7 +236,9 @@ impl Node for Null {
             _ => Err(location.error(SyntaxError::UnexpectedPair("null"))),
         }
     }
+}
 
+impl Locatable for Null {
     fn location(&self) -> Location {
         self.location
     }
@@ -242,7 +254,7 @@ pub enum Literal {
     Null(Null),
 }
 
-impl Node for Literal {
+impl FromPair for Literal {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
@@ -265,7 +277,9 @@ impl Node for Literal {
             _ => Err(location.error(SyntaxError::UnexpectedPair("literal"))),
         }
     }
+}
 
+impl Locatable for Literal {
     fn location(&self) -> Location {
         match self {
             Literal::Boolean(lit) => lit.location(),

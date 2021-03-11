@@ -5,11 +5,13 @@ use pest::iterators::Pair;
 
 pub type QueryPair<'a> = Pair<'a, Rule>;
 
-pub trait Node
+pub trait FromPair<Into = Self>
 where
     Self: Sized,
 {
-    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos>;
+    fn from_pair(pair: QueryPair) -> Result<Into, SyntaxErrorWithPos>;
+}
 
+pub trait Locatable {
     fn location(&self) -> Location;
 }

@@ -25,4 +25,6 @@ pub enum SyntaxError {
     CannotParseIntoInteger(String),
     #[error("Cannot parse \"{0}\" into Float")]
     CannotParseIntoFloat(String),
+    #[error("Unexpected expr")]
+    UnexpectedExpr,
 }

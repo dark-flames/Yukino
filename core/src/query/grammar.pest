@@ -50,7 +50,7 @@ bit_or = { "|" }
 bit_xor = { "^" }
 bit_reverse = {  "~" }
 
-compare_operator = { bigger_than_or_equal | less_than_or_equal | not_equal | bigger_than | less_than | equal }
+compare_operator = _{ bigger_than_or_equal | less_than_or_equal | not_equal | bigger_than | less_than | equal }
 less_than = { "<" }
 less_than_or_equal = { "<=" }
 bigger_than = { ">" }
@@ -106,7 +106,7 @@ function_call = {ident  ~ paren_left ~ ( expr ~ comma )*  ~ paren_right }
 
 // Expression
 
-expr_factor = _{ literal | function_call | column_ident | (paren_left  ~ expr ~ paren_right)}
+expr_factor = { literal | function_call | column_ident | (paren_left  ~ expr ~ paren_right)}
 bit_reverse_expr = { expr_factor | (bit_reverse ~ bit_reverse_expr) }
 bit_xor_expr = { bit_reverse_expr ~ ( bit_xor ~ bit_xor_expr)* }
 term_expr = { bit_xor_expr ~ ((multi | div | modulo) ~ term_expr)* }

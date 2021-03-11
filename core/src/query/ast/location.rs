@@ -24,6 +24,20 @@ impl Location {
             location: *self,
         }
     }
+
+    pub fn start(&self) -> usize {
+        match self {
+            Location::Pos(p) => *p,
+            Location::Span(s, _) => *s,
+        }
+    }
+
+    pub fn end(&self) -> usize {
+        match self {
+            Location::Pos(p) => *p,
+            Location::Span(_, e) => *e,
+        }
+    }
 }
 
 impl From<InputLocation> for Location {
