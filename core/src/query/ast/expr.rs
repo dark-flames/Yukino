@@ -417,7 +417,7 @@ fn test_expr() {
     );
 
     assert_expr(
-        "column.a >= 11.1 AND NOT test(column.b + 10, Null) OR false",
+        "column.a >= 11.1 AND NOT test(column.\"b\" + 10, Null) OR false",
         Expr::Binary(Binary {
             operator: BinaryOperator::Or,
             left: Box::new(Expr::Binary(Binary {
