@@ -3,13 +3,13 @@ use crate::query::ast::ident::ColumnIdent;
 use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
 use crate::query::ast::{Literal, Location};
 use crate::query::grammar::Rule;
+use crate::query::ast::func::FunctionCall;
 
 type BoxedExpr = Box<Expr>;
 
-#[allow(dead_code)]
 pub enum Expr {
     Literal(Literal),
-    FunctionCall,
+    FunctionCall(FunctionCall),
     ColumnIdent(ColumnIdent),
     Unary(Unary),
     Binary(Binary),
@@ -30,10 +30,10 @@ impl Locatable for Expr {
     fn location(&self) -> Location {
         match self {
             Expr::Literal(lit) => lit.location(),
-            Expr::FunctionCall => unimplemented!(),
+            Expr::FunctionCall(func) => func.location(),
             Expr::ColumnIdent(ident) => ident.location(),
-            Expr::Unary(e) => e.location,
-            Expr::Binary(e) => e.location,
+            Expr::Unary(e) => e.location(),
+            Expr::Binary(e) => e.location(),
         }
     }
 }
@@ -43,18 +43,19 @@ impl Expr {
         let location: Location = (&pair).into();
         match pair.as_rule() {
             Rule::expr_factor => {
-                let inner = pair.into_inner().next().ok_or_else(|| {
-                    location.error(SyntaxError::UnexpectedPair("expr_factor"))
-                })?;
+                let inner = pair
+                    .into_inner()
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("expr_factor")))?;
 
                 match inner.as_rule() {
                     Rule::literal => Literal::from_pair(inner).map(Expr::Literal),
                     Rule::function_call => {
-                        unimplemented!()
+                        FunctionCall::from_pair(inner).map(Expr::FunctionCall)
                     }
                     Rule::column_ident => ColumnIdent::from_pair(inner).map(Expr::ColumnIdent),
                     Rule::expr => Self::from_pair(inner),
-                    _ => Err(location.error(SyntaxError::UnexpectedPair("expr_factor"))),
+                    _ => Err(Location::from(&inner).error(SyntaxError::UnexpectedPair("expr_factor"))),
                 }
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("expr_factor"))),
@@ -261,18 +262,28 @@ impl FromPair<Expr> for Unary {
                 let mut inner = pair.into_inner();
 
                 if inner.clone().count() == 1 {
-                    expression_from_pair(
+                    let right = expression_from_pair(
                         inner
                             .next()
                             .ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?,
                         false,
                         false,
+                    )?;
+
+                    Ok(Expr::Unary(Unary {
+                        operator: UnaryOperator::Not,
+                        right: Box::new(right),
+                        location
+                    }))
+                } else if let Some(Some(UnaryOperator::Not)) = inner
+                    .next()
+                    .map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule()))
+                {
+                    Self::from_pair(
+                        inner.next().ok_or_else(|| {
+                            location.error(SyntaxError::UnexpectedPair("not_expr"))
+                        })?,
                     )
-                } else if let Some(Some(UnaryOperator::Not)) =
-                    inner.next().map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule())) {
-                    Self::from_pair(inner.next().ok_or_else(|| {
-                        location.error(SyntaxError::UnexpectedPair("not_expr"))
-                    })?)
                 } else {
                     Err(location.error(SyntaxError::UnexpectedPair("bool_not")))
                 }
@@ -281,15 +292,23 @@ impl FromPair<Expr> for Unary {
                 let mut inner = pair.into_inner();
 
                 if inner.clone().count() == 1 {
-                    expression_from_pair(
+                    let right = expression_from_pair(
                         inner
                             .next()
                             .ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?,
                         false,
                         true,
-                    )
-                } else if let Some(Some(UnaryOperator::BitReverse)) =
-                    inner.next().map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule())) {
+                    )?;
+
+                    Ok(Expr::Unary(Unary {
+                        operator: UnaryOperator::BitReverse,
+                        right: Box::new(right),
+                        location
+                    }))
+                } else if let Some(Some(UnaryOperator::BitReverse)) = inner
+                    .next()
+                    .map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule()))
+                {
                     Self::from_pair(inner.next().ok_or_else(|| {
                         location.error(SyntaxError::UnexpectedPair("bit_reverse_expr"))
                     })?)
