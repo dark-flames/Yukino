@@ -174,9 +174,8 @@ impl Binary {
         )?;
 
         while let Some(inner_pair) = inner.next() {
-            let operator = BinaryOperator::from_rule(
-                inner_pair.as_rule()
-            ).ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?;
+            let operator = BinaryOperator::from_rule(inner_pair.as_rule())
+                .ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?;
 
             if !allowed_operators.contains(&operator) {
                 break;
@@ -269,7 +268,7 @@ impl PartialEq for Unary {
     }
 }
 
-impl Eq for Unary{}
+impl Eq for Unary {}
 
 impl FromPair<Expr> for Unary {
     fn from_pair(pair: QueryPair) -> Result<Expr, SyntaxErrorWithPos> {
@@ -291,14 +290,11 @@ impl FromPair<Expr> for Unary {
                     .next()
                     .map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule()))
                 {
-
                     Ok(Expr::Unary(Unary {
                         operator: UnaryOperator::Not,
-                        right: Box::new(Self::from_pair(
-                            inner.next().ok_or_else(|| {
-                                location.error(SyntaxError::UnexpectedPair("not_expr"))
-                            })?,
-                        )?),
+                        right: Box::new(Self::from_pair(inner.next().ok_or_else(|| {
+                            location.error(SyntaxError::UnexpectedPair("not_expr"))
+                        })?)?),
                         location,
                     }))
                 } else {
@@ -320,7 +316,6 @@ impl FromPair<Expr> for Unary {
                     .next()
                     .map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule()))
                 {
-
                     Ok(Expr::Unary(Unary {
                         operator: UnaryOperator::BitReverse,
                         right: Box::new(Self::from_pair(inner.next().ok_or_else(|| {
@@ -346,123 +341,129 @@ impl Locatable for Unary {
 #[test]
 fn test_expr() {
     use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
     use crate::query::ast::*;
+    use crate::query::grammar::Grammar;
 
     fn assert_expr(input: &'static str, expr: Expr) {
-        let pair = Grammar::parse(Rule::expr, input)
-            .unwrap()
-            .next()
-            .unwrap();
+        let pair = Grammar::parse(Rule::expr, input).unwrap().next().unwrap();
 
         assert_eq!(Expr::from_pair(pair).unwrap(), expr);
     }
 
     let location = Location::pos(0);
 
-    assert_expr("1 + 1 * 10 = 11", Expr::Binary(Binary {
-        operator: BinaryOperator::Eq,
-        left: Box::new(Expr::Binary(Binary {
-            operator: BinaryOperator::Plus,
-            left: Box::new(Expr::Literal(Literal::Integer(Integer {
-                value: 1,
-                location
-            }))),
-            right: Box::new(Expr::Binary(Binary {
-                operator: BinaryOperator::Multi,
-                left: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 1,
-                    location
-                }))),
-                right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 10,
-                    location
-                }))),
-                location
-            })),
-            location
-        })),
-        right: Box::new(Expr::Literal(Literal::Integer(Integer {
-            value: 11,
-            location
-        }))),
-        location
-    }));
-
-    assert_expr("(1 + 1) * 10 != 11", Expr::Binary(Binary {
-        operator: BinaryOperator::Neq,
-        left: Box::new(Expr::Binary(Binary {
-            operator: BinaryOperator::Multi,
+    assert_expr(
+        "1 + 1 * 10 = 11",
+        Expr::Binary(Binary {
+            operator: BinaryOperator::Eq,
             left: Box::new(Expr::Binary(Binary {
                 operator: BinaryOperator::Plus,
                 left: Box::new(Expr::Literal(Literal::Integer(Integer {
                     value: 1,
-                    location
+                    location,
                 }))),
-                right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 1,
-                    location
-                }))),
-                location
+                right: Box::new(Expr::Binary(Binary {
+                    operator: BinaryOperator::Multi,
+                    left: Box::new(Expr::Literal(Literal::Integer(Integer {
+                        value: 1,
+                        location,
+                    }))),
+                    right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                        value: 10,
+                        location,
+                    }))),
+                    location,
+                })),
+                location,
             })),
             right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                value: 10,
-                location
+                value: 11,
+                location,
             }))),
-            location
-        })),
-        right: Box::new(Expr::Literal(Literal::Integer(Integer {
-            value: 11,
-            location
-        }))),
-        location
-    }));
+            location,
+        }),
+    );
 
-    assert_expr("column.a >= 11.1 AND NOT test(column.b + 10, Null) OR false", Expr::Binary(Binary {
-        operator: BinaryOperator::Or,
-        left: Box::new(Expr::Binary(Binary {
-            operator: BinaryOperator::And,
+    assert_expr(
+        "(1 + 1) * 10 != 11",
+        Expr::Binary(Binary {
+            operator: BinaryOperator::Neq,
             left: Box::new(Expr::Binary(Binary {
-                operator: BinaryOperator::Bte,
-                left: Box::new(Expr::ColumnIdent(ColumnIdent {
-                    segments: vec!["column".to_string(), "a".to_string()],
-                    location
+                operator: BinaryOperator::Multi,
+                left: Box::new(Expr::Binary(Binary {
+                    operator: BinaryOperator::Plus,
+                    left: Box::new(Expr::Literal(Literal::Integer(Integer {
+                        value: 1,
+                        location,
+                    }))),
+                    right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                        value: 1,
+                        location,
+                    }))),
+                    location,
                 })),
-                right: Box::new(Expr::Literal(Literal::Float(Float {
-                    value: 11.1,
-                    location
+                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 10,
+                    location,
                 }))),
-                location
+                location,
             })),
-            right: Box::new(Expr::Unary(Unary {
-                operator: UnaryOperator::Not,
-                right: Box::new(Expr::FunctionCall(FunctionCall {
-                    ident: "test".to_string(),
-                    parameters: vec![
-                        Expr::Binary(Binary {
-                            operator: BinaryOperator::Plus,
-                            left: Box::new(Expr::ColumnIdent(ColumnIdent {
-                                segments: vec!["column".to_string(), "b".to_string()],
-                                location
-                            })),
-                            right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                                value: 10,
-                                location
-                            }))),
-                            location
-                        }),
-                        Expr::Literal(Literal::Null(Null { location }))
-                    ],
-                    location
+            right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                value: 11,
+                location,
+            }))),
+            location,
+        }),
+    );
+
+    assert_expr(
+        "column.a >= 11.1 AND NOT test(column.b + 10, Null) OR false",
+        Expr::Binary(Binary {
+            operator: BinaryOperator::Or,
+            left: Box::new(Expr::Binary(Binary {
+                operator: BinaryOperator::And,
+                left: Box::new(Expr::Binary(Binary {
+                    operator: BinaryOperator::Bte,
+                    left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                        segments: vec!["column".to_string(), "a".to_string()],
+                        location,
+                    })),
+                    right: Box::new(Expr::Literal(Literal::Float(Float {
+                        value: 11.1,
+                        location,
+                    }))),
+                    location,
                 })),
-                location
+                right: Box::new(Expr::Unary(Unary {
+                    operator: UnaryOperator::Not,
+                    right: Box::new(Expr::FunctionCall(FunctionCall {
+                        ident: "test".to_string(),
+                        parameters: vec![
+                            Expr::Binary(Binary {
+                                operator: BinaryOperator::Plus,
+                                left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                                    segments: vec!["column".to_string(), "b".to_string()],
+                                    location,
+                                })),
+                                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                                    value: 10,
+                                    location,
+                                }))),
+                                location,
+                            }),
+                            Expr::Literal(Literal::Null(Null { location })),
+                        ],
+                        location,
+                    })),
+                    location,
+                })),
+                location,
             })),
-            location
-        })),
-        right: Box::new(Expr::Literal(Literal::Boolean(Boolean {
-            value: false,
-            location
-        }))),
-        location
-    }))
+            right: Box::new(Expr::Literal(Literal::Boolean(Boolean {
+                value: false,
+                location,
+            }))),
+            location,
+        }),
+    )
 }
