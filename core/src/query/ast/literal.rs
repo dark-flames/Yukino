@@ -1,6 +1,6 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::location::Location;
-use crate::query::ast::node::{Node, QueryPair};
+use crate::query::ast::traits::{Node, QueryPair};
 use crate::query::grammar::Rule;
 use float_eq::float_eq;
 use std::cmp::PartialEq;

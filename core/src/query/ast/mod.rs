@@ -1,7 +1,7 @@
 mod error;
 mod literal;
 mod location;
-mod node;
+mod traits;
 mod ty;
 
 pub use literal::*;
