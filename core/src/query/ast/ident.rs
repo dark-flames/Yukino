@@ -6,7 +6,7 @@ use crate::query::grammar::Rule;
 #[derive(Debug, Clone)]
 pub struct ColumnIdent {
     pub segments: Vec<String>,
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for ColumnIdent {

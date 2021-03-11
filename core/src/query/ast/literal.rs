@@ -8,7 +8,7 @@ use std::cmp::PartialEq;
 #[derive(Debug, Clone)]
 pub struct Boolean {
     pub value: bool,
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for Boolean {
@@ -60,7 +60,7 @@ fn test_bool() {
 #[derive(Debug, Clone)]
 pub struct Integer {
     pub value: i128,
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for Integer {
@@ -97,7 +97,7 @@ impl Locatable for Integer {
 #[derive(Debug, Clone)]
 pub struct Float {
     pub value: f64,
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for Float {
@@ -134,7 +134,7 @@ impl Locatable for Float {
 #[derive(Debug, Clone)]
 pub struct Str {
     pub value: String,
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for Str {
@@ -176,7 +176,7 @@ impl Locatable for Str {
 #[derive(Debug, Clone)]
 pub struct ExternalValue {
     pub ident: String,
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for ExternalValue {
@@ -217,7 +217,7 @@ impl Locatable for ExternalValue {
 
 #[derive(Debug, Clone)]
 pub struct Null {
-    location: Location,
+    pub location: Location,
 }
 
 impl PartialEq for Null {

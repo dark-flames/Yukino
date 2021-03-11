@@ -4,11 +4,20 @@ use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
 use crate::query::ast::Location;
 use crate::query::grammar::Rule;
 
+#[derive(Clone, Debug)]
 pub struct FunctionCall {
     pub ident: String,
     pub parameters: Vec<Expr>,
-    location: Location,
+    pub location: Location,
 }
+
+impl PartialEq for FunctionCall {
+    fn eq(&self, other: &Self) -> bool {
+        self.ident == other.ident && self.parameters == other.parameters
+    }
+}
+
+impl Eq for FunctionCall {}
 
 impl FromPair for FunctionCall {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {

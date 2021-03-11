@@ -7,6 +7,7 @@ use crate::query::grammar::Rule;
 
 type BoxedExpr = Box<Expr>;
 
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum Expr {
     Literal(Literal),
     FunctionCall(FunctionCall),
@@ -148,11 +149,12 @@ impl BinaryOperator {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Binary {
     pub operator: BinaryOperator,
     pub left: BoxedExpr,
     pub right: BoxedExpr,
-    location: Location,
+    pub location: Location,
 }
 
 impl Binary {
@@ -163,7 +165,6 @@ impl Binary {
     ) -> Result<Expr, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         let mut inner = pair.into_inner();
-
         let mut result = expression_from_pair(
             inner
                 .next()
@@ -172,12 +173,11 @@ impl Binary {
             false,
         )?;
 
-        while let Some(operator) = BinaryOperator::from_rule(
-            inner
-                .next()
-                .ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?
-                .as_rule(),
-        ) {
+        while let Some(inner_pair) = inner.next() {
+            let operator = BinaryOperator::from_rule(
+                inner_pair.as_rule()
+            ).ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?;
+
             if !allowed_operators.contains(&operator) {
                 break;
             }
@@ -204,6 +204,14 @@ impl Binary {
     }
 }
 
+impl PartialEq for Binary {
+    fn eq(&self, other: &Self) -> bool {
+        self.operator == other.operator && self.left == other.left && self.right == other.right
+    }
+}
+
+impl Eq for Binary {}
+
 impl FromPair<Expr> for Binary {
     fn from_pair(pair: QueryPair) -> Result<Expr, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
@@ -221,7 +229,7 @@ impl FromPair<Expr> for Binary {
             Rule::add_expr => Self::handle_ast(pair, BinaryOperator::add_operator(), true),
             Rule::term_expr => Self::handle_ast(pair, BinaryOperator::term_operator(), true),
             Rule::bit_xor_expr => Self::handle_ast(pair, vec![BinaryOperator::BitXor], false),
-            _ => Err(location.error(SyntaxError::UnexpectedExpr)),
+            _ => Err(location.error(SyntaxError::UnexpectedPair("expr"))),
         }
     }
 }
@@ -248,11 +256,20 @@ impl UnaryOperator {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Unary {
     pub operator: UnaryOperator,
     pub right: BoxedExpr,
-    location: Location,
+    pub location: Location,
 }
+
+impl PartialEq for Unary {
+    fn eq(&self, other: &Self) -> bool {
+        self.operator == other.operator && self.right == other.right
+    }
+}
+
+impl Eq for Unary{}
 
 impl FromPair<Expr> for Unary {
     fn from_pair(pair: QueryPair) -> Result<Expr, SyntaxErrorWithPos> {
@@ -263,28 +280,27 @@ impl FromPair<Expr> for Unary {
                 let mut inner = pair.into_inner();
 
                 if inner.clone().count() == 1 {
-                    let right = expression_from_pair(
+                    expression_from_pair(
                         inner
                             .next()
                             .ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?,
+                        true,
                         false,
-                        false,
-                    )?;
-
-                    Ok(Expr::Unary(Unary {
-                        operator: UnaryOperator::Not,
-                        right: Box::new(right),
-                        location,
-                    }))
+                    )
                 } else if let Some(Some(UnaryOperator::Not)) = inner
                     .next()
                     .map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule()))
                 {
-                    Self::from_pair(
-                        inner.next().ok_or_else(|| {
-                            location.error(SyntaxError::UnexpectedPair("not_expr"))
-                        })?,
-                    )
+
+                    Ok(Expr::Unary(Unary {
+                        operator: UnaryOperator::Not,
+                        right: Box::new(Self::from_pair(
+                            inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("not_expr"))
+                            })?,
+                        )?),
+                        location,
+                    }))
                 } else {
                     Err(location.error(SyntaxError::UnexpectedPair("bool_not")))
                 }
@@ -293,31 +309,30 @@ impl FromPair<Expr> for Unary {
                 let mut inner = pair.into_inner();
 
                 if inner.clone().count() == 1 {
-                    let right = expression_from_pair(
+                    expression_from_pair(
                         inner
                             .next()
                             .ok_or_else(|| location.error(SyntaxError::UnexpectedExpr))?,
                         false,
                         true,
-                    )?;
-
-                    Ok(Expr::Unary(Unary {
-                        operator: UnaryOperator::BitReverse,
-                        right: Box::new(right),
-                        location,
-                    }))
+                    )
                 } else if let Some(Some(UnaryOperator::BitReverse)) = inner
                     .next()
                     .map(|inner_pair| UnaryOperator::from_rule(inner_pair.as_rule()))
                 {
-                    Self::from_pair(inner.next().ok_or_else(|| {
-                        location.error(SyntaxError::UnexpectedPair("bit_reverse_expr"))
-                    })?)
+
+                    Ok(Expr::Unary(Unary {
+                        operator: UnaryOperator::BitReverse,
+                        right: Box::new(Self::from_pair(inner.next().ok_or_else(|| {
+                            location.error(SyntaxError::UnexpectedPair("bit_reverse_expr"))
+                        })?)?),
+                        location,
+                    }))
                 } else {
                     Err(location.error(SyntaxError::UnexpectedPair("bit_reverse")))
                 }
             }
-            _ => Err(location.error(SyntaxError::UnexpectedExpr)),
+            _ => Err(location.error(SyntaxError::UnexpectedPair("unary_expr"))),
         }
     }
 }
@@ -326,4 +341,128 @@ impl Locatable for Unary {
     fn location(&self) -> Location {
         self.location
     }
+}
+
+#[test]
+fn test_expr() {
+    use crate::pest::Parser;
+    use crate::query::grammar::Grammar;
+    use crate::query::ast::*;
+
+    fn assert_expr(input: &'static str, expr: Expr) {
+        let pair = Grammar::parse(Rule::expr, input)
+            .unwrap()
+            .next()
+            .unwrap();
+
+        assert_eq!(Expr::from_pair(pair).unwrap(), expr);
+    }
+
+    let location = Location::pos(0);
+
+    assert_expr("1 + 1 * 10 = 11", Expr::Binary(Binary {
+        operator: BinaryOperator::Eq,
+        left: Box::new(Expr::Binary(Binary {
+            operator: BinaryOperator::Plus,
+            left: Box::new(Expr::Literal(Literal::Integer(Integer {
+                value: 1,
+                location
+            }))),
+            right: Box::new(Expr::Binary(Binary {
+                operator: BinaryOperator::Multi,
+                left: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 1,
+                    location
+                }))),
+                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 10,
+                    location
+                }))),
+                location
+            })),
+            location
+        })),
+        right: Box::new(Expr::Literal(Literal::Integer(Integer {
+            value: 11,
+            location
+        }))),
+        location
+    }));
+
+    assert_expr("(1 + 1) * 10 != 11", Expr::Binary(Binary {
+        operator: BinaryOperator::Neq,
+        left: Box::new(Expr::Binary(Binary {
+            operator: BinaryOperator::Multi,
+            left: Box::new(Expr::Binary(Binary {
+                operator: BinaryOperator::Plus,
+                left: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 1,
+                    location
+                }))),
+                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 1,
+                    location
+                }))),
+                location
+            })),
+            right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                value: 10,
+                location
+            }))),
+            location
+        })),
+        right: Box::new(Expr::Literal(Literal::Integer(Integer {
+            value: 11,
+            location
+        }))),
+        location
+    }));
+
+    assert_expr("column.a >= 11.1 AND NOT test(column.b + 10, Null) OR false", Expr::Binary(Binary {
+        operator: BinaryOperator::Or,
+        left: Box::new(Expr::Binary(Binary {
+            operator: BinaryOperator::And,
+            left: Box::new(Expr::Binary(Binary {
+                operator: BinaryOperator::Bte,
+                left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                    segments: vec!["column".to_string(), "a".to_string()],
+                    location
+                })),
+                right: Box::new(Expr::Literal(Literal::Float(Float {
+                    value: 11.1,
+                    location
+                }))),
+                location
+            })),
+            right: Box::new(Expr::Unary(Unary {
+                operator: UnaryOperator::Not,
+                right: Box::new(Expr::FunctionCall(FunctionCall {
+                    ident: "test".to_string(),
+                    parameters: vec![
+                        Expr::Binary(Binary {
+                            operator: BinaryOperator::Plus,
+                            left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                                segments: vec!["column".to_string(), "b".to_string()],
+                                location
+                            })),
+                            right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                                value: 10,
+                                location
+                            }))),
+                            location
+                        }),
+                        Expr::Literal(Literal::Null(Null { location }))
+                    ],
+                    location
+                })),
+                location
+            })),
+            location
+        })),
+        right: Box::new(Expr::Literal(Literal::Boolean(Boolean {
+            value: false,
+            location
+        }))),
+        location
+    }))
 }
