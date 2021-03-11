@@ -122,9 +122,9 @@ expr = { xor_expr ~ (bool_or ~ xor_expr)* }
 
 
 // Clauses
-database_ident = { ("\"" ~ ident ~ "\"") | ident  }
+database_ident = _{ ("\"" ~ ident ~ "\"") | ident  }
 any = {"*"}
-column_ident = { multi | database_ident ~ ("." ~ database_ident)* ~  ("." ~ any)?}
+column_ident = { any | database_ident ~ ("." ~ database_ident)* ~  ("." ~ any)?}
 
 table_alias = { (keyword_as)? ~ database_ident }
 expr_alias = { (keyword_as)? ~ database_ident }
