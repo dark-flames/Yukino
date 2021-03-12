@@ -1,3 +1,4 @@
+mod clause;
 mod error;
 mod expr;
 mod func;

@@ -32,6 +32,11 @@ keyword_cross = _{ ^"cross" }
 
 // Ident
 
+any_ident = @{
+    ((ASCII_ALPHA ~ ("_" | ASCII_ALPHA | ASCII_ALPHANUMERIC)*) |
+            ("_"+ ~ (ASCII_ALPHA|ASCII_ALPHANUMERIC)+ ~ ("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*))
+}
+
 ident = @{
     !keyword ~ ((ASCII_ALPHA ~ ("_" | ASCII_ALPHA | ASCII_ALPHANUMERIC)*) |
         ("_"+ ~ (ASCII_ALPHA|ASCII_ALPHANUMERIC)+ ~ ("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*))
@@ -122,11 +127,11 @@ expr = { xor_expr ~ (bool_or ~ xor_expr)* }
 
 
 // Clauses
-database_ident = _{ ("\"" ~ ident ~ "\"") | ident  }
+database_ident = _{ ("\"" ~ any_ident ~ "\"") | ident  }
 any = {"*"}
 column_ident = { any | database_ident ~ ("." ~ database_ident)* ~  ("." ~ any)?}
 
-table_alias = { (keyword_as)? ~ database_ident }
+table_alias = _{ (keyword_as)? ~ database_ident }
 expr_alias = { (keyword_as)? ~ database_ident }
 
 /// From clause

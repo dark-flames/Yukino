@@ -28,6 +28,7 @@ impl FromPair for ColumnIdent {
                     match inner_pair.as_rule() {
                         Rule::any => segments.push("*".to_string()),
                         Rule::ident => segments.push(inner_pair.as_str().to_string()),
+                        Rule::any_ident => segments.push(inner_pair.as_str().to_string()),
                         _ => {
                             return Err(location.error(SyntaxError::UnexpectedPair("any or ident")))
                         }
