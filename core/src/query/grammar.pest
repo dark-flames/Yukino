@@ -139,10 +139,10 @@ table_reference = {database_ident ~ table_alias?}
 from_clause = { keyword_from ~ table_reference ~ join_clause* }
 
 /// Join clause
-qualified_join_type = {((keyword_left | keyword_right | keyword_full) ~ keyword_outer?) | keyword_inner?}
+join_type = {((keyword_left | keyword_right | keyword_full) ~ keyword_outer?) | keyword_inner?}
 cross_join = { keyword_cross ~ keyword_join ~ table_reference }
-natural_join = { keyword_natural ~ qualified_join_type ~ keyword_join ~ table_reference }
-join_on = { qualified_join_type ~ keyword_join ~ table_reference ~ keyword_on ~ expr }
+natural_join = { keyword_natural ~ join_type ~ keyword_join ~ table_reference }
+join_on = { join_type ~ keyword_join ~ table_reference ~ keyword_on ~ expr }
 
 join_clause = { cross_join | natural_join | join_on }
 

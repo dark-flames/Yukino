@@ -1,4 +1,5 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::expr::Expr;
 use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
 use crate::query::ast::Location;
 use crate::query::grammar::Rule;
@@ -100,4 +101,150 @@ fn test_table_ref() {
             location,
         },
     );
+}
+
+pub enum JoinType {
+    Left,
+    Right,
+    Full,
+    LeftOuter,
+    RightOuter,
+    FullOuter,
+    Inner,
+}
+
+impl FromPair for JoinType {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::join_type => {
+                let mut inner = pair.into_inner();
+
+                let first = inner
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("join_type")))?;
+
+                let next = inner.next().map(|next_pair| next_pair.as_rule());
+
+                match first.as_rule() {
+                    Rule::keyword_inner => {
+                        if let Some(Rule::keyword_outer) = next {
+                            Err(Location::from(&first)
+                                .error(SyntaxError::UnexpectedPair("join_type")))
+                        } else {
+                            Ok(JoinType::Inner)
+                        }
+                    }
+                    Rule::keyword_left => {
+                        if let Some(Rule::keyword_outer) = next {
+                            Ok(JoinType::LeftOuter)
+                        } else {
+                            Ok(JoinType::Left)
+                        }
+                    }
+                    Rule::keyword_right => {
+                        if let Some(Rule::keyword_outer) = next {
+                            Ok(JoinType::RightOuter)
+                        } else {
+                            Ok(JoinType::Right)
+                        }
+                    }
+                    Rule::keyword_full => {
+                        if let Some(Rule::keyword_outer) = next {
+                            Ok(JoinType::FullOuter)
+                        } else {
+                            Ok(JoinType::Full)
+                        }
+                    }
+                    _ => {
+                        Err(Location::from(&first).error(SyntaxError::UnexpectedPair("join_type")))
+                    }
+                }
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("join_type"))),
+        }
+    }
+}
+
+pub enum JoinClause {
+    NaturalJoin(NaturalJoin),
+    CrossJoin(CrossJoin),
+    JoinOn(JoinOn),
+}
+
+pub struct NaturalJoin {
+    pub ty: JoinType,
+    pub table: TableReference,
+    pub location: Location,
+}
+
+pub struct CrossJoin {
+    pub table: TableReference,
+    pub location: Location,
+}
+
+pub struct JoinOn {
+    pub ty: JoinType,
+    pub table: TableReference,
+    pub on: Expr,
+    pub location: Location,
+}
+
+impl FromPair for JoinClause {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+        match pair.as_rule() {
+            Rule::join_clause => {
+                let inner_pair = pair
+                    .into_inner()
+                    .next()
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("join_clause")))?;
+
+                match inner_pair.as_rule() {
+                    Rule::natural_join => {
+                        let mut inner = inner_pair.into_inner();
+
+                        Ok(JoinClause::NaturalJoin(NaturalJoin {
+                            ty: JoinType::from_pair(inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("natural_join"))
+                            })?)?,
+                            table: TableReference::from_pair(inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("natural_join"))
+                            })?)?,
+                            location,
+                        }))
+                    }
+                    Rule::cross_join => {
+                        let mut inner = inner_pair.into_inner();
+
+                        Ok(JoinClause::CrossJoin(CrossJoin {
+                            table: TableReference::from_pair(inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("natural_join"))
+                            })?)?,
+                            location,
+                        }))
+                    }
+                    Rule::join_on => {
+                        let mut inner = inner_pair.into_inner();
+
+                        Ok(JoinClause::JoinOn(JoinOn {
+                            ty: JoinType::from_pair(inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("natural_join"))
+                            })?)?,
+                            table: TableReference::from_pair(inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("natural_join"))
+                            })?)?,
+                            on: Expr::from_pair(inner.next().ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("natural_join"))
+                            })?)?,
+                            location,
+                        }))
+                    }
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("join_clause"))),
+                }
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("join_clause"))),
+        }
+    }
 }
