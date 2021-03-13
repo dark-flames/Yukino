@@ -527,13 +527,206 @@ fn test_from_clause() {
                     table: TableReference {
                         name: "test2".to_string(),
                         alias: None,
-                        location
+                        location,
                     },
-                    location
-                })
+                    location,
+                }),
             ],
             location,
         },
         Rule::from_clause,
     )
+}
+
+#[derive(Clone, Debug)]
+pub struct WhereClause {
+    pub expr: Expr,
+    pub location: Location
+}
+
+impl FromPair for WhereClause {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::where_clause => {
+                let mut inner = pair.into_inner();
+
+                Ok(WhereClause {
+                    expr: Expr::from_pair(inner.next().ok_or_else(|| {
+                        location.error(SyntaxError::UnexpectedPair("where_clause"))
+                    })?)?,
+                    location,
+                })
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("where_clause"))),
+        }
+    }
+}
+
+impl Locatable for WhereClause {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
+
+impl PartialEq for WhereClause {
+    fn eq(&self, other: &Self) -> bool {
+        self.expr == other.expr
+    }
+}
+
+impl Eq for WhereClause {}
+
+#[derive(Clone, Debug)]
+pub struct HavingClause {
+    pub expr: Expr,
+    pub location: Location
+}
+
+impl FromPair for HavingClause {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::having_clause => {
+                let mut inner = pair.into_inner();
+
+                Ok(HavingClause {
+                    expr: Expr::from_pair(inner.next().ok_or_else(|| {
+                        location.error(SyntaxError::UnexpectedPair("having_clause"))
+                    })?)?,
+                    location,
+                })
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("having_clause"))),
+        }
+    }
+}
+
+impl Locatable for HavingClause {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
+
+impl PartialEq for HavingClause {
+    fn eq(&self, other: &Self) -> bool {
+        self.expr == other.expr
+    }
+}
+
+impl Eq for HavingClause {}
+
+#[derive(Clone, Debug)]
+pub struct GroupClause {
+    pub by: Expr,
+    pub having: Option<HavingClause>,
+    pub location: Location
+}
+
+impl FromPair for GroupClause {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::group_by_clause => {
+                let mut inner = pair.into_inner();
+
+                Ok(GroupClause {
+                    by: Expr::from_pair(inner.next().ok_or_else(|| {
+                        location.error(SyntaxError::UnexpectedPair("group_clause"))
+                    })?)?,
+                    having: inner.next().map(HavingClause::from_pair).map_or(
+                        Ok(None), |v| v.map(Some)
+                    )?,
+                    location,
+                })
+            },
+            _ => Err(location.error(SyntaxError::UnexpectedPair("group_clause")))
+        }
+    }
+}
+
+impl Locatable for GroupClause {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
+
+impl PartialEq for GroupClause {
+    fn eq(&self, other: &Self) -> bool {
+        self.by == other.by && self.having == other.having
+    }
+}
+
+impl Eq for GroupClause {}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum Order {
+    Desc,
+    Asc
+}
+
+impl FromPair for Order {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::order => {
+                match pair.into_inner().next().map(|inner_pair| inner_pair.as_rule()) {
+                    Some(Rule::order_asc) => Ok(Order::Asc),
+                    Some(Rule::order_desc) => Ok(Order::Desc),
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("order")))
+                }
+            },
+            _ => Err(location.error(SyntaxError::UnexpectedPair("order")))
+        }
+    }
+}
+
+pub struct OrderByClause {
+    pub items: Vec<(Expr, Order)>,
+    pub location: Location
+}
+
+impl FromPair for OrderByClause {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::order_by_clause => {
+                let mut inner = pair.into_inner();
+
+                if let Some(Rule::keyword_order_by) = inner.next().map(|inner_pair| inner_pair.as_rule()) {
+                    let mut items = vec![];
+                    while let Some(inner_pair) = inner.next() {
+                        if let Rule::expr = inner_pair.as_rule() {
+                            let expr = Expr::from_pair(inner_pair)?;
+
+                            let order = inner.next().map(Order::from_pair).ok_or_else(
+                                || location.error(SyntaxError::UnexpectedPair("order"))
+                            )??;
+
+                            items.push((expr, order));
+
+                            if let Some(Rule::comma) = inner.next().map(|inner_pair| inner_pair.as_rule()) {
+                                break;
+                            }
+                        } else {
+                            return Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
+                        }
+                    }
+
+                    Ok(OrderByClause {
+                        items,
+                        location
+                    })
+                } else {
+                    Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
+                }
+            },
+            _ => Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
+        }
+    }
 }

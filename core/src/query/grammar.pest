@@ -7,7 +7,7 @@ WHITESPACE = _{ " " | "\n" | "\r" }
 
 // Keyword
 keyword = _{
-    keyword_select | keyword_from | keyword_as | keyword_where | keyword_group_by |
+    keyword_select | keyword_from | keyword_as | keyword_where | keyword_group_by | order_asc | order_desc |
     keyword_group_by | keyword_having | keyword_order_by | keyword_limit | keyword_offset | keyword_join | keyword_on |
     keyword_left | keyword_right | keyword_full | keyword_inner | keyword_natural | bool_not | bool_and | bit_or |bool_xor
 }
@@ -163,7 +163,7 @@ select_clause = { keyword_select ~ select_item ~ (comma ~ select_item)* }
 order_asc = @{ ^"asc" }
 order_desc = @{ ^"desc" }
 order = { order_asc | order_desc }
-order_by_clause = { keyword_order_by ~ expr ~ order }
+order_by_clause = { keyword_order_by ~ expr ~ order ~ (comma ~ expr ~ order) }
 
 /// Limit clause
 limit_clause = { keyword_limit ~ int }
