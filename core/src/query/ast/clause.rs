@@ -279,6 +279,16 @@ impl FromPair for JoinClause {
     }
 }
 
+impl Locatable for JoinClause {
+    fn location(&self) -> Location {
+        match self {
+            JoinClause::NaturalJoin(v) => v.location,
+            JoinClause::CrossJoin(v) => v.location,
+            JoinClause::JoinOn(v) => v.location,
+        }
+    }
+}
+
 impl PartialEq for JoinOn {
     fn eq(&self, other: &Self) -> bool {
         self.ty == other.ty && self.table == other.table && self.on == other.on
@@ -368,4 +378,32 @@ fn test_join_clause() {
             location,
         }),
     );
+}
+
+#[derive(Clone, Debug)]
+pub struct FromClause {
+    pub table: TableReference,
+    pub join: Vec<JoinClause>,
+    pub location: Location,
+}
+
+impl FromPair for FromClause {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::from_clause => {
+                let mut inner = pair.into_inner();
+
+                Ok(FromClause {
+                    table: TableReference::from_pair(inner.next().ok_or_else(|| {
+                        location.error(SyntaxError::UnexpectedPair("from_clause"))
+                    })?)?,
+                    join: inner.map(JoinClause::from_pair).collect::<Result<_, _>>()?,
+                    location,
+                })
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("from_clause"))),
+        }
+    }
 }
