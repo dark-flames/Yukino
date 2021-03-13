@@ -541,7 +541,7 @@ fn test_from_clause() {
 #[derive(Clone, Debug)]
 pub struct WhereClause {
     pub expr: Expr,
-    pub location: Location
+    pub location: Location,
 }
 
 impl FromPair for WhereClause {
@@ -581,7 +581,7 @@ impl Eq for WhereClause {}
 #[derive(Clone, Debug)]
 pub struct HavingClause {
     pub expr: Expr,
-    pub location: Location
+    pub location: Location,
 }
 
 impl FromPair for HavingClause {
@@ -622,7 +622,7 @@ impl Eq for HavingClause {}
 pub struct GroupClause {
     pub by: Expr,
     pub having: Option<HavingClause>,
-    pub location: Location
+    pub location: Location,
 }
 
 impl FromPair for GroupClause {
@@ -637,13 +637,14 @@ impl FromPair for GroupClause {
                     by: Expr::from_pair(inner.next().ok_or_else(|| {
                         location.error(SyntaxError::UnexpectedPair("group_clause"))
                     })?)?,
-                    having: inner.next().map(HavingClause::from_pair).map_or(
-                        Ok(None), |v| v.map(Some)
-                    )?,
+                    having: inner
+                        .next()
+                        .map(HavingClause::from_pair)
+                        .map_or(Ok(None), |v| v.map(Some))?,
                     location,
                 })
-            },
-            _ => Err(location.error(SyntaxError::UnexpectedPair("group_clause")))
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("group_clause"))),
         }
     }
 }
@@ -665,7 +666,7 @@ impl Eq for GroupClause {}
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Order {
     Desc,
-    Asc
+    Asc,
 }
 
 impl FromPair for Order {
@@ -674,20 +675,24 @@ impl FromPair for Order {
 
         match pair.as_rule() {
             Rule::order => {
-                match pair.into_inner().next().map(|inner_pair| inner_pair.as_rule()) {
+                match pair
+                    .into_inner()
+                    .next()
+                    .map(|inner_pair| inner_pair.as_rule())
+                {
                     Some(Rule::order_asc) => Ok(Order::Asc),
                     Some(Rule::order_desc) => Ok(Order::Desc),
-                    _ => Err(location.error(SyntaxError::UnexpectedPair("order")))
+                    _ => Err(location.error(SyntaxError::UnexpectedPair("order"))),
                 }
-            },
-            _ => Err(location.error(SyntaxError::UnexpectedPair("order")))
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("order"))),
         }
     }
 }
 
 pub struct OrderByClause {
     pub items: Vec<(Expr, Order)>,
-    pub location: Location
+    pub location: Location,
 }
 
 impl FromPair for OrderByClause {
@@ -698,35 +703,38 @@ impl FromPair for OrderByClause {
             Rule::order_by_clause => {
                 let mut inner = pair.into_inner();
 
-                if let Some(Rule::keyword_order_by) = inner.next().map(|inner_pair| inner_pair.as_rule()) {
+                if let Some(Rule::keyword_order_by) =
+                    inner.next().map(|inner_pair| inner_pair.as_rule())
+                {
                     let mut items = vec![];
                     while let Some(inner_pair) = inner.next() {
                         if let Rule::expr = inner_pair.as_rule() {
                             let expr = Expr::from_pair(inner_pair)?;
 
-                            let order = inner.next().map(Order::from_pair).ok_or_else(
-                                || location.error(SyntaxError::UnexpectedPair("order"))
-                            )??;
+                            let order = inner.next().map(Order::from_pair).ok_or_else(|| {
+                                location.error(SyntaxError::UnexpectedPair("order"))
+                            })??;
 
                             items.push((expr, order));
 
-                            if let Some(Rule::comma) = inner.next().map(|inner_pair| inner_pair.as_rule()) {
+                            if let Some(Rule::comma) =
+                                inner.next().map(|inner_pair| inner_pair.as_rule())
+                            {
                                 break;
                             }
                         } else {
-                            return Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
+                            return Err(
+                                location.error(SyntaxError::UnexpectedPair("order_by_clause"))
+                            );
                         }
                     }
 
-                    Ok(OrderByClause {
-                        items,
-                        location
-                    })
+                    Ok(OrderByClause { items, location })
                 } else {
                     Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
                 }
-            },
-            _ => Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("order_by_clause"))),
         }
     }
 }
