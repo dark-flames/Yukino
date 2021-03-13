@@ -491,4 +491,49 @@ fn test_from_clause() {
         },
         Rule::from_clause,
     );
+
+    assert_parse_result(
+        "From test t1 RIGHT JOIN test2 t2 ON t2.assoc = t1. id NATURAL RIGHT OUTER JOIN test2",
+        FromClause {
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t1".to_string()),
+                location,
+            },
+            join: vec![
+                JoinClause::JoinOn(JoinOn {
+                    ty: JoinType::Right,
+                    table: TableReference {
+                        name: "test2".to_string(),
+                        alias: Some("t2".to_string()),
+                        location,
+                    },
+                    on: Expr::Binary(Binary {
+                        operator: BinaryOperator::Eq,
+                        left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                            segments: vec!["t2".to_string(), "assoc".to_string()],
+                            location,
+                        })),
+                        right: Box::new(Expr::ColumnIdent(ColumnIdent {
+                            segments: vec!["t1".to_string(), "id".to_string()],
+                            location,
+                        })),
+                        location,
+                    }),
+                    location,
+                }),
+                JoinClause::NaturalJoin(NaturalJoin {
+                    ty: JoinType::RightOuter,
+                    table: TableReference {
+                        name: "test2".to_string(),
+                        alias: None,
+                        location
+                    },
+                    location
+                })
+            ],
+            location,
+        },
+        Rule::from_clause,
+    )
 }
