@@ -7,6 +7,7 @@ mod literal;
 mod location;
 mod traits;
 mod ty;
+mod helper;
 
 pub use literal::*;
 pub use location::*;

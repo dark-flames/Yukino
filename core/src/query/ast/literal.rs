@@ -294,17 +294,7 @@ impl Locatable for Literal {
 
 #[test]
 fn test_literal() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
-
-    fn assert_parse_result(input: &'static str, lit: Literal) {
-        let pair = Grammar::parse(Rule::literal, input)
-            .unwrap()
-            .next()
-            .unwrap();
-
-        assert_eq!(Literal::from_pair(pair).unwrap(), lit);
-    }
+    use crate::query::ast::helper::assert_parse_result;
 
     let location = Location::Pos(0);
 
@@ -314,6 +304,7 @@ fn test_literal() {
             value: true,
             location,
         }),
+        Rule::literal
     );
     assert_parse_result(
         "false",
@@ -321,6 +312,7 @@ fn test_literal() {
             value: false,
             location,
         }),
+        Rule::literal
     );
 
     assert_parse_result(
@@ -329,6 +321,7 @@ fn test_literal() {
             value: 114514,
             location,
         }),
+        Rule::literal
     );
     assert_parse_result(
         "-114514",
@@ -336,6 +329,7 @@ fn test_literal() {
             value: -114514,
             location,
         }),
+        Rule::literal
     );
 
     assert_parse_result(
@@ -344,6 +338,7 @@ fn test_literal() {
             value: 114.514,
             location,
         }),
+        Rule::literal
     );
     assert_parse_result(
         "-1e10",
@@ -351,6 +346,7 @@ fn test_literal() {
             value: -1e10,
             location,
         }),
+        Rule::literal
     );
 
     assert_parse_result(
@@ -359,6 +355,7 @@ fn test_literal() {
             value: "\\n\\rtest".to_string(),
             location,
         }),
+        Rule::literal
     );
 
     assert_parse_result(
@@ -367,6 +364,7 @@ fn test_literal() {
             ident: "__external_value".to_string(),
             location,
         }),
+        Rule::literal
     );
     assert_parse_result(
         "$externa1_value",
@@ -374,8 +372,9 @@ fn test_literal() {
             ident: "externa1_value".to_string(),
             location,
         }),
+        Rule::literal
     );
 
-    assert_parse_result("Null", Literal::Null(Null { location }));
-    assert_parse_result("null", Literal::Null(Null { location }));
+    assert_parse_result("Null", Literal::Null(Null { location }), Rule::literal);
+    assert_parse_result("null", Literal::Null(Null { location }), Rule::literal);
 }

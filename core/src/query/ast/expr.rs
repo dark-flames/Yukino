@@ -340,19 +340,12 @@ impl Locatable for Unary {
 
 #[test]
 fn test_expr() {
-    use crate::pest::Parser;
     use crate::query::ast::*;
-    use crate::query::grammar::Grammar;
-
-    fn assert_expr(input: &'static str, expr: Expr) {
-        let pair = Grammar::parse(Rule::expr, input).unwrap().next().unwrap();
-
-        assert_eq!(Expr::from_pair(pair).unwrap(), expr);
-    }
+    use crate::query::ast::helper::assert_parse_result;
 
     let location = Location::pos(0);
 
-    assert_expr(
+    assert_parse_result(
         "1 + 1 * 10 = 11",
         Expr::Binary(Binary {
             operator: BinaryOperator::Eq,
@@ -382,9 +375,10 @@ fn test_expr() {
             }))),
             location,
         }),
+        Rule::expr
     );
 
-    assert_expr(
+    assert_parse_result(
         "(1 + 1) * 10 != 11",
         Expr::Binary(Binary {
             operator: BinaryOperator::Neq,
@@ -414,9 +408,10 @@ fn test_expr() {
             }))),
             location,
         }),
+        Rule::expr
     );
 
-    assert_expr(
+    assert_parse_result(
         "column.a >= 11.1 AND NOT test(column.\"b\" + 10, Null) OR false",
         Expr::Binary(Binary {
             operator: BinaryOperator::Or,
@@ -465,5 +460,6 @@ fn test_expr() {
             }))),
             location,
         }),
+        Rule::expr
     )
 }

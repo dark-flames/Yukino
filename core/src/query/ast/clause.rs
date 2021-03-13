@@ -62,53 +62,48 @@ impl FromPair for TableReference {
 
 #[test]
 fn test_table_ref() {
-    fn assert_table_ref(input: &'static str, result: TableReference) {
-        use crate::pest::Parser;
-        use crate::query::grammar::Grammar;
+    use crate::query::ast::helper::assert_parse_result;
 
-        let pair = Grammar::parse(Rule::table_reference, input)
-            .unwrap()
-            .next()
-            .unwrap();
+    let location = Location::pos(1);
 
-        assert_eq!(TableReference::from_pair(pair).unwrap(), result);
-    }
-    let location = Location::pos(0);
-
-    assert_table_ref(
+    assert_parse_result(
         "Test As \"where\"",
         TableReference {
             name: "Test".to_string(),
             alias: Some("where".to_string()),
             location,
         },
+        Rule::table_reference
     );
 
-    assert_table_ref(
+    assert_parse_result(
         "Test",
         TableReference {
             name: "Test".to_string(),
             alias: None,
             location,
         },
+        Rule::table_reference
     );
 
-    assert_table_ref(
+    assert_parse_result(
         "Test t",
         TableReference {
             name: "Test".to_string(),
             alias: Some("t".to_string()),
             location,
         },
+        Rule::table_reference
     );
 
-    assert_table_ref(
+    assert_parse_result(
         "Test AS t",
         TableReference {
             name: "Test".to_string(),
             alias: Some("t".to_string()),
             location,
         },
+        Rule::table_reference
     );
 }
 
@@ -302,22 +297,11 @@ fn test_join_clause() {
     use crate::query::ast::expr::{Binary, BinaryOperator};
     use crate::query::ast::ident::ColumnIdent;
     use crate::query::ast::literal::{Integer, Literal};
-
-    fn assert_join_clause(input: &'static str, join_clause: JoinClause) {
-        use crate::query::grammar::Grammar;
-        use pest::Parser;
-
-        let pair = Grammar::parse(Rule::join_clause, input)
-            .unwrap()
-            .next()
-            .unwrap();
-
-        assert_eq!(JoinClause::from_pair(pair).unwrap(), join_clause)
-    }
+    use crate::query::ast::helper::assert_parse_result;
 
     let location = Location::pos(0);
 
-    assert_join_clause(
+    assert_parse_result(
         "NATURAL INNER JOIN test AS t",
         JoinClause::NaturalJoin(NaturalJoin {
             ty: JoinType::Inner,
@@ -328,9 +312,10 @@ fn test_join_clause() {
             },
             location,
         }),
+        Rule::join_clause
     );
 
-    assert_join_clause(
+    assert_parse_result(
         "CROSS JOIN test AS t",
         JoinClause::CrossJoin(CrossJoin {
             table: TableReference {
@@ -340,9 +325,10 @@ fn test_join_clause() {
             },
             location,
         }),
+        Rule::join_clause
     );
 
-    assert_join_clause(
+    assert_parse_result(
         "CROSS JOIN test AS t",
         JoinClause::CrossJoin(CrossJoin {
             table: TableReference {
@@ -352,9 +338,10 @@ fn test_join_clause() {
             },
             location,
         }),
+        Rule::join_clause
     );
 
-    assert_join_clause(
+    assert_parse_result(
         "INNER JOIN test AS t ON t.id >= 100",
         JoinClause::JoinOn(JoinOn {
             ty: JoinType::Inner,
@@ -377,6 +364,7 @@ fn test_join_clause() {
             }),
             location,
         }),
+        Rule::join_clause
     );
 }
 
@@ -405,5 +393,11 @@ impl FromPair for FromClause {
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("from_clause"))),
         }
+    }
+}
+
+impl Locatable for FromClause {
+    fn location(&self) -> Location {
+        self.location
     }
 }

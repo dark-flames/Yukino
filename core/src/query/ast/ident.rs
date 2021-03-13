@@ -50,24 +50,17 @@ impl Locatable for ColumnIdent {
 
 #[test]
 fn test_ident() {
-    use crate::pest::Parser;
-    use crate::query::grammar::Grammar;
+    use crate::query::ast::helper::assert_parse_result;
 
-    let result_1 = Grammar::parse(Rule::column_ident, "*")
-        .unwrap()
-        .next()
-        .unwrap();
-    let result_2 = Grammar::parse(Rule::column_ident, "a.b.*")
-        .unwrap()
-        .next()
-        .unwrap();
+    let location = Location::pos(1);
 
-    assert_eq!(
-        ColumnIdent::from_pair(result_1).unwrap().segments,
-        vec!["*".to_string()]
-    );
-    assert_eq!(
-        ColumnIdent::from_pair(result_2).unwrap().segments,
-        vec!["a".to_string(), "b".to_string(), "*".to_string()]
-    )
+    assert_parse_result("*", ColumnIdent{
+        segments: vec!["*".to_string()],
+        location
+    }, Rule::column_ident);
+
+    assert_parse_result("a.b.*", ColumnIdent{
+        segments: vec!["a".to_string(), "b".to_string(), "*".to_string()],
+        location
+    }, Rule::column_ident);
 }
