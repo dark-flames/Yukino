@@ -101,8 +101,18 @@ fn test_table_ref() {
             location,
         },
     );
+
+    assert_table_ref(
+        "Test AS t",
+        TableReference {
+            name: "Test".to_string(),
+            alias: Some("t".to_string()),
+            location,
+        },
+    );
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum JoinType {
     Left,
     Right,
@@ -167,23 +177,43 @@ impl FromPair for JoinType {
     }
 }
 
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum JoinClause {
     NaturalJoin(NaturalJoin),
     CrossJoin(CrossJoin),
     JoinOn(JoinOn),
 }
 
+#[derive(Clone, Debug)]
 pub struct NaturalJoin {
     pub ty: JoinType,
     pub table: TableReference,
     pub location: Location,
 }
 
+impl PartialEq for NaturalJoin {
+    fn eq(&self, other: &Self) -> bool {
+        self.ty == other.ty && self.table == other.table
+    }
+}
+
+impl Eq for NaturalJoin {}
+
+#[derive(Clone, Debug)]
 pub struct CrossJoin {
     pub table: TableReference,
     pub location: Location,
 }
 
+impl PartialEq for CrossJoin {
+    fn eq(&self, other: &Self) -> bool {
+        self.table == other.table
+    }
+}
+
+impl Eq for CrossJoin {}
+
+#[derive(Clone, Debug)]
 pub struct JoinOn {
     pub ty: JoinType,
     pub table: TableReference,
@@ -247,4 +277,95 @@ impl FromPair for JoinClause {
             _ => Err(location.error(SyntaxError::UnexpectedPair("join_clause"))),
         }
     }
+}
+
+impl PartialEq for JoinOn {
+    fn eq(&self, other: &Self) -> bool {
+        self.ty == other.ty && self.table == other.table && self.on == other.on
+    }
+}
+
+impl Eq for JoinOn {}
+
+#[test]
+fn test_join_clause() {
+    use crate::query::ast::expr::{Binary, BinaryOperator};
+    use crate::query::ast::ident::ColumnIdent;
+    use crate::query::ast::literal::{Integer, Literal};
+
+    fn assert_join_clause(input: &'static str, join_clause: JoinClause) {
+        use crate::query::grammar::Grammar;
+        use pest::Parser;
+
+        let pair = Grammar::parse(Rule::join_clause, input)
+            .unwrap()
+            .next()
+            .unwrap();
+
+        assert_eq!(JoinClause::from_pair(pair).unwrap(), join_clause)
+    }
+
+    let location = Location::pos(0);
+
+    assert_join_clause(
+        "NATURAL INNER JOIN test AS t",
+        JoinClause::NaturalJoin(NaturalJoin {
+            ty: JoinType::Inner,
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t".to_string()),
+                location,
+            },
+            location,
+        }),
+    );
+
+    assert_join_clause(
+        "CROSS JOIN test AS t",
+        JoinClause::CrossJoin(CrossJoin {
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t".to_string()),
+                location,
+            },
+            location,
+        }),
+    );
+
+    assert_join_clause(
+        "CROSS JOIN test AS t",
+        JoinClause::CrossJoin(CrossJoin {
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t".to_string()),
+                location,
+            },
+            location,
+        }),
+    );
+
+    assert_join_clause(
+        "INNER JOIN test AS t ON t.id >= 100",
+        JoinClause::JoinOn(JoinOn {
+            ty: JoinType::Inner,
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t".to_string()),
+                location,
+            },
+            on: Expr::Binary(Binary {
+                operator: BinaryOperator::Bte,
+                left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                    segments: vec!["t".to_string(), "id".to_string()],
+                    location,
+                })),
+                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 100,
+                    location,
+                }))),
+                location,
+            }),
+            location,
+        }),
+    );
 }

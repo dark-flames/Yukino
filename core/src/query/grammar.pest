@@ -27,7 +27,7 @@ keyword_right = @{ ^"right" }
 keyword_full = @{ ^"full" }
 keyword_inner = @{ ^"inner" }
 keyword_outer = @{ ^"outer"}
-keyword_natural = _{ ^"natrue" }
+keyword_natural = _{ ^"natural" }
 keyword_cross = _{ ^"cross" }
 
 // Ident
