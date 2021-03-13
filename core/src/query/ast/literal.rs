@@ -304,7 +304,7 @@ fn test_literal() {
             value: true,
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
     assert_parse_result(
         "false",
@@ -312,7 +312,7 @@ fn test_literal() {
             value: false,
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
 
     assert_parse_result(
@@ -321,7 +321,7 @@ fn test_literal() {
             value: 114514,
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
     assert_parse_result(
         "-114514",
@@ -329,7 +329,7 @@ fn test_literal() {
             value: -114514,
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
 
     assert_parse_result(
@@ -338,7 +338,7 @@ fn test_literal() {
             value: 114.514,
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
     assert_parse_result(
         "-1e10",
@@ -346,7 +346,7 @@ fn test_literal() {
             value: -1e10,
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
 
     assert_parse_result(
@@ -355,7 +355,7 @@ fn test_literal() {
             value: "\\n\\rtest".to_string(),
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
 
     assert_parse_result(
@@ -364,7 +364,7 @@ fn test_literal() {
             ident: "__external_value".to_string(),
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
     assert_parse_result(
         "$externa1_value",
@@ -372,7 +372,7 @@ fn test_literal() {
             ident: "externa1_value".to_string(),
             location,
         }),
-        Rule::literal
+        Rule::literal,
     );
 
     assert_parse_result("Null", Literal::Null(Null { location }), Rule::literal);

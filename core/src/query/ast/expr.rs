@@ -340,8 +340,8 @@ impl Locatable for Unary {
 
 #[test]
 fn test_expr() {
-    use crate::query::ast::*;
     use crate::query::ast::helper::assert_parse_result;
+    use crate::query::ast::*;
 
     let location = Location::pos(0);
 
@@ -375,7 +375,7 @@ fn test_expr() {
             }))),
             location,
         }),
-        Rule::expr
+        Rule::expr,
     );
 
     assert_parse_result(
@@ -408,7 +408,7 @@ fn test_expr() {
             }))),
             location,
         }),
-        Rule::expr
+        Rule::expr,
     );
 
     assert_parse_result(
@@ -460,6 +460,6 @@ fn test_expr() {
             }))),
             location,
         }),
-        Rule::expr
+        Rule::expr,
     )
 }

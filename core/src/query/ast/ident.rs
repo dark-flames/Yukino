@@ -54,13 +54,21 @@ fn test_ident() {
 
     let location = Location::pos(1);
 
-    assert_parse_result("*", ColumnIdent{
-        segments: vec!["*".to_string()],
-        location
-    }, Rule::column_ident);
+    assert_parse_result(
+        "*",
+        ColumnIdent {
+            segments: vec!["*".to_string()],
+            location,
+        },
+        Rule::column_ident,
+    );
 
-    assert_parse_result("a.b.*", ColumnIdent{
-        segments: vec!["a".to_string(), "b".to_string(), "*".to_string()],
-        location
-    }, Rule::column_ident);
+    assert_parse_result(
+        "a.b.*",
+        ColumnIdent {
+            segments: vec!["a".to_string(), "b".to_string(), "*".to_string()],
+            location,
+        },
+        Rule::column_ident,
+    );
 }

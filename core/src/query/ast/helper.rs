@@ -10,10 +10,7 @@ pub fn assert_parse_result<T: FromPair + Eq + Debug>(input: &'static str, result
     use crate::query::grammar::Grammar;
     use pest::Parser;
 
-    let pair = Grammar::parse(rule, input)
-        .unwrap()
-        .next()
-        .unwrap();
+    let pair = Grammar::parse(rule, input).unwrap().next().unwrap();
 
     assert_eq!(T::from_pair(pair).unwrap(), result)
 }

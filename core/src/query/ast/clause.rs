@@ -73,7 +73,7 @@ fn test_table_ref() {
             alias: Some("where".to_string()),
             location,
         },
-        Rule::table_reference
+        Rule::table_reference,
     );
 
     assert_parse_result(
@@ -83,7 +83,7 @@ fn test_table_ref() {
             alias: None,
             location,
         },
-        Rule::table_reference
+        Rule::table_reference,
     );
 
     assert_parse_result(
@@ -93,7 +93,7 @@ fn test_table_ref() {
             alias: Some("t".to_string()),
             location,
         },
-        Rule::table_reference
+        Rule::table_reference,
     );
 
     assert_parse_result(
@@ -103,7 +103,7 @@ fn test_table_ref() {
             alias: Some("t".to_string()),
             location,
         },
-        Rule::table_reference
+        Rule::table_reference,
     );
 }
 
@@ -295,9 +295,9 @@ impl Eq for JoinOn {}
 #[test]
 fn test_join_clause() {
     use crate::query::ast::expr::{Binary, BinaryOperator};
+    use crate::query::ast::helper::assert_parse_result;
     use crate::query::ast::ident::ColumnIdent;
     use crate::query::ast::literal::{Integer, Literal};
-    use crate::query::ast::helper::assert_parse_result;
 
     let location = Location::pos(0);
 
@@ -312,7 +312,7 @@ fn test_join_clause() {
             },
             location,
         }),
-        Rule::join_clause
+        Rule::join_clause,
     );
 
     assert_parse_result(
@@ -325,7 +325,7 @@ fn test_join_clause() {
             },
             location,
         }),
-        Rule::join_clause
+        Rule::join_clause,
     );
 
     assert_parse_result(
@@ -338,7 +338,7 @@ fn test_join_clause() {
             },
             location,
         }),
-        Rule::join_clause
+        Rule::join_clause,
     );
 
     assert_parse_result(
@@ -364,7 +364,7 @@ fn test_join_clause() {
             }),
             location,
         }),
-        Rule::join_clause
+        Rule::join_clause,
     );
 }
 
