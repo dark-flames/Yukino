@@ -64,9 +64,18 @@ fn test_ident() {
     );
 
     assert_parse_result(
-        "a.b.*",
+        "a.b2.*",
         ColumnIdent {
-            segments: vec!["a".to_string(), "b".to_string(), "*".to_string()],
+            segments: vec!["a".to_string(), "b2".to_string(), "*".to_string()],
+            location,
+        },
+        Rule::column_ident,
+    );
+
+    assert_parse_result(
+        "t2.assoc",
+        ColumnIdent {
+            segments: vec!["t2".to_string(), "assoc".to_string()],
             location,
         },
         Rule::column_ident,

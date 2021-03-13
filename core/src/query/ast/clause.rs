@@ -366,6 +366,32 @@ fn test_join_clause() {
         }),
         Rule::join_clause,
     );
+
+    assert_parse_result(
+        "LEFT OUTER JOIN test2 AS t2 ON t2.assoc = t1.id",
+        JoinClause::JoinOn(JoinOn {
+            ty: JoinType::LeftOuter,
+            table: TableReference {
+                name: "test2".to_string(),
+                alias: Some("t2".to_string()),
+                location,
+            },
+            on: Expr::Binary(Binary {
+                operator: BinaryOperator::Eq,
+                left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                    segments: vec!["t2".to_string(), "assoc".to_string()],
+                    location,
+                })),
+                right: Box::new(Expr::ColumnIdent(ColumnIdent {
+                    segments: vec!["t1".to_string(), "id".to_string()],
+                    location,
+                })),
+                location,
+            }),
+            location,
+        }),
+        Rule::join_clause,
+    );
 }
 
 #[derive(Clone, Debug)]
@@ -400,4 +426,69 @@ impl Locatable for FromClause {
     fn location(&self) -> Location {
         self.location
     }
+}
+
+impl PartialEq for FromClause {
+    fn eq(&self, other: &Self) -> bool {
+        self.table == other.table && self.join == other.join
+    }
+}
+
+impl Eq for FromClause {}
+
+#[test]
+fn test_from_clause() {
+    use crate::query::ast::expr::{Binary, BinaryOperator};
+    use crate::query::ast::helper::assert_parse_result;
+    use crate::query::ast::ident::ColumnIdent;
+
+    let location = Location::pos(0);
+
+    assert_parse_result(
+        "From test t",
+        FromClause {
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t".to_string()),
+                location,
+            },
+            join: vec![],
+            location,
+        },
+        Rule::from_clause,
+    );
+
+    assert_parse_result(
+        "From test AS t1 INNER JOIN test2 AS t2 ON t2.assoc = t1.id",
+        FromClause {
+            table: TableReference {
+                name: "test".to_string(),
+                alias: Some("t1".to_string()),
+                location,
+            },
+            join: vec![JoinClause::JoinOn(JoinOn {
+                ty: JoinType::Inner,
+                table: TableReference {
+                    name: "test2".to_string(),
+                    alias: Some("t2".to_string()),
+                    location,
+                },
+                on: Expr::Binary(Binary {
+                    operator: BinaryOperator::Eq,
+                    left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                        segments: vec!["t2".to_string(), "assoc".to_string()],
+                        location,
+                    })),
+                    right: Box::new(Expr::ColumnIdent(ColumnIdent {
+                        segments: vec!["t1".to_string(), "id".to_string()],
+                        location,
+                    })),
+                    location,
+                }),
+                location,
+            })],
+            location,
+        },
+        Rule::from_clause,
+    );
 }

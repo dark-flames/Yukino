@@ -38,7 +38,7 @@ any_ident = @{
 }
 
 ident = @{
-    !keyword ~ ((ASCII_ALPHA ~ ("_" | ASCII_ALPHA | ASCII_ALPHANUMERIC)*) |
+    !(keyword  ~ WHITESPACE) ~ ((ASCII_ALPHA ~ ("_" | ASCII_ALPHA | ASCII_ALPHANUMERIC)*) |
         ("_"+ ~ (ASCII_ALPHA|ASCII_ALPHANUMERIC)+ ~ ("_"|ASCII_ALPHA|ASCII_ALPHANUMERIC)*))
 }
 
