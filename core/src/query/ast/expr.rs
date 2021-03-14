@@ -1,8 +1,7 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::func::FunctionCall;
-use crate::query::ast::ident::ColumnIdent;
-use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
-use crate::query::ast::{Literal, Location};
+use crate::query::ast::{
+    ColumnIdent, FromPair, FunctionCall, Literal, Locatable, Location, QueryPair,
+};
 use crate::query::grammar::Rule;
 
 type BoxedExpr = Box<Expr>;

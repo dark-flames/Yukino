@@ -1,7 +1,5 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::expr::Expr;
-use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
-use crate::query::ast::Location;
+use crate::query::ast::{Expr, FromPair, Locatable, Location, QueryPair};
 use crate::query::grammar::Rule;
 
 #[derive(Debug, Clone)]
@@ -619,13 +617,13 @@ impl PartialEq for HavingClause {
 impl Eq for HavingClause {}
 
 #[derive(Clone, Debug)]
-pub struct GroupClause {
+pub struct GroupByClause {
     pub by: Expr,
     pub having: Option<HavingClause>,
     pub location: Location,
 }
 
-impl FromPair for GroupClause {
+impl FromPair for GroupByClause {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location = Location::from(&pair);
 
@@ -633,7 +631,7 @@ impl FromPair for GroupClause {
             Rule::group_by_clause => {
                 let mut inner = pair.into_inner();
 
-                Ok(GroupClause {
+                Ok(GroupByClause {
                     by: Expr::from_pair(inner.next().ok_or_else(|| {
                         location.error(SyntaxError::UnexpectedPair("group_clause"))
                     })?)?,
@@ -649,19 +647,71 @@ impl FromPair for GroupClause {
     }
 }
 
-impl Locatable for GroupClause {
+impl Locatable for GroupByClause {
     fn location(&self) -> Location {
         self.location
     }
 }
 
-impl PartialEq for GroupClause {
+impl PartialEq for GroupByClause {
     fn eq(&self, other: &Self) -> bool {
         self.by == other.by && self.having == other.having
     }
 }
 
-impl Eq for GroupClause {}
+impl Eq for GroupByClause {}
+
+#[test]
+fn test_group_by() {
+    use crate::query::ast::helper::assert_parse_result;
+    use crate::query::ast::{Binary, BinaryOperator, ColumnIdent, FunctionCall, Integer, Literal};
+
+    let location = Location::pos(0);
+
+    assert_parse_result(
+        "GROUP BY t.id",
+        GroupByClause {
+            by: Expr::ColumnIdent(ColumnIdent {
+                segments: vec!["t".to_string(), "id".to_string()],
+                location,
+            }),
+            having: None,
+            location,
+        },
+        Rule::group_by_clause,
+    );
+
+    assert_parse_result(
+        "GROUP BY t.assoc Having Sum(t.count) >= 100",
+        GroupByClause {
+            by: Expr::ColumnIdent(ColumnIdent {
+                segments: vec!["t".to_string(), "assoc".to_string()],
+                location,
+            }),
+            having: Some(HavingClause {
+                expr: Expr::Binary(Binary {
+                    operator: BinaryOperator::Bte,
+                    left: Box::new(Expr::FunctionCall(FunctionCall {
+                        ident: "Sum".to_string(),
+                        parameters: vec![Expr::ColumnIdent(ColumnIdent {
+                            segments: vec!["t".to_string(), "count".to_string()],
+                            location,
+                        })],
+                        location,
+                    })),
+                    right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                        value: 100,
+                        location,
+                    }))),
+                    location,
+                }),
+                location,
+            }),
+            location,
+        },
+        Rule::group_by_clause,
+    )
+}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Order {
@@ -690,6 +740,7 @@ impl FromPair for Order {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct OrderByClause {
     pub items: Vec<(Expr, Order)>,
     pub location: Location,
@@ -703,38 +754,70 @@ impl FromPair for OrderByClause {
             Rule::order_by_clause => {
                 let mut inner = pair.into_inner();
 
-                if let Some(Rule::keyword_order_by) =
-                    inner.next().map(|inner_pair| inner_pair.as_rule())
-                {
-                    let mut items = vec![];
-                    while let Some(inner_pair) = inner.next() {
-                        if let Rule::expr = inner_pair.as_rule() {
-                            let expr = Expr::from_pair(inner_pair)?;
+                let mut items = vec![];
+                while let Some(inner_pair) = inner.next() {
+                    if let Rule::expr = inner_pair.as_rule() {
+                        let expr = Expr::from_pair(inner_pair)?;
 
-                            let order = inner.next().map(Order::from_pair).ok_or_else(|| {
-                                location.error(SyntaxError::UnexpectedPair("order"))
-                            })??;
+                        let order = inner.next().map(Order::from_pair).ok_or_else(|| {
+                            location.error(SyntaxError::UnexpectedPair("order"))
+                        })??;
 
-                            items.push((expr, order));
-
-                            if let Some(Rule::comma) =
-                                inner.next().map(|inner_pair| inner_pair.as_rule())
-                            {
-                                break;
-                            }
-                        } else {
-                            return Err(
-                                location.error(SyntaxError::UnexpectedPair("order_by_clause"))
-                            );
-                        }
+                        items.push((expr, order));
+                    } else {
+                        break;
                     }
-
-                    Ok(OrderByClause { items, location })
-                } else {
-                    Err(location.error(SyntaxError::UnexpectedPair("order_by_clause")))
                 }
+
+                Ok(OrderByClause { items, location })
             }
             _ => Err(location.error(SyntaxError::UnexpectedPair("order_by_clause"))),
         }
     }
+}
+
+impl Locatable for OrderByClause {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
+
+impl PartialEq for OrderByClause {
+    fn eq(&self, other: &Self) -> bool {
+        self.items == other.items
+    }
+}
+
+impl Eq for OrderByClause {}
+
+#[test]
+fn test_order_by() {
+    use crate::query::ast::helper::assert_parse_result;
+    use crate::query::ast::ColumnIdent;
+
+    let location = Location::pos(0);
+
+    assert_parse_result(
+        "ORDER BY t.assoc DESC, t.id ASC",
+        OrderByClause {
+            items: vec![
+                (
+                    Expr::ColumnIdent(ColumnIdent {
+                        segments: vec!["t".to_string(), "assoc".to_string()],
+                        location,
+                    }),
+                    Order::Desc,
+                ),
+                (
+                    Expr::ColumnIdent(ColumnIdent {
+                        segments: vec!["t".to_string(), "id".to_string()],
+                        location,
+                    }),
+                    Order::Asc,
+                ),
+            ],
+            location,
+        },
+        Rule::order_by_clause,
+    )
 }

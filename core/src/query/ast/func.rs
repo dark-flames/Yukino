@@ -1,7 +1,5 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::expr::Expr;
-use crate::query::ast::traits::{FromPair, Locatable, QueryPair};
-use crate::query::ast::Location;
+use crate::query::ast::{Expr, FromPair, Locatable, Location, QueryPair};
 use crate::query::grammar::Rule;
 
 #[derive(Clone, Debug)]
