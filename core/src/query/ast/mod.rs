@@ -6,6 +6,7 @@ mod helper;
 mod ident;
 mod literal;
 mod location;
+mod select;
 mod traits;
 mod ty;
 
@@ -15,5 +16,6 @@ pub use func::*;
 pub use ident::*;
 pub use literal::*;
 pub use location::*;
+pub use select::*;
 pub use traits::*;
 pub use ty::*;

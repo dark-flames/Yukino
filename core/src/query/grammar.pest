@@ -132,7 +132,7 @@ any = {"*"}
 column_ident = { any | database_ident ~ ("." ~ database_ident)* ~  ("." ~ any)?}
 
 table_alias = _{ (keyword_as)? ~ database_ident }
-expr_alias = { (keyword_as)? ~ database_ident }
+expr_alias = _{ (keyword_as)? ~ database_ident }
 
 /// From clause
 table_reference = {database_ident ~ table_alias?}
@@ -147,13 +147,13 @@ join_on = { join_type ~ keyword_join ~ table_reference ~ keyword_on ~ expr }
 join_clause = { cross_join | natural_join | join_on }
 
 /// Where clause
-where_clause = { keyword_where ~ expr }
+where_clause = _{ keyword_where ~ expr }
 
 /// GroupBy clause
 group_by_clause = { keyword_group_by ~ expr ~ having_clause? }
 
 /// Having clause
-having_clause = { keyword_having ~ expr }
+having_clause = _{ keyword_having ~ expr }
 
 /// Select clause
 select_item = { expr ~ expr_alias? }
@@ -163,7 +163,7 @@ select_clause = { keyword_select ~ select_item ~ (comma ~ select_item)* }
 order_asc = @{ ^"asc" }
 order_desc = @{ ^"desc" }
 order = { order_asc | order_desc }
-order_by_clause = { keyword_order_by ~ expr ~ order ~ (comma ~ expr ~ order) }
+order_by_clause = { keyword_order_by ~ expr ~ order ~ (comma ~ expr ~ order)* }
 
 /// Limit clause
 limit_clause = { keyword_limit ~ int }

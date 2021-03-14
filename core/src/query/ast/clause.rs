@@ -537,89 +537,9 @@ fn test_from_clause() {
 }
 
 #[derive(Clone, Debug)]
-pub struct WhereClause {
-    pub expr: Expr,
-    pub location: Location,
-}
-
-impl FromPair for WhereClause {
-    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
-        let location = Location::from(&pair);
-
-        match pair.as_rule() {
-            Rule::where_clause => {
-                let mut inner = pair.into_inner();
-
-                Ok(WhereClause {
-                    expr: Expr::from_pair(inner.next().ok_or_else(|| {
-                        location.error(SyntaxError::UnexpectedPair("where_clause"))
-                    })?)?,
-                    location,
-                })
-            }
-            _ => Err(location.error(SyntaxError::UnexpectedPair("where_clause"))),
-        }
-    }
-}
-
-impl Locatable for WhereClause {
-    fn location(&self) -> Location {
-        self.location
-    }
-}
-
-impl PartialEq for WhereClause {
-    fn eq(&self, other: &Self) -> bool {
-        self.expr == other.expr
-    }
-}
-
-impl Eq for WhereClause {}
-
-#[derive(Clone, Debug)]
-pub struct HavingClause {
-    pub expr: Expr,
-    pub location: Location,
-}
-
-impl FromPair for HavingClause {
-    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
-        let location = Location::from(&pair);
-
-        match pair.as_rule() {
-            Rule::having_clause => {
-                let mut inner = pair.into_inner();
-
-                Ok(HavingClause {
-                    expr: Expr::from_pair(inner.next().ok_or_else(|| {
-                        location.error(SyntaxError::UnexpectedPair("having_clause"))
-                    })?)?,
-                    location,
-                })
-            }
-            _ => Err(location.error(SyntaxError::UnexpectedPair("having_clause"))),
-        }
-    }
-}
-
-impl Locatable for HavingClause {
-    fn location(&self) -> Location {
-        self.location
-    }
-}
-
-impl PartialEq for HavingClause {
-    fn eq(&self, other: &Self) -> bool {
-        self.expr == other.expr
-    }
-}
-
-impl Eq for HavingClause {}
-
-#[derive(Clone, Debug)]
 pub struct GroupByClause {
     pub by: Expr,
-    pub having: Option<HavingClause>,
+    pub having: Option<Expr>,
     pub location: Location,
 }
 
@@ -637,7 +557,7 @@ impl FromPair for GroupByClause {
                     })?)?,
                     having: inner
                         .next()
-                        .map(HavingClause::from_pair)
+                        .map(Expr::from_pair)
                         .map_or(Ok(None), |v| v.map(Some))?,
                     location,
                 })
@@ -688,25 +608,22 @@ fn test_group_by() {
                 segments: vec!["t".to_string(), "assoc".to_string()],
                 location,
             }),
-            having: Some(HavingClause {
-                expr: Expr::Binary(Binary {
-                    operator: BinaryOperator::Bte,
-                    left: Box::new(Expr::FunctionCall(FunctionCall {
-                        ident: "Sum".to_string(),
-                        parameters: vec![Expr::ColumnIdent(ColumnIdent {
-                            segments: vec!["t".to_string(), "count".to_string()],
-                            location,
-                        })],
+            having: Some(Expr::Binary(Binary {
+                operator: BinaryOperator::Bte,
+                left: Box::new(Expr::FunctionCall(FunctionCall {
+                    ident: "Sum".to_string(),
+                    parameters: vec![Expr::ColumnIdent(ColumnIdent {
+                        segments: vec!["t".to_string(), "count".to_string()],
                         location,
-                    })),
-                    right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                        value: 100,
-                        location,
-                    }))),
+                    })],
                     location,
-                }),
+                })),
+                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 100,
+                    location,
+                }))),
                 location,
-            }),
+            })),
             location,
         },
         Rule::group_by_clause,
@@ -798,24 +715,15 @@ fn test_order_by() {
     let location = Location::pos(0);
 
     assert_parse_result(
-        "ORDER BY t.assoc DESC, t.id ASC",
+        "ORDER BY t.assoc DESC",
         OrderByClause {
-            items: vec![
-                (
-                    Expr::ColumnIdent(ColumnIdent {
-                        segments: vec!["t".to_string(), "assoc".to_string()],
-                        location,
-                    }),
-                    Order::Desc,
-                ),
-                (
-                    Expr::ColumnIdent(ColumnIdent {
-                        segments: vec!["t".to_string(), "id".to_string()],
-                        location,
-                    }),
-                    Order::Asc,
-                ),
-            ],
+            items: vec![(
+                Expr::ColumnIdent(ColumnIdent {
+                    segments: vec!["t".to_string(), "assoc".to_string()],
+                    location,
+                }),
+                Order::Desc,
+            )],
             location,
         },
         Rule::order_by_clause,
