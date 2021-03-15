@@ -1,4 +1,5 @@
 mod clause;
+mod delete;
 pub mod error;
 mod expr;
 mod func;
@@ -9,15 +10,14 @@ mod location;
 mod select;
 mod traits;
 mod ty;
-mod delete;
 
 pub use clause::*;
+pub use delete::*;
 pub use expr::*;
 pub use func::*;
 pub use ident::*;
 pub use literal::*;
 pub use location::*;
 pub use select::*;
-pub use delete::*;
 pub use traits::*;
 pub use ty::*;

@@ -1,12 +1,12 @@
-use crate::query::ast::{FromClause, Expr, FromPair, QueryPair, Location};
-use crate::query::ast::error::{SyntaxErrorWithPos, SyntaxError};
+use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::{Expr, FromClause, FromPair, Location, QueryPair};
 use crate::query::grammar::Rule;
 
 #[derive(Clone, Debug)]
 pub struct DeleteQuery {
     pub from: FromClause,
     pub where_clause: Option<Expr>,
-    pub location: Location
+    pub location: Location,
 }
 
 impl FromPair for DeleteQuery {
@@ -25,10 +25,10 @@ impl FromPair for DeleteQuery {
                         .next()
                         .map(Expr::from_pair)
                         .map_or(Ok(None), |v| v.map(Some))?,
-                    location
+                    location,
                 })
-            },
-            _ => Err(location.error(SyntaxError::UnexpectedPair("delete_query")))
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("delete_query"))),
         }
     }
 }
@@ -55,25 +55,25 @@ fn test_delete_query() {
                 table: TableReference {
                     name: "Test".to_string(),
                     alias: Some("t".to_string()),
-                    location
+                    location,
                 },
                 join: vec![],
-                location
+                location,
             },
             where_clause: Some(Expr::Binary(Binary {
                 operator: BinaryOperator::Bte,
                 left: Box::new(Expr::ColumnIdent(ColumnIdent {
                     segments: vec!["t".to_string(), "id".to_string()],
-                    location
+                    location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
                     value: 100,
-                    location
+                    location,
                 }))),
-                location
+                location,
             })),
-            location
+            location,
         },
-        Rule::delete_query
+        Rule::delete_query,
     );
 }
