@@ -9,6 +9,7 @@ mod location;
 mod select;
 mod traits;
 mod ty;
+mod delete;
 
 pub use clause::*;
 pub use expr::*;
@@ -17,5 +18,6 @@ pub use ident::*;
 pub use literal::*;
 pub use location::*;
 pub use select::*;
+pub use delete::*;
 pub use traits::*;
 pub use ty::*;
