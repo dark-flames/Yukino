@@ -1,19 +1,21 @@
 // Basic
 query = {SOI ~ query_content ~ EOI}
 
-query_content = { select_query| delete_query }
+query_content = { select_query| delete_query | update_query}
 
 WHITESPACE = _{ " " | "\n" | "\r" }
 
 // Keyword
 keyword = _{
-    keyword_select | keyword_delete | keyword_from | keyword_as | keyword_where | keyword_group_by | order_asc | order_desc |
-    keyword_group_by | keyword_having | keyword_order_by | keyword_limit | keyword_offset | keyword_join | keyword_on |
-    keyword_left | keyword_right | keyword_full | keyword_inner | keyword_natural | bool_not | bool_and | bit_or |bool_xor
+    keyword_select | keyword_delete | keyword_update | keyword_from | keyword_as | keyword_where | keyword_group_by | order_asc | order_desc |
+    keyword_group_by | keyword_having | keyword_order_by | keyword_limit | keyword_offset | keyword_join | keyword_on | keyword_default |
+    keyword_left | keyword_right | keyword_full | keyword_inner | keyword_natural | bool_not | bool_and | bit_or | bool_xor
 }
 keyword_select = _{ ^"select" }
 keyword_delete = _{ ^"delete" }
+keyword_update = _{ ^"update" }
 keyword_from = _{ ^"from" }
+keyword_set = _{ ^"set" }
 keyword_as = _{ ^"as" }
 keyword_where = _{ ^"where" }
 keyword_group_by = _{ ^"group" ~ ^"by" }
@@ -30,6 +32,7 @@ keyword_inner = @{ ^"inner" }
 keyword_outer = @{ ^"outer"}
 keyword_natural = _{ ^"natural" }
 keyword_cross = _{ ^"cross" }
+keyword_default = { ^"default" }
 
 // Ident
 
@@ -172,6 +175,13 @@ limit_clause = { keyword_limit ~ int }
 /// Offset clause
 offset_clause = { keyword_offset ~ int }
 
+/// Set clause
+value_item = _{ keyword_default | expr }
+assignments = { column_ident ~ "=" ~ value_item ~ (comma ~ column_ident ~ "=" ~ value_item)* }
+column_list = { (paren_left ~ column_ident ~ (comma ~ column_ident) ~paren_right) | column_ident }
+value_list = { (paren_left ~ value_item ~ (comma ~ value_item)  ~paren_right) | value_item }
+set_clause = { keyword_set ~ (assignments| column_list ~ "=" ~ value_list) }
+
 // Query
 
 select_query = {
@@ -179,3 +189,5 @@ select_query = {
 }
 
 delete_query = { keyword_delete ~ from_clause ~ where_clause? }
+
+update_query = { keyword_update ~ table_reference ~ set_clause ~ from_clause ? ~ where_clause?}
