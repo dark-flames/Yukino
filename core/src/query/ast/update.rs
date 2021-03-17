@@ -171,7 +171,7 @@ pub struct UpdateQuery {
     set_clause: SetClause,
     from_table: Option<TableReference>,
     where_clause: Option<Expr>,
-    location: Location
+    location: Location,
 }
 
 impl FromPair for UpdateQuery {
@@ -182,13 +182,18 @@ impl FromPair for UpdateQuery {
             Rule::update_query => {
                 let mut inner = pair.into_inner();
 
-                let update_table = inner.next().map(TableReference::from_pair).ok_or_else(|| {
-                    location.error(SyntaxError::UnexpectedPair("table_reference"))
-                })??;
+                let update_table =
+                    inner
+                        .next()
+                        .map(TableReference::from_pair)
+                        .ok_or_else(|| {
+                            location.error(SyntaxError::UnexpectedPair("table_reference"))
+                        })??;
 
-                let set_clause = inner.next().map(SetClause::from_pair).ok_or_else(|| {
-                    location.error(SyntaxError::UnexpectedPair("set_clause"))
-                })??;
+                let set_clause = inner
+                    .next()
+                    .map(SetClause::from_pair)
+                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("set_clause")))??;
 
                 let current = inner.next();
 
@@ -203,30 +208,31 @@ impl FromPair for UpdateQuery {
                 };
 
                 let where_clause = match current.as_ref().map(|p| p.as_rule()) {
-                    Some(Rule::expr) => current.map(Expr::from_pair)
+                    Some(Rule::expr) => current
+                        .map(Expr::from_pair)
                         .map_or(Ok(None), |v| v.map(Some))?,
                     _ => None,
                 };
-                
+
                 Ok(UpdateQuery {
                     update_table,
                     set_clause,
                     from_table,
                     where_clause,
-                    location
+                    location,
                 })
-            },
-            _ => Err(location.error(SyntaxError::UnexpectedPair("update_query")))
+            }
+            _ => Err(location.error(SyntaxError::UnexpectedPair("update_query"))),
         }
     }
 }
 
 impl PartialEq for UpdateQuery {
     fn eq(&self, other: &Self) -> bool {
-        self.update_table == other.update_table &&
-            self.set_clause == other.set_clause &&
-            self.from_table == other.from_table &&
-            self.where_clause == other.where_clause
+        self.update_table == other.update_table
+            && self.set_clause == other.set_clause
+            && self.from_table == other.from_table
+            && self.where_clause == other.where_clause
     }
 }
 
@@ -245,31 +251,34 @@ fn test_update() {
             update_table: TableReference {
                 name: "TEST1".to_string(),
                 alias: Some("t".to_string()),
-                location
+                location,
             },
-            set_clause: SetClause { items: vec![
-                (
-                    ColumnIdent {
-                        segments: vec!["t".to_string(), "a".to_string()],
-                        location,
-                    },
-                    ValueItem::Default,
-                ),
-                (
-                    ColumnIdent {
-                        segments: vec!["t".to_string(), "b".to_string()],
-                        location,
-                    },
-                    ValueItem::Expr(Expr::Literal(Literal::Integer(Integer {
-                        value: 1,
-                        location,
-                    }))),
-                ),
-            ], location },
+            set_clause: SetClause {
+                items: vec![
+                    (
+                        ColumnIdent {
+                            segments: vec!["t".to_string(), "a".to_string()],
+                            location,
+                        },
+                        ValueItem::Default,
+                    ),
+                    (
+                        ColumnIdent {
+                            segments: vec!["t".to_string(), "b".to_string()],
+                            location,
+                        },
+                        ValueItem::Expr(Expr::Literal(Literal::Integer(Integer {
+                            value: 1,
+                            location,
+                        }))),
+                    ),
+                ],
+                location,
+            },
             from_table: Some(TableReference {
                 name: "TEST2".to_string(),
                 alias: Some("t2".to_string()),
-                location
+                location,
             }),
             where_clause: Some(Expr::Binary(Binary {
                 operator: BinaryOperator::Bt,
@@ -281,10 +290,10 @@ fn test_update() {
                     value: 100,
                     location,
                 }))),
-                location
+                location,
             })),
-            location
+            location,
         },
-        Rule::update_query
+        Rule::update_query,
     )
 }

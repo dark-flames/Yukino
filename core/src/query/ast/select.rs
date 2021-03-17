@@ -170,8 +170,8 @@ impl FromPair for SelectQuery {
                 };
 
                 let offset = match current.as_ref().map(|p| p.as_rule()) {
-                    Some(Rule::offset_clause) => {
-                        current.map(|inner_pair| {
+                    Some(Rule::offset_clause) => current
+                        .map(|inner_pair| {
                             let inner_location = Location::from(&inner_pair);
                             match inner_pair.as_rule() {
                                 Rule::offset_clause => {
@@ -196,9 +196,8 @@ impl FromPair for SelectQuery {
                                     .error(SyntaxError::UnexpectedPair("offset_clause"))),
                             }
                         })
-                            .map_or(Ok(None), |v| v.map(Some))?
-                    },
-                    _ => None
+                        .map_or(Ok(None), |v| v.map(Some))?,
+                    _ => None,
                 };
 
                 Ok(SelectQuery {
