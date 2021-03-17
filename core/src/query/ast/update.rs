@@ -1,5 +1,7 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{ColumnIdent, Expr, FromPair, Location, QueryPair, TableReference};
+use crate::query::ast::{
+    ColumnIdent, Expr, FromPair, Locatable, Location, QueryPair, TableReference,
+};
 use crate::query::grammar::Rule;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -102,6 +104,12 @@ impl PartialEq for SetClause {
 }
 
 impl Eq for SetClause {}
+
+impl Locatable for SetClause {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
 
 #[test]
 fn test_set() {
@@ -237,6 +245,12 @@ impl PartialEq for UpdateQuery {
 }
 
 impl Eq for UpdateQuery {}
+
+impl Locatable for UpdateQuery {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
 
 #[test]
 fn test_update() {

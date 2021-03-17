@@ -1,5 +1,5 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{Expr, FromClause, FromPair, Location, QueryPair};
+use crate::query::ast::{Expr, FromClause, FromPair, Locatable, Location, QueryPair};
 use crate::query::grammar::Rule;
 
 #[derive(Clone, Debug)]
@@ -40,6 +40,12 @@ impl PartialEq for DeleteQuery {
 }
 
 impl Eq for DeleteQuery {}
+
+impl Locatable for DeleteQuery {
+    fn location(&self) -> Location {
+        self.location
+    }
+}
 
 #[test]
 fn test_delete_query() {
