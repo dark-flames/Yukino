@@ -1,5 +1,5 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{ColumnIdent, Expr, FromPair, Location, QueryPair};
+use crate::query::ast::{ColumnIdent, Expr, FromPair, Location, QueryPair, TableReference};
 use crate::query::grammar::Rule;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -163,4 +163,128 @@ fn test_set() {
         },
         Rule::set_clause,
     );
+}
+
+#[derive(Clone, Debug)]
+pub struct UpdateQuery {
+    update_table: TableReference,
+    set_clause: SetClause,
+    from_table: Option<TableReference>,
+    where_clause: Option<Expr>,
+    location: Location
+}
+
+impl FromPair for UpdateQuery {
+    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
+        let location = Location::from(&pair);
+
+        match pair.as_rule() {
+            Rule::update_query => {
+                let mut inner = pair.into_inner();
+
+                let update_table = inner.next().map(TableReference::from_pair).ok_or_else(|| {
+                    location.error(SyntaxError::UnexpectedPair("table_reference"))
+                })??;
+
+                let set_clause = inner.next().map(SetClause::from_pair).ok_or_else(|| {
+                    location.error(SyntaxError::UnexpectedPair("set_clause"))
+                })??;
+
+                let current = inner.next();
+
+                let (from_table, current) = match current.as_ref().map(|p| p.as_rule()) {
+                    Some(Rule::table_reference) => (
+                        current
+                            .map(TableReference::from_pair)
+                            .map_or(Ok(None), |v| v.map(Some))?,
+                        inner.next(),
+                    ),
+                    _ => (None, current),
+                };
+
+                let where_clause = match current.as_ref().map(|p| p.as_rule()) {
+                    Some(Rule::expr) => current.map(Expr::from_pair)
+                        .map_or(Ok(None), |v| v.map(Some))?,
+                    _ => None,
+                };
+                
+                Ok(UpdateQuery {
+                    update_table,
+                    set_clause,
+                    from_table,
+                    where_clause,
+                    location
+                })
+            },
+            _ => Err(location.error(SyntaxError::UnexpectedPair("update_query")))
+        }
+    }
+}
+
+impl PartialEq for UpdateQuery {
+    fn eq(&self, other: &Self) -> bool {
+        self.update_table == other.update_table &&
+            self.set_clause == other.set_clause &&
+            self.from_table == other.from_table &&
+            self.where_clause == other.where_clause
+    }
+}
+
+impl Eq for UpdateQuery {}
+
+#[test]
+fn test_update() {
+    use crate::query::ast::helper::assert_parse_result;
+    use crate::query::ast::*;
+
+    let location = Location::pos(0);
+
+    assert_parse_result(
+        "UPDATE TEST1 t SET t.a = default, t.b = 1 FROM TEST2 t2 WHERE t.id > 100",
+        UpdateQuery {
+            update_table: TableReference {
+                name: "TEST1".to_string(),
+                alias: Some("t".to_string()),
+                location
+            },
+            set_clause: SetClause { items: vec![
+                (
+                    ColumnIdent {
+                        segments: vec!["t".to_string(), "a".to_string()],
+                        location,
+                    },
+                    ValueItem::Default,
+                ),
+                (
+                    ColumnIdent {
+                        segments: vec!["t".to_string(), "b".to_string()],
+                        location,
+                    },
+                    ValueItem::Expr(Expr::Literal(Literal::Integer(Integer {
+                        value: 1,
+                        location,
+                    }))),
+                ),
+            ], location },
+            from_table: Some(TableReference {
+                name: "TEST2".to_string(),
+                alias: Some("t2".to_string()),
+                location
+            }),
+            where_clause: Some(Expr::Binary(Binary {
+                operator: BinaryOperator::Bt,
+                left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                    segments: vec!["t".to_string(), "id".to_string()],
+                    location,
+                })),
+                right: Box::new(Expr::Literal(Literal::Integer(Integer {
+                    value: 100,
+                    location,
+                }))),
+                location
+            })),
+            location
+        },
+        Rule::update_query
+    )
 }
