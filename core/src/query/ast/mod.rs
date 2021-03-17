@@ -10,6 +10,7 @@ mod location;
 mod select;
 mod traits;
 mod ty;
+mod update;
 
 pub use clause::*;
 pub use delete::*;
