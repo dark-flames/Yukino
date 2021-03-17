@@ -190,4 +190,4 @@ select_query = {
 
 delete_query = { keyword_delete ~ from_clause ~ where_clause? }
 
-update_query = { keyword_update ~ table_reference ~ set_clause ~ (keyword_from ~ table_reference) ? ~ where_clause?}
+update_query = { keyword_update ~ table_reference ~ set_clause ~ (keyword_from ~ table_reference)? ~ where_clause?}
