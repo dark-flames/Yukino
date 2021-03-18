@@ -1,4 +1,5 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::insert::InsertQuery;
 use crate::query::ast::{
     DeleteQuery, FromPair, Locatable, Location, QueryPair, SelectQuery, UpdateQuery,
 };
@@ -9,6 +10,7 @@ pub enum Query {
     Delete(Box<DeleteQuery>),
     Select(Box<SelectQuery>),
     Update(Box<UpdateQuery>),
+    Insert(Box<InsertQuery>),
 }
 
 impl FromPair for Query {
@@ -31,6 +33,9 @@ impl FromPair for Query {
                     Rule::update_query => UpdateQuery::from_pair(inner)
                         .map(Box::new)
                         .map(Query::Update),
+                    Rule::insert_query => InsertQuery::from_pair(inner)
+                        .map(Box::new)
+                        .map(Query::Insert),
                     _ => Err(location.error(SyntaxError::UnexpectedPair("query"))),
                 }
             }
@@ -45,6 +50,7 @@ impl Locatable for Query {
             Query::Delete(d) => d.location(),
             Query::Select(s) => s.location(),
             Query::Update(u) => u.location(),
+            Query::Insert(i) => i.location(),
         }
     }
 }

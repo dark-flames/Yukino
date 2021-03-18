@@ -180,13 +180,14 @@ offset_clause = { keyword_offset ~ int }
 /// Set clause
 value_item = { keyword_default | expr }
 assignments = { column_ident ~ "=" ~ value_item ~ (comma ~ column_ident ~ "=" ~ value_item)* }
-column_list = { paren_left ~ column_ident ~ (comma ~ column_ident)* ~paren_right }
+column_list = { paren_left ~ column_ident ~ (comma ~ column_ident)* ~ paren_right }
 value_list = { paren_left ~ value_item ~ (comma ~ value_item)*  ~paren_right }
 set_clause = { keyword_set ~ (assignments| column_list ~ "=" ~ value_list) }
 
 /// InsertValue
 default_value = @{keyword_default ~ keyword_values}
 insert_value = { default_value | keyword_values ~ value_list }
+insert_column_list = { paren_left ~ database_ident ~ (comma ~ database_ident)* ~paren_right }
 
 // Query
 
@@ -198,4 +199,4 @@ delete_query = { keyword_delete ~ from_clause ~ where_clause? }
 
 update_query = { keyword_update ~ table_reference ~ set_clause ~ (keyword_from ~ table_reference)? ~ where_clause? }
 
-insert_query = { keyword_insert_into ~ table_reference ~ column_list? ~ insert_value}
+insert_query = { keyword_insert_into ~ database_ident ~ column_list? ~ insert_value}

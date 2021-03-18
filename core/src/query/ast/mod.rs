@@ -5,6 +5,7 @@ mod expr;
 mod func;
 mod helper;
 mod ident;
+mod insert;
 mod literal;
 mod location;
 mod query;
