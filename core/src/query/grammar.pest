@@ -14,6 +14,7 @@ keyword = _{
 keyword_select = _{ ^"select" }
 keyword_delete = _{ ^"delete" }
 keyword_update = _{ ^"update" }
+keyword_insert_into =  _{ ^"insert" ~ ^"into" }
 keyword_from = _{ ^"from" }
 keyword_set = _{ ^"set" }
 keyword_as = _{ ^"as" }
@@ -33,6 +34,7 @@ keyword_outer = @{ ^"outer"}
 keyword_natural = _{ ^"natural" }
 keyword_cross = _{ ^"cross" }
 keyword_default = { ^"default" }
+keyword_values = { ^"values" }
 
 // Ident
 
@@ -182,6 +184,10 @@ column_list = { paren_left ~ column_ident ~ (comma ~ column_ident)* ~paren_right
 value_list = { paren_left ~ value_item ~ (comma ~ value_item)*  ~paren_right }
 set_clause = { keyword_set ~ (assignments| column_list ~ "=" ~ value_list) }
 
+/// InsertValue
+default_value = @{keyword_default ~ keyword_values}
+insert_value = { default_value | keyword_values ~ value_list }
+
 // Query
 
 select_query = {
@@ -190,4 +196,6 @@ select_query = {
 
 delete_query = { keyword_delete ~ from_clause ~ where_clause? }
 
-update_query = { keyword_update ~ table_reference ~ set_clause ~ (keyword_from ~ table_reference)? ~ where_clause?}
+update_query = { keyword_update ~ table_reference ~ set_clause ~ (keyword_from ~ table_reference)? ~ where_clause? }
+
+insert_query = { keyword_insert_into ~ table_reference ~ column_list? ~ insert_value}

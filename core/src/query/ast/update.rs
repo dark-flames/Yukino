@@ -1,35 +1,8 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
-    ColumnIdent, Expr, FromPair, Locatable, Location, QueryPair, TableReference,
+    ColumnIdent, Expr, FromPair, Locatable, Location, QueryPair, TableReference, ValueItem,
 };
 use crate::query::grammar::Rule;
-
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub enum ValueItem {
-    Default,
-    Expr(Expr),
-}
-
-impl FromPair for ValueItem {
-    fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
-        let location = Location::from(&pair);
-        match pair.as_rule() {
-            Rule::value_item => {
-                let inner = pair
-                    .into_inner()
-                    .next()
-                    .ok_or_else(|| location.error(SyntaxError::UnexpectedPair("value_item")))?;
-
-                match inner.as_rule() {
-                    Rule::keyword_default => Ok(ValueItem::Default),
-                    Rule::expr => Expr::from_pair(inner).map(ValueItem::Expr),
-                    _ => Err(location.error(SyntaxError::UnexpectedPair("value_item"))),
-                }
-            }
-            _ => Err(location.error(SyntaxError::UnexpectedPair("value_item"))),
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct SetClause {
