@@ -1,6 +1,6 @@
 use crate::types::DatabaseType;
 
-pub enum QueryType {
+pub enum TypeKind {
     Integer,
     Float,
     String,
@@ -8,18 +8,18 @@ pub enum QueryType {
     Boolean,
 }
 
-impl From<DatabaseType> for QueryType {
+impl From<DatabaseType> for TypeKind {
     fn from(db_type: DatabaseType) -> Self {
         match db_type {
-            DatabaseType::Bool => QueryType::Boolean,
+            DatabaseType::Bool => TypeKind::Boolean,
             DatabaseType::SmallInteger
             | DatabaseType::UnsignedSmallInteger
             | DatabaseType::Integer
             | DatabaseType::UnsignedInteger
             | DatabaseType::BigInteger
-            | DatabaseType::UnsignedBigInteger => QueryType::Integer,
+            | DatabaseType::UnsignedBigInteger => TypeKind::Integer,
             DatabaseType::Float | DatabaseType::Double | DatabaseType::Decimal(_) => {
-                QueryType::Float
+                TypeKind::Float
             }
             DatabaseType::Binary
             | DatabaseType::Time
@@ -28,8 +28,8 @@ impl From<DatabaseType> for QueryType {
             | DatabaseType::Timestamp
             | DatabaseType::String
             | DatabaseType::Text
-            | DatabaseType::Json => QueryType::String,
-            DatabaseType::Character => QueryType::Char,
+            | DatabaseType::Json => TypeKind::String,
+            DatabaseType::Character => TypeKind::Char,
         }
     }
 }

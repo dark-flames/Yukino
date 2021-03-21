@@ -27,4 +27,6 @@ pub enum SyntaxError {
     CannotParseIntoFloat(String),
     #[error("Unexpected expr")]
     UnexpectedExpr,
+    #[error("Conflict alias \"{0}\"")]
+    ConflictAlias(String),
 }
