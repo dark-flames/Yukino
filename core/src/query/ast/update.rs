@@ -148,11 +148,11 @@ fn test_set() {
 
 #[derive(Clone, Debug)]
 pub struct UpdateQuery {
-    update_table: TableReference,
-    set_clause: SetClause,
-    from_table: Option<TableReference>,
-    where_clause: Option<Expr>,
-    location: Location,
+    pub update_table: TableReference,
+    pub set_clause: SetClause,
+    pub from_table: Option<TableReference>,
+    pub where_clause: Option<Expr>,
+    pub location: Location,
 }
 
 impl FromPair for UpdateQuery {
