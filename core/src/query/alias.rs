@@ -132,3 +132,18 @@ impl CollectExprAlias for SelectClause {
         Ok(result)
     }
 }
+
+impl CollectExprAlias for SelectQuery {
+    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr, RandomState>, SyntaxErrorWithPos> {
+        self.select_clause.collect_expr_alias()
+    }
+}
+
+impl CollectExprAlias for Query {
+    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr, RandomState>, SyntaxErrorWithPos> {
+        match self {
+            Query::Select(select) => select.collect_expr_alias(),
+            _ => Ok(HashMap::new()),
+        }
+    }
+}
