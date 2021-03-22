@@ -1,4 +1,5 @@
 use crate::query::ast::Location;
+use crate::query::type_check::TypeKind;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use thiserror::Error;
@@ -29,4 +30,6 @@ pub enum SyntaxError {
     UnexpectedExpr,
     #[error("Conflict alias \"{0}\"")]
     ConflictAlias(String),
+    #[error("Mismatched type: expected \"{0}\", found \"{1}\"")]
+    TypeError(TypeKind, TypeKind),
 }

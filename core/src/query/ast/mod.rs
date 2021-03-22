@@ -11,7 +11,6 @@ mod location;
 mod query;
 mod select;
 mod traits;
-mod ty;
 mod update;
 
 pub use clause::*;
@@ -24,5 +23,4 @@ pub use location::*;
 pub use query::*;
 pub use select::*;
 pub use traits::*;
-pub use ty::*;
 pub use update::*;
