@@ -15,7 +15,8 @@ pub enum TypeKind {
 impl Display for TypeKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
-            f, "{}",
+            f,
+            "{}",
             match self {
                 TypeKind::Integer => "Integer",
                 TypeKind::Float => "Float",
