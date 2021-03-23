@@ -32,4 +32,6 @@ pub enum SyntaxError {
     ConflictAlias(String),
     #[error("Mismatched type: expected \"{0}\", found \"{1}\"")]
     TypeError(TypeKind, TypeKind),
+    #[error("Conflict external value type assertion for \"#{0}\"")]
+    ConflictValueAssertion(String),
 }
