@@ -1,6 +1,6 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{Literal, Locatable};
-use crate::query::type_check::{TypeKind, TypeChecker};
+use crate::query::type_check::{TypeChecker, TypeKind};
 use quote::ToTokens;
 use syn::Type;
 
@@ -13,13 +13,16 @@ pub enum CompareOperator {
     Lt,
     Lte,
     Neq,
-    Eq
+    Eq,
 }
 
 pub trait TypeWrapper: Locatable {
     type FieldType: FieldType;
 
-    fn add(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn add(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -28,7 +31,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn minus(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn minus(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -37,7 +43,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn mul(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn mul(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -46,7 +55,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn div(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn div(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -55,7 +67,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn rem(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn rem(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -64,7 +79,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn left_shift(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn left_shift(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -73,7 +91,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn right_shift(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn right_shift(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -82,7 +103,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn bit_and(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn bit_and(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -91,7 +115,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn bit_or(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn bit_or(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -100,7 +127,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn bit_xor(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn bit_xor(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -109,7 +139,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn bit_reverse(self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn bit_reverse(self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -118,7 +151,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn and(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn and(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -127,7 +163,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn or(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn or(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -136,7 +175,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn xor(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn xor(&self, _others: &Self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -145,7 +187,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn not(&self) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn not(&self) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -154,7 +199,10 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn cmp(&self, _others: &Self, _ordering: CompareOperator) -> Result<Self, SyntaxErrorWithPos> where Self: Sized {
+    fn cmp(&self, _others: &Self, _ordering: CompareOperator) -> Result<Self, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         Err(self
             .location()
             .error(SyntaxError::UnimplementedOperationForType(
@@ -165,13 +213,26 @@ pub trait TypeWrapper: Locatable {
 }
 
 pub trait FieldType: ToTokens {
-    fn name() -> &'static str where Self: Sized;
+    fn name() -> &'static str
+    where
+        Self: Sized;
 
-    fn get_value_type() -> Type where Self: Sized;
+    fn get_value_type() -> Type
+    where
+        Self: Sized;
 
-    fn type_kind() -> TypeKind where Self: Sized;
+    fn type_kind() -> TypeKind
+    where
+        Self: Sized;
 
-    fn nullable() -> bool where Self: Sized;
+    fn nullable() -> bool
+    where
+        Self: Sized;
 
-    fn wrap_lit(lit: Literal, type_checker: &mut TypeChecker) -> Result<TypeWrapperBox<Self>, SyntaxErrorWithPos> where Self: Sized;
+    fn wrap_lit(
+        lit: Literal,
+        type_checker: &mut TypeChecker,
+    ) -> Result<TypeWrapperBox<Self>, SyntaxErrorWithPos>
+    where
+        Self: Sized;
 }
