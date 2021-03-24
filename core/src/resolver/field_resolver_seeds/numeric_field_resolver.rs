@@ -1,22 +1,22 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
+use crate::query::ast::error::SyntaxErrorWithPos;
+use crate::query::ast::{Expr, Literal, Locatable, Location};
+use crate::query::type_check::{TypeChecker, TypeKind};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ValuePack, FieldType, TypeWrapper, FieldTypeBox};
+use crate::types::{DatabaseType, DatabaseValue, FieldType, FieldTypeBox, TypeWrapper, ValuePack};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use syn::{Type, parse2};
-use crate::query::type_check::{TypeChecker, TypeKind};
-use crate::query::ast::{Literal, Expr, Locatable, Location};
-use crate::query::ast::error::{SyntaxErrorWithPos};
 use std::str::FromStr;
+use syn::{parse2, Type};
 
 enum NumericType {
     Integer(usize),
@@ -331,7 +331,7 @@ impl FieldResolver for NumericFieldResolver {
 
 pub struct NumericWrapper {
     expr: Expr,
-    ty: NumericFieldType
+    ty: NumericFieldType,
 }
 
 impl TypeWrapper for NumericWrapper {
@@ -351,32 +351,46 @@ impl Locatable for NumericWrapper {
 pub struct NumericFieldType {
     value_ty: String,
     float: bool,
-    nullable: bool
+    nullable: bool,
 }
 
 impl FieldType for NumericFieldType {
-    fn name(&self) -> &'static str where
-        Self: Sized {
+    fn name(&self) -> &'static str
+    where
+        Self: Sized,
+    {
         "numeric"
     }
 
-    fn get_value_type(&self) -> Type where
-        Self: Sized {
+    fn get_value_type(&self) -> Type
+    where
+        Self: Sized,
+    {
         parse2(TokenStream::from_str(&self.value_ty).unwrap()).unwrap()
     }
 
-    fn type_kind(&self) -> TypeKind where
-        Self: Sized {
+    fn type_kind(&self) -> TypeKind
+    where
+        Self: Sized,
+    {
         TypeKind::Numeric
     }
 
-    fn nullable(&self) -> bool where
-        Self: Sized {
+    fn nullable(&self) -> bool
+    where
+        Self: Sized,
+    {
         self.nullable
     }
 
-    fn wrap_lit(&self, _lit: Literal, _type_checker: &mut TypeChecker) -> Result<FieldTypeBox, SyntaxErrorWithPos> where
-        Self: Sized {
+    fn wrap_lit(
+        &self,
+        _lit: Literal,
+        _type_checker: &mut TypeChecker,
+    ) -> Result<FieldTypeBox, SyntaxErrorWithPos>
+    where
+        Self: Sized,
+    {
         unimplemented!()
     }
 }
@@ -486,5 +500,3 @@ impl_converter!(UnsignedIntegerValueConverter, u32, UnsignedInteger);
 impl_converter!(UnsignedBigIntegerValueConverter, u64, UnsignedBigInteger);
 impl_converter!(FloatValueConverter, f32, Float);
 impl_converter!(DoubleValueConverter, f64, Double);
-
-

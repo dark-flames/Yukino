@@ -21,7 +21,7 @@ impl Display for TypeKind {
                 TypeKind::String => "String",
                 TypeKind::Boolean => "Boolean",
                 TypeKind::Null => "Null",
-                TypeKind::Others(s) => s
+                TypeKind::Others(s) => s,
             }
         )
     }

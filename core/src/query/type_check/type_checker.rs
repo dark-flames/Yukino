@@ -1,5 +1,5 @@
 use crate::query::ast::error::SyntaxError;
-use crate::query::type_check::{TypeKind};
+use crate::query::type_check::TypeKind;
 use std::collections::HashMap;
 
 pub struct TypeChecker {

@@ -1,20 +1,22 @@
-use iroha::ToTokens;
-use crate::types::{FieldType, FieldTypeBox};
-use syn::{Type, parse2};
-use proc_macro2::TokenStream;
-use crate::query::type_check::{TypeChecker, TypeKind};
-use crate::query::ast::Literal;
-use std::str::FromStr;
 use crate::query::ast::error::SyntaxErrorWithPos;
+use crate::query::ast::Literal;
+use crate::query::type_check::{TypeChecker, TypeKind};
+use crate::types::{FieldType, FieldTypeBox};
+use iroha::ToTokens;
+use proc_macro2::TokenStream;
+use std::str::FromStr;
+use syn::{parse2, Type};
 
 #[derive(ToTokens)]
 pub struct BoolFieldType {
-    nullable: bool
+    nullable: bool,
 }
 
 impl FieldType for BoolFieldType {
-    fn name(&self) -> &'static str where
-        Self: Sized {
+    fn name(&self) -> &'static str
+    where
+        Self: Sized,
+    {
         "bool"
     }
 
@@ -30,7 +32,11 @@ impl FieldType for BoolFieldType {
         self.nullable
     }
 
-    fn wrap_lit(&self, _lit: Literal, _type_checker: &mut TypeChecker) -> Result<FieldTypeBox, SyntaxErrorWithPos> {
+    fn wrap_lit(
+        &self,
+        _lit: Literal,
+        _type_checker: &mut TypeChecker,
+    ) -> Result<FieldTypeBox, SyntaxErrorWithPos> {
         unimplemented!()
     }
 }

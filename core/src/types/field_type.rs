@@ -199,7 +199,11 @@ pub trait TypeWrapper: Locatable {
             )))
     }
 
-    fn cmp(&self, _others: &Self, _ordering: CompareOperator) -> Result<TypeWrapperBox, SyntaxErrorWithPos>
+    fn cmp(
+        &self,
+        _others: &Self,
+        _ordering: CompareOperator,
+    ) -> Result<TypeWrapperBox, SyntaxErrorWithPos>
     where
         Self: Sized,
     {
