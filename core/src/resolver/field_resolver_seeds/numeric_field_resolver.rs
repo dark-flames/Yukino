@@ -5,14 +5,18 @@ use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ValuePack};
+use crate::types::{DatabaseType, DatabaseValue, ValuePack, FieldType, TypeWrapper, FieldTypeBox};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use syn::Type;
+use syn::{Type, parse2};
+use crate::query::type_check::{TypeChecker, TypeKind};
+use crate::query::ast::{Literal, Expr, Locatable, Location};
+use crate::query::ast::error::{SyntaxErrorWithPos};
+use std::str::FromStr;
 
 enum NumericType {
     Integer(usize),
@@ -325,6 +329,58 @@ impl FieldResolver for NumericFieldResolver {
     }
 }
 
+pub struct NumericWrapper {
+    expr: Expr,
+    ty: NumericFieldType
+}
+
+impl TypeWrapper for NumericWrapper {
+    fn field_type(&self) -> FieldTypeBox {
+        Box::new(self.ty.clone())
+    }
+}
+
+impl Locatable for NumericWrapper {
+    fn location(&self) -> Location {
+        self.expr.location()
+    }
+}
+
+#[derive(ToTokens, Clone)]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
+pub struct NumericFieldType {
+    value_ty: String,
+    float: bool,
+    nullable: bool
+}
+
+impl FieldType for NumericFieldType {
+    fn name(&self) -> &'static str where
+        Self: Sized {
+        "numeric"
+    }
+
+    fn get_value_type(&self) -> Type where
+        Self: Sized {
+        parse2(TokenStream::from_str(&self.value_ty).unwrap()).unwrap()
+    }
+
+    fn type_kind(&self) -> TypeKind where
+        Self: Sized {
+        TypeKind::Numeric
+    }
+
+    fn nullable(&self) -> bool where
+        Self: Sized {
+        self.nullable
+    }
+
+    fn wrap_lit(&self, _lit: Literal, _type_checker: &mut TypeChecker) -> Result<FieldTypeBox, SyntaxErrorWithPos> where
+        Self: Sized {
+        unimplemented!()
+    }
+}
+
 macro_rules! impl_converter {
     ($ident: ident, $output_type: ty, $database_value: ident) => {
         #[derive(ToTokens)]
@@ -430,3 +486,5 @@ impl_converter!(UnsignedIntegerValueConverter, u32, UnsignedInteger);
 impl_converter!(UnsignedBigIntegerValueConverter, u64, UnsignedBigInteger);
 impl_converter!(FloatValueConverter, f32, Float);
 impl_converter!(DoubleValueConverter, f64, Double);
+
+

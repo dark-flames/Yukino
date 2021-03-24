@@ -1,6 +1,5 @@
 use crate::query::ast::error::SyntaxError;
-use crate::query::ast::ColumnIdent;
-use crate::query::type_check::{FieldInfo, TypeKind};
+use crate::query::type_check::{TypeKind};
 use std::collections::HashMap;
 
 pub struct TypeChecker {
@@ -20,9 +19,5 @@ impl TypeChecker {
             self.external_value_assertion.insert(ident, ty);
             Ok(())
         }
-    }
-
-    pub fn get_field_info(&self, _ident: ColumnIdent) -> FieldInfo {
-        unimplemented!()
     }
 }
