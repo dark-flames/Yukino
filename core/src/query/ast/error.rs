@@ -34,4 +34,6 @@ pub enum SyntaxError {
     TypeError(TypeKind, TypeKind),
     #[error("Conflict external value type assertion for \"#{0}\"")]
     ConflictValueAssertion(String),
+    #[error("Unimplemented operation \"{0}\" for type \"{1}\"")]
+    UnimplementedOperationForType(&'static str, &'static str),
 }
