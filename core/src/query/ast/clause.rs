@@ -355,7 +355,7 @@ fn test_join_clause() {
                     location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 100,
+                    value: "100".to_string(),
                     location,
                 }))),
                 location,
@@ -619,7 +619,7 @@ fn test_group_by() {
                     location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 100,
+                    value: "100".to_string(),
                     location,
                 }))),
                 location,

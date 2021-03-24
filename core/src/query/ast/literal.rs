@@ -1,7 +1,6 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{FromPair, Locatable, Location, QueryPair};
 use crate::query::grammar::Rule;
-use float_eq::float_eq;
 use std::cmp::PartialEq;
 
 #[derive(Debug, Clone)]
@@ -58,7 +57,7 @@ fn test_bool() {
 
 #[derive(Debug, Clone)]
 pub struct Integer {
-    pub value: i128,
+    pub value: String,
     pub location: Location,
 }
 
@@ -74,14 +73,10 @@ impl FromPair for Integer {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
-            Rule::int => {
-                let inner = pair.as_str();
-                let value = inner.parse().map_err(|_| {
-                    location.error(SyntaxError::CannotParseIntoInteger(inner.to_string()))
-                })?;
-
-                Ok(Integer { value, location })
-            }
+            Rule::int => Ok(Integer {
+                value: pair.as_str().to_string(),
+                location,
+            }),
             _ => Err(location.error(SyntaxError::UnexpectedPair("int"))),
         }
     }
@@ -95,13 +90,13 @@ impl Locatable for Integer {
 
 #[derive(Debug, Clone)]
 pub struct Float {
-    pub value: f64,
+    pub value: String,
     pub location: Location,
 }
 
 impl PartialEq for Float {
     fn eq(&self, other: &Self) -> bool {
-        float_eq!(self.value, other.value, ulps <= 4)
+        self.value == other.value
     }
 }
 
@@ -111,14 +106,10 @@ impl FromPair for Float {
     fn from_pair(pair: QueryPair) -> Result<Self, SyntaxErrorWithPos> {
         let location: Location = (&pair).into();
         match pair.as_rule() {
-            Rule::float => {
-                let inner = pair.as_str();
-                let value = inner.parse().map_err(|_| {
-                    location.error(SyntaxError::CannotParseIntoFloat(inner.to_string()))
-                })?;
-
-                Ok(Float { value, location })
-            }
+            Rule::float => Ok(Float {
+                value: pair.as_str().to_string(),
+                location,
+            }),
             _ => Err(location.error(SyntaxError::UnexpectedPair("float"))),
         }
     }
@@ -317,7 +308,7 @@ fn test_literal() {
     assert_parse_result(
         "114514",
         Literal::Integer(Integer {
-            value: 114514,
+            value: "114514".to_string(),
             location,
         }),
         Rule::literal,
@@ -325,7 +316,7 @@ fn test_literal() {
     assert_parse_result(
         "-114514",
         Literal::Integer(Integer {
-            value: -114514,
+            value: "-114514".to_string(),
             location,
         }),
         Rule::literal,
@@ -334,7 +325,7 @@ fn test_literal() {
     assert_parse_result(
         "114.514",
         Literal::Float(Float {
-            value: 114.514,
+            value: "114.514".to_string(),
             location,
         }),
         Rule::literal,
@@ -342,7 +333,7 @@ fn test_literal() {
     assert_parse_result(
         "-1e10",
         Literal::Float(Float {
-            value: -1e10,
+            value: "-1e10".to_string(),
             location,
         }),
         Rule::literal,

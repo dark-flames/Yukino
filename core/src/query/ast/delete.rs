@@ -73,7 +73,7 @@ fn test_delete_query() {
                     location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 100,
+                    value: "100".to_string(),
                     location,
                 }))),
                 location,

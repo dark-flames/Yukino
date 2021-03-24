@@ -1,24 +1,22 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
-use crate::query::ast::error::SyntaxErrorWithPos;
-use crate::query::ast::{Expr, Literal, Locatable, Location};
-use crate::query::type_check::{TypeChecker, TypeKind};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, FieldType, FieldTypeBox, TypeWrapper, ValuePack};
+use crate::types::{DatabaseType, DatabaseValue, ValuePack};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
-use std::str::FromStr;
-use syn::{parse2, Type};
+use syn::{parse_quote, Type};
 
-enum NumericType {
+#[derive(ToTokens, Clone, PartialEq, Eq)]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
+pub enum NumericType {
     Integer(usize),
     UnsignedInteger(usize),
     Float(usize),
@@ -163,6 +161,34 @@ impl NumericType {
             NumericType::Float(32) => DatabaseType::Float,
             NumericType::Float(64) => DatabaseType::Double,
             _ => unreachable!(),
+        }
+    }
+
+    pub fn ty(&self) -> Type {
+        match self {
+            NumericType::Integer(16) => parse_quote! {i16},
+            NumericType::Integer(32) => parse_quote! {i32},
+            NumericType::Integer(64) => parse_quote! {i64},
+            NumericType::UnsignedInteger(16) => parse_quote! {u16},
+            NumericType::UnsignedInteger(32) => parse_quote! {u32},
+            NumericType::UnsignedInteger(64) => parse_quote! {u64},
+            NumericType::Float(32) => parse_quote! {f32},
+            NumericType::Float(64) => parse_quote! {f64},
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn is_overflow(&self, value: &str) -> bool {
+        !match self {
+            NumericType::Integer(16) => value.parse::<i16>().is_ok(),
+            NumericType::Integer(32) => value.parse::<i32>().is_ok(),
+            NumericType::Integer(64) => value.parse::<i64>().is_ok(),
+            NumericType::UnsignedInteger(16) => value.parse::<u16>().is_ok(),
+            NumericType::UnsignedInteger(32) => value.parse::<u32>().is_ok(),
+            NumericType::UnsignedInteger(64) => value.parse::<u64>().is_ok(),
+            NumericType::Float(32) => value.parse::<f32>().is_ok(),
+            NumericType::Float(64) => value.parse::<f64>().is_ok(),
+            _ => panic!("Expect an integer"),
         }
     }
 }
@@ -326,72 +352,6 @@ impl FieldResolver for NumericFieldResolver {
             field_setter_token_stream,
             field_type: field_type.clone(),
         })
-    }
-}
-
-pub struct NumericWrapper {
-    expr: Expr,
-    ty: NumericFieldType,
-}
-
-impl TypeWrapper for NumericWrapper {
-    fn field_type(&self) -> FieldTypeBox {
-        Box::new(self.ty.clone())
-    }
-}
-
-impl Locatable for NumericWrapper {
-    fn location(&self) -> Location {
-        self.expr.location()
-    }
-}
-
-#[derive(ToTokens, Clone)]
-#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
-pub struct NumericFieldType {
-    value_ty: String,
-    float: bool,
-    nullable: bool,
-}
-
-impl FieldType for NumericFieldType {
-    fn name(&self) -> &'static str
-    where
-        Self: Sized,
-    {
-        "numeric"
-    }
-
-    fn get_value_type(&self) -> Type
-    where
-        Self: Sized,
-    {
-        parse2(TokenStream::from_str(&self.value_ty).unwrap()).unwrap()
-    }
-
-    fn type_kind(&self) -> TypeKind
-    where
-        Self: Sized,
-    {
-        TypeKind::Numeric
-    }
-
-    fn nullable(&self) -> bool
-    where
-        Self: Sized,
-    {
-        self.nullable
-    }
-
-    fn wrap_lit(
-        &self,
-        _lit: Literal,
-        _type_checker: &mut TypeChecker,
-    ) -> Result<FieldTypeBox, SyntaxErrorWithPos>
-    where
-        Self: Sized,
-    {
-        unimplemented!()
     }
 }
 

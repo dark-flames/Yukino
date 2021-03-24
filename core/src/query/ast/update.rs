@@ -108,7 +108,7 @@ fn test_set() {
                         location,
                     },
                     ValueItem::Expr(Expr::Literal(Literal::Integer(Integer {
-                        value: 1,
+                        value: "1".to_string(),
                         location,
                     }))),
                 ),
@@ -135,7 +135,7 @@ fn test_set() {
                         location,
                     },
                     ValueItem::Expr(Expr::Literal(Literal::Integer(Integer {
-                        value: 1,
+                        value: "1".to_string(),
                         location,
                     }))),
                 ),
@@ -255,7 +255,7 @@ fn test_update() {
                             location,
                         },
                         ValueItem::Expr(Expr::Literal(Literal::Integer(Integer {
-                            value: 1,
+                            value: "1".to_string(),
                             location,
                         }))),
                     ),
@@ -274,7 +274,7 @@ fn test_update() {
                     location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 100,
+                    value: "100".to_string(),
                     location,
                 }))),
                 location,

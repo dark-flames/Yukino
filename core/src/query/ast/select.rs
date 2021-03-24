@@ -269,7 +269,7 @@ fn test_select() {
                     location
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 100,
+                    value: "100".to_string(),
                     location
                 }))),
                 location
@@ -286,7 +286,7 @@ fn test_select() {
                         location
                     })),
                     right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                        value: 3,
+                        value: "3".to_string(),
                         location
                     }))),
                     location
@@ -340,7 +340,7 @@ fn test_select() {
                     location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 100,
+                    value: "100".to_string(),
                     location,
                 }))),
                 location,

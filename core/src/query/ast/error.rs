@@ -1,5 +1,4 @@
 use crate::query::ast::Location;
-use crate::query::type_check::TypeKind;
 use std::error::Error as StdError;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use thiserror::Error;
@@ -31,9 +30,11 @@ pub enum SyntaxError {
     #[error("Conflict alias \"{0}\"")]
     ConflictAlias(String),
     #[error("Mismatched type: expected \"{0}\", found \"{1}\"")]
-    TypeError(TypeKind, TypeKind),
+    TypeError(String, String),
     #[error("Conflict external value type assertion for \"#{0}\"")]
     ConflictValueAssertion(String),
     #[error("Unimplemented operation \"{0}\" for type \"{1}\"")]
-    UnimplementedOperationForType(&'static str, &'static str),
+    UnimplementedOperationForType(&'static str, String),
+    #[error("Literal out of range for \"{0}\"")]
+    LitOverflow(String),
 }

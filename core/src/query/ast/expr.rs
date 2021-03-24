@@ -351,17 +351,17 @@ fn test_expr() {
             left: Box::new(Expr::Binary(Binary {
                 operator: BinaryOperator::Plus,
                 left: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 1,
+                    value: "1".to_string(),
                     location,
                 }))),
                 right: Box::new(Expr::Binary(Binary {
                     operator: BinaryOperator::Multi,
                     left: Box::new(Expr::Literal(Literal::Integer(Integer {
-                        value: 1,
+                        value: "1".to_string(),
                         location,
                     }))),
                     right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                        value: 10,
+                        value: "10".to_string(),
                         location,
                     }))),
                     location,
@@ -369,7 +369,7 @@ fn test_expr() {
                 location,
             })),
             right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                value: 11,
+                value: "11".to_string(),
                 location,
             }))),
             location,
@@ -386,23 +386,23 @@ fn test_expr() {
                 left: Box::new(Expr::Binary(Binary {
                     operator: BinaryOperator::Plus,
                     left: Box::new(Expr::Literal(Literal::Integer(Integer {
-                        value: 1,
+                        value: "1".to_string(),
                         location,
                     }))),
                     right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                        value: 1,
+                        value: "1".to_string(),
                         location,
                     }))),
                     location,
                 })),
                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                    value: 10,
+                    value: "10".to_string(),
                     location,
                 }))),
                 location,
             })),
             right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                value: 11,
+                value: "11".to_string(),
                 location,
             }))),
             location,
@@ -423,7 +423,7 @@ fn test_expr() {
                         location,
                     })),
                     right: Box::new(Expr::Literal(Literal::Float(Float {
-                        value: 11.1,
+                        value: "11.1".to_string(),
                         location,
                     }))),
                     location,
@@ -440,7 +440,7 @@ fn test_expr() {
                                     location,
                                 })),
                                 right: Box::new(Expr::Literal(Literal::Integer(Integer {
-                                    value: 10,
+                                    value: "10".to_string(),
                                     location,
                                 }))),
                                 location,
