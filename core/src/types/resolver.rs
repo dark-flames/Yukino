@@ -1,6 +1,8 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{Expr, Literal, Locatable, Location};
+use crate::query::ast::{BinaryOperator, Expr, Literal, Locatable, Location, UnaryOperator};
+use crate::query::type_check::TypeKind;
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub enum CompareOperator {
     Bt,
@@ -11,10 +13,27 @@ pub enum CompareOperator {
     Eq,
 }
 
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct TypeInfo {
+    pub field_type: String,
+    pub nullable: bool,
+    pub type_kind: TypeKind,
+}
+
+impl Display for TypeInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        if self.nullable {
+            write!(f, "Option<{}>", self.field_type)
+        } else {
+            write!(f, "{}", self.field_type)
+        }
+    }
+}
+
 pub struct ExprWrapper {
     pub exprs: Vec<Expr>,
     pub resolver_name: String,
-    pub field_type: String,
+    pub type_info: TypeInfo,
     pub location: Location,
 }
 
@@ -25,209 +44,41 @@ impl Locatable for ExprWrapper {
 }
 
 pub trait TypeResolver {
+    fn seed() -> Box<dyn TypeResolver>
+    where
+        Self: Sized;
+
     fn name(&self) -> String;
 
-    fn wrap_lit(&self, lit: &Literal) -> Result<ExprWrapper, SyntaxErrorWithPos>;
+    fn wrap_lit(
+        &self,
+        lit: &Literal,
+        type_info: TypeInfo,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos>;
 
-    fn add(
+    fn handle_binary(
         &self,
         left: ExprWrapper,
         _right: ExprWrapper,
+        location: Location,
+        operator: BinaryOperator,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "add",
-                left.field_type,
-            )))
+        Err(location.error(SyntaxError::UnimplementedOperationForType(
+            format!("{:?}", operator),
+            left.type_info.to_string(),
+        )))
     }
 
-    fn minus(
+    fn handle_unary(
         &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
+        item: ExprWrapper,
+        location: Location,
+        operator: UnaryOperator,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "minus",
-                left.field_type,
-            )))
-    }
-
-    fn multi(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "multi",
-                left.field_type,
-            )))
-    }
-
-    fn div(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "div",
-                left.field_type,
-            )))
-    }
-
-    fn modulo(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "mod",
-                left.field_type,
-            )))
-    }
-
-    fn left_shift(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "left_shift",
-                left.field_type,
-            )))
-    }
-
-    fn right_shift(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "right_shift",
-                left.field_type,
-            )))
-    }
-
-    fn bit_and(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "bit_and",
-                left.field_type,
-            )))
-    }
-
-    fn bit_or(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "bit_or",
-                left.field_type,
-            )))
-    }
-
-    fn bit_xor(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "bit_xor",
-                left.field_type,
-            )))
-    }
-
-    fn bit_reverse(&self, item: ExprWrapper) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(item
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "bit_reverse",
-                item.field_type,
-            )))
-    }
-
-    fn and(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "and",
-                left.field_type,
-            )))
-    }
-
-    fn or(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "or",
-                left.field_type,
-            )))
-    }
-
-    fn xor(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "xor",
-                left.field_type,
-            )))
-    }
-
-    fn not(&self, item: ExprWrapper) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(item
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "xor",
-                item.field_type,
-            )))
-    }
-
-    fn cmp(
-        &self,
-        left: ExprWrapper,
-        _right: ExprWrapper,
-        _operator: CompareOperator,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        Err(left
-            .location()
-            .error(SyntaxError::UnimplementedOperationForType(
-                "compare",
-                left.field_type,
-            )))
+        Err(location.error(SyntaxError::UnimplementedOperationForType(
+            format!("{:?}", operator),
+            item.type_info.to_string(),
+        )))
     }
 }
 

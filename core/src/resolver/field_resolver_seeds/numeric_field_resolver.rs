@@ -1,17 +1,26 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
+use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::Expr;
+use crate::query::ast::{
+    Binary, BinaryOperator, Literal, Locatable, Location, Unary, UnaryOperator,
+};
+use crate::query::type_check::TypeKind;
 use crate::resolver::error::{DataConvertError, ResolveError};
+use crate::resolver::field_resolver_seeds::bool_field_resolver::BoolTypeResolver;
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ValuePack};
+use crate::types::{DatabaseType, DatabaseValue, ExprWrapper, TypeInfo, TypeResolver, ValuePack};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::str::FromStr;
 use syn::{parse_quote, Type};
 
 #[derive(ToTokens, Clone, PartialEq, Eq)]
@@ -26,17 +35,7 @@ impl NumericType {
     pub fn from_ident(ident: &Ident) -> Option<Self> {
         let ident_string = ident.to_string();
 
-        match ident_string.as_str() {
-            "i16" => Some(NumericType::Integer(16)),
-            "i32" => Some(NumericType::Integer(32)),
-            "i64" => Some(NumericType::Integer(64)),
-            "u16" => Some(NumericType::UnsignedInteger(16)),
-            "u32" => Some(NumericType::UnsignedInteger(32)),
-            "u64" => Some(NumericType::UnsignedInteger(64)),
-            "f32" => Some(NumericType::Float(32)),
-            "f64" => Some(NumericType::Float(64)),
-            _ => None,
-        }
+        Self::from_str(ident_string.as_str()).ok()
     }
 
     pub fn converter_token_stream(
@@ -190,6 +189,34 @@ impl NumericType {
             NumericType::Float(64) => value.parse::<f64>().is_ok(),
             _ => panic!("Expect an integer"),
         }
+    }
+
+    fn is_float(&self) -> bool {
+        matches!(self, NumericType::Float(32) | NumericType::Float(64))
+    }
+}
+
+impl FromStr for NumericType {
+    type Err = ResolveError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "i16" => Ok(NumericType::Integer(16)),
+            "i32" => Ok(NumericType::Integer(32)),
+            "i64" => Ok(NumericType::Integer(64)),
+            "u16" => Ok(NumericType::UnsignedInteger(16)),
+            "u32" => Ok(NumericType::UnsignedInteger(32)),
+            "u64" => Ok(NumericType::UnsignedInteger(64)),
+            "f32" => Ok(NumericType::Float(32)),
+            "f64" => Ok(NumericType::Float(64)),
+            _ => Err(ResolveError::UnsupportedEntityStructType),
+        }
+    }
+}
+
+impl Display for NumericType {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        write!(f, "{}", self.ty().to_token_stream().to_string())
     }
 }
 
@@ -352,6 +379,156 @@ impl FieldResolver for NumericFieldResolver {
             field_setter_token_stream,
             field_type: field_type.clone(),
         })
+    }
+}
+
+pub struct NumericTypeResolver;
+
+impl TypeResolver for NumericTypeResolver {
+    fn seed() -> Box<dyn TypeResolver> {
+        Box::new(NumericTypeResolver)
+    }
+
+    fn name(&self) -> String {
+        "numeric".to_string()
+    }
+
+    fn wrap_lit(
+        &self,
+        lit: &Literal,
+        type_info: TypeInfo,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        let numeric_type = NumericType::from_str(type_info.field_type.as_str()).unwrap();
+
+        match (lit, &numeric_type) {
+            (Literal::Integer(number), NumericType::Integer(_))
+            | (Literal::Integer(number), NumericType::UnsignedInteger(_)) => {
+                if numeric_type.is_overflow(number.value.as_str()) {
+                    Err(lit
+                        .location()
+                        .error(SyntaxError::LitOverflow(numeric_type.to_string())))
+                } else {
+                    Ok(ExprWrapper {
+                        exprs: vec![Expr::Literal(lit.clone())],
+                        resolver_name: self.name(),
+                        type_info,
+                        location: lit.location(),
+                    })
+                }
+            }
+            (Literal::Float(number), NumericType::Float(_)) => {
+                if numeric_type.is_overflow(number.value.as_str()) {
+                    Err(lit
+                        .location()
+                        .error(SyntaxError::LitOverflow(numeric_type.to_string())))
+                } else {
+                    Ok(ExprWrapper {
+                        exprs: vec![Expr::Literal(lit.clone())],
+                        resolver_name: self.name(),
+                        type_info,
+                        location: lit.location(),
+                    })
+                }
+            }
+            (Literal::Null(_), _) if type_info.nullable => Ok(ExprWrapper {
+                exprs: vec![Expr::Literal(lit.clone())],
+                resolver_name: self.name(),
+                type_info,
+                location: lit.location(),
+            }),
+            _ => Err(lit.location().error(SyntaxError::TypeError(
+                type_info.to_string(),
+                TypeKind::from(lit).to_string(),
+            ))),
+        }
+    }
+
+    fn handle_binary(
+        &self,
+        mut left: ExprWrapper,
+        mut right: ExprWrapper,
+        location: Location,
+        operator: BinaryOperator,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        assert_eq!(left.type_info.field_type, right.type_info.field_type);
+
+        let numeric_ty = NumericType::from_str(left.type_info.field_type.as_str()).unwrap();
+
+        if (matches!(
+            operator,
+            BinaryOperator::BitOr
+                | BinaryOperator::BitXor
+                | BinaryOperator::BitAnd
+                | BinaryOperator::Mod
+                | BinaryOperator::RightShift
+                | BinaryOperator::LeftShift
+        ) && numeric_ty.is_float())
+            || matches!(
+                operator,
+                BinaryOperator::Or | BinaryOperator::And | BinaryOperator::Xor
+            )
+        {
+            Err(location.error(SyntaxError::UnimplementedOperationForType(
+                format!("{:?}", operator),
+                left.type_info.to_string(),
+            )))
+        } else {
+            let type_info = TypeInfo {
+                field_type: left.type_info.field_type.clone(),
+                nullable: left.type_info.nullable || right.type_info.nullable,
+                type_kind: left.type_info.type_kind,
+            };
+
+            let (resolver_name, type_info) = if operator.is_cmp() {
+                (
+                    BoolTypeResolver::seed().name(),
+                    TypeInfo {
+                        field_type: "bool".to_string(),
+                        nullable: type_info.nullable,
+                        type_kind: type_info.type_kind,
+                    },
+                )
+            } else {
+                (self.name(), type_info)
+            };
+
+            Ok(ExprWrapper {
+                exprs: vec![Expr::Binary(Binary {
+                    operator,
+                    left: Box::new(left.exprs.pop().unwrap()),
+                    right: Box::new(right.exprs.pop().unwrap()),
+                    location,
+                })],
+                resolver_name,
+                type_info,
+                location,
+            })
+        }
+    }
+
+    fn handle_unary(
+        &self,
+        mut item: ExprWrapper,
+        location: Location,
+        operator: UnaryOperator,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        if operator == UnaryOperator::Not {
+            Err(location.error(SyntaxError::UnimplementedOperationForType(
+                format!("{:?}", operator),
+                item.type_info.to_string(),
+            )))
+        } else {
+            Ok(ExprWrapper {
+                exprs: vec![Expr::Unary(Unary {
+                    operator,
+                    right: Box::new(item.exprs.pop().unwrap()),
+                    location,
+                })],
+                resolver_name: self.name(),
+                type_info: item.type_info,
+                location,
+            })
+        }
     }
 }
 

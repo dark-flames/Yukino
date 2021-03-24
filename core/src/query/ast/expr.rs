@@ -132,6 +132,10 @@ impl BinaryOperator {
         vec![Bte, Lte, Neq, Bt, Lt, Eq]
     }
 
+    pub fn is_cmp(&self) -> bool {
+        Self::compare_operator().contains(self)
+    }
+
     pub fn term_operator() -> Vec<Self> {
         use BinaryOperator::*;
         vec![Multi, Div, Mod]

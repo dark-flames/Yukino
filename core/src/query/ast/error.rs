@@ -34,7 +34,7 @@ pub enum SyntaxError {
     #[error("Conflict external value type assertion for \"#{0}\"")]
     ConflictValueAssertion(String),
     #[error("Unimplemented operation \"{0}\" for type \"{1}\"")]
-    UnimplementedOperationForType(&'static str, String),
+    UnimplementedOperationForType(String, String),
     #[error("Literal out of range for \"{0}\"")]
     LitOverflow(String),
 }
