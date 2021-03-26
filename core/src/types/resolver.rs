@@ -83,5 +83,20 @@ pub trait TypeResolver {
 }
 
 pub struct TypeResolverManager {
-    pub resolvers: HashMap<String, Box<dyn TypeResolver>>,
+    resolvers: HashMap<String, Box<dyn TypeResolver>>,
+}
+
+impl TypeResolverManager {
+    pub fn new(resolvers: Vec<Box<dyn TypeResolver>>) -> Self {
+        TypeResolverManager {
+            resolvers: resolvers
+                .into_iter()
+                .map(|resolver| (resolver.name(), resolver))
+                .collect(),
+        }
+    }
+
+    pub fn get_resolver(&self, name: &str) -> Option<&dyn TypeResolver> {
+        self.resolvers.get(name).map(|boxed| boxed.as_ref())
+    }
 }

@@ -1,11 +1,14 @@
 use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType};
+use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::{Expr, Literal, Locatable};
+use crate::query::type_check::TypeKind;
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ValuePack};
+use crate::types::{DatabaseType, DatabaseValue, ExprWrapper, TypeInfo, TypeResolver, ValuePack};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::Ident;
@@ -247,6 +250,48 @@ impl ValueConverter<Option<String>> for StringValueConverter {
             self.to_database_values_by_ref(value)
         } else {
             Ok(HashMap::new())
+        }
+    }
+}
+
+pub struct StringTypeResolver;
+
+impl TypeResolver for StringTypeResolver {
+    fn seed() -> Box<dyn TypeResolver>
+    where
+        Self: Sized,
+    {
+        Box::new(StringTypeResolver)
+    }
+
+    fn name(&self) -> String {
+        "string".to_string()
+    }
+
+    fn wrap_lit(
+        &self,
+        lit: &Literal,
+        type_info: TypeInfo,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        assert_eq!(&type_info.field_type, "String");
+
+        match lit {
+            Literal::String(_) => Ok(ExprWrapper {
+                exprs: vec![Expr::Literal(lit.clone())],
+                resolver_name: self.name(),
+                type_info,
+                location: lit.location(),
+            }),
+            Literal::Null(_) if type_info.nullable => Ok(ExprWrapper {
+                exprs: vec![Expr::Literal(lit.clone())],
+                resolver_name: self.name(),
+                type_info,
+                location: lit.location(),
+            }),
+            _ => Err(lit.location().error(SyntaxError::TypeError(
+                type_info.to_string(),
+                TypeKind::from(lit).to_string(),
+            ))),
         }
     }
 }
