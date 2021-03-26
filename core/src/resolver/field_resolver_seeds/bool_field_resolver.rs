@@ -1,5 +1,6 @@
+use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::Expr;
+use crate::query::ast::{ColumnIdent, Expr};
 use crate::query::ast::{Literal, Locatable};
 use crate::query::type_check::TypeKind;
 use crate::types::{ExprWrapper, TypeInfo, TypeResolver};
@@ -37,6 +38,32 @@ impl TypeResolver for BoolTypeResolver {
                 type_info.to_string(),
                 TypeKind::from(lit).to_string(),
             ))),
+        }
+    }
+
+    fn wrap_ident(
+        &self,
+        ident: &ColumnIdent,
+        field_definition: &FieldDefinition,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        if &field_definition.field_type != "bool" {
+            Err(ident.location().error(SyntaxError::TypeError(
+                "bool".to_string(),
+                field_definition.field_type.clone(),
+            )))
+        } else {
+            let type_info = TypeInfo {
+                field_type: field_definition.field_type.clone(),
+                nullable: field_definition.nullable,
+                type_kind: TypeKind::Boolean,
+            };
+
+            Ok(ExprWrapper {
+                exprs: vec![Expr::ColumnIdent(ident.clone())],
+                resolver_name: self.name(),
+                type_info,
+                location: ident.location,
+            })
         }
     }
 }

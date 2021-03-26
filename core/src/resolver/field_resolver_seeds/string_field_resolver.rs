@@ -1,7 +1,7 @@
 use crate::annotations::FieldAnnotation;
-use crate::definitions::{ColumnDefinition, ColumnType};
+use crate::definitions::{ColumnDefinition, ColumnType, FieldDefinition};
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{Expr, Literal, Locatable};
+use crate::query::ast::{ColumnIdent, Expr, Literal, Locatable};
 use crate::query::type_check::TypeKind;
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
@@ -273,7 +273,12 @@ impl TypeResolver for StringTypeResolver {
         lit: &Literal,
         type_info: TypeInfo,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        assert_eq!(&type_info.field_type, "String");
+        if &type_info.field_type != "String" {
+            return Err(lit.location().error(SyntaxError::TypeError(
+                "String".to_string(),
+                type_info.field_type,
+            )));
+        }
 
         match lit {
             Literal::String(_) => Ok(ExprWrapper {
@@ -292,6 +297,31 @@ impl TypeResolver for StringTypeResolver {
                 type_info.to_string(),
                 TypeKind::from(lit).to_string(),
             ))),
+        }
+    }
+
+    fn wrap_ident(
+        &self,
+        ident: &ColumnIdent,
+        field_definition: &FieldDefinition,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        if &field_definition.field_type != "String" {
+            Err(ident.location().error(SyntaxError::TypeError(
+                "String".to_string(),
+                field_definition.field_type.clone(),
+            )))
+        } else {
+            let type_info = TypeInfo {
+                field_type: field_definition.field_type.clone(),
+                nullable: field_definition.nullable,
+                type_kind: TypeKind::String,
+            };
+            Ok(ExprWrapper {
+                exprs: vec![Expr::ColumnIdent(ident.clone())],
+                resolver_name: self.name(),
+                type_info,
+                location: ident.location(),
+            })
         }
     }
 }

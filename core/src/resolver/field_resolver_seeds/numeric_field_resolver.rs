@@ -1,10 +1,10 @@
 use crate::annotations::FieldAnnotation;
-use crate::definitions::{ColumnDefinition, ColumnType};
+use crate::definitions::{ColumnDefinition, ColumnType, FieldDefinition};
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::Expr;
 use crate::query::ast::{
     Binary, BinaryOperator, Literal, Locatable, Location, Unary, UnaryOperator,
 };
+use crate::query::ast::{ColumnIdent, Expr};
 use crate::query::type_check::TypeKind;
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::field_resolver_seeds::bool_field_resolver::BoolTypeResolver;
@@ -441,6 +441,32 @@ impl TypeResolver for NumericTypeResolver {
                 TypeKind::from(lit).to_string(),
             ))),
         }
+    }
+
+    fn wrap_ident(
+        &self,
+        ident: &ColumnIdent,
+        field_definition: &FieldDefinition,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        NumericType::from_str(field_definition.field_type.as_str()).map_err(|_| {
+            ident.location().error(SyntaxError::TypeError(
+                "numeric".to_string(),
+                field_definition.field_type.clone(),
+            ))
+        })?;
+
+        let type_info = TypeInfo {
+            field_type: field_definition.field_type.clone(),
+            nullable: field_definition.nullable,
+            type_kind: TypeKind::Numeric,
+        };
+
+        Ok(ExprWrapper {
+            exprs: vec![Expr::ColumnIdent(ident.clone())],
+            resolver_name: self.name(),
+            type_info,
+            location: ident.location(),
+        })
     }
 
     fn handle_binary(

@@ -1,13 +1,27 @@
 use crate::query::ast::error::SyntaxError;
 use crate::query::type_check::TypeKind;
+use crate::types::{ExprWrapper, TypeResolver};
 use std::collections::HashMap;
 
 pub struct TypeChecker {
     external_value_assertion: HashMap<String, TypeKind>,
+    resolvers: HashMap<String, Box<dyn TypeResolver>>,
+    alias: HashMap<String, String>,
 }
 
 #[allow(clippy::map_entry)]
 impl TypeChecker {
+    pub fn new(resolvers: Vec<Box<dyn TypeResolver>>, alias: HashMap<String, String>) -> Self {
+        TypeChecker {
+            external_value_assertion: Default::default(),
+            resolvers: resolvers
+                .into_iter()
+                .map(|resolver| (resolver.name(), resolver))
+                .collect(),
+            alias,
+        }
+    }
+
     pub fn add_external_value_assertion(
         &mut self,
         ident: String,
@@ -20,4 +34,16 @@ impl TypeChecker {
             Ok(())
         }
     }
+
+    pub fn get_resolver(&self, name: &str) -> Option<&dyn TypeResolver> {
+        self.resolvers.get(name).map(|boxed| boxed.as_ref())
+    }
+
+    pub fn get_table_name(&self, alias: &str) -> Option<&str> {
+        self.alias.get(alias).map(|string| string.as_str())
+    }
+}
+
+pub trait TypeCheck {
+    fn warp(&self, ty_checker: &mut TypeChecker) -> ExprWrapper;
 }

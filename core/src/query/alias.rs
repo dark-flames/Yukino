@@ -3,7 +3,6 @@ use crate::query::ast::{
     DeleteQuery, Expr, FromClause, JoinClause, Locatable, Location, Query, SelectClause,
     SelectQuery, TableReference, UpdateQuery,
 };
-use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
 pub const GLOBAL: &str = "#global_alias";
@@ -18,10 +17,10 @@ pub trait CollectExprAlias {
 
 #[allow(clippy::map_entry)]
 fn merge_hash_map(
-    a: Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos>,
-    b: Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos>,
+    a: Result<HashMap<String, String>, SyntaxErrorWithPos>,
+    b: Result<HashMap<String, String>, SyntaxErrorWithPos>,
     location: Location,
-) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
     let mut result = a?;
     for (alias, table) in b? {
         if result.contains_key(&alias) {
@@ -43,9 +42,7 @@ impl CollectTableAlias for TableReference {
 }
 
 impl CollectTableAlias for JoinClause {
-    fn collect_table_alias(
-        &self,
-    ) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
         match self {
             JoinClause::NaturalJoin(nature_join) => nature_join.table.collect_table_alias(),
             JoinClause::JoinOn(join_on) => join_on.table.collect_table_alias(),
@@ -55,9 +52,7 @@ impl CollectTableAlias for JoinClause {
 }
 
 impl CollectTableAlias for FromClause {
-    fn collect_table_alias(
-        &self,
-    ) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
         let result = self.table.collect_table_alias();
 
         self.join
@@ -70,25 +65,19 @@ impl CollectTableAlias for FromClause {
 }
 
 impl CollectTableAlias for SelectQuery {
-    fn collect_table_alias(
-        &self,
-    ) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
         self.from.collect_table_alias()
     }
 }
 
 impl CollectTableAlias for DeleteQuery {
-    fn collect_table_alias(
-        &self,
-    ) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
         self.from.collect_table_alias()
     }
 }
 
 impl CollectTableAlias for UpdateQuery {
-    fn collect_table_alias(
-        &self,
-    ) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
         let result = self.update_table.collect_table_alias();
 
         if let Some(from) = self.from_table.as_ref() {
@@ -100,9 +89,7 @@ impl CollectTableAlias for UpdateQuery {
 }
 
 impl CollectTableAlias for Query {
-    fn collect_table_alias(
-        &self,
-    ) -> Result<HashMap<String, String, RandomState>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
         match self {
             Query::Select(select) => select.collect_table_alias(),
             Query::Delete(delete) => delete.collect_table_alias(),
@@ -114,7 +101,7 @@ impl CollectTableAlias for Query {
 
 #[allow(clippy::map_entry)]
 impl CollectExprAlias for SelectClause {
-    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr, RandomState>, SyntaxErrorWithPos> {
+    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr>, SyntaxErrorWithPos> {
         let items = self.items.iter().filter_map(|(expr, alias_option)| {
             alias_option.clone().map(|alias| (alias, expr.clone()))
         });
@@ -134,13 +121,13 @@ impl CollectExprAlias for SelectClause {
 }
 
 impl CollectExprAlias for SelectQuery {
-    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr, RandomState>, SyntaxErrorWithPos> {
+    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr>, SyntaxErrorWithPos> {
         self.select_clause.collect_expr_alias()
     }
 }
 
 impl CollectExprAlias for Query {
-    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr, RandomState>, SyntaxErrorWithPos> {
+    fn collect_expr_alias(&self) -> Result<HashMap<String, Expr>, SyntaxErrorWithPos> {
         match self {
             Query::Select(select) => select.collect_expr_alias(),
             _ => Ok(HashMap::new()),

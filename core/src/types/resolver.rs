@@ -1,7 +1,9 @@
+use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{BinaryOperator, Expr, Literal, Locatable, Location, UnaryOperator};
+use crate::query::ast::{
+    BinaryOperator, ColumnIdent, Expr, Literal, Locatable, Location, UnaryOperator,
+};
 use crate::query::type_check::TypeKind;
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub enum CompareOperator {
@@ -56,6 +58,12 @@ pub trait TypeResolver {
         type_info: TypeInfo,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos>;
 
+    fn wrap_ident(
+        &self,
+        ident: &ColumnIdent,
+        field_definition: &FieldDefinition,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos>;
+
     fn handle_binary(
         &self,
         left: ExprWrapper,
@@ -79,24 +87,5 @@ pub trait TypeResolver {
             format!("{:?}", operator),
             item.type_info.to_string(),
         )))
-    }
-}
-
-pub struct TypeResolverManager {
-    resolvers: HashMap<String, Box<dyn TypeResolver>>,
-}
-
-impl TypeResolverManager {
-    pub fn new(resolvers: Vec<Box<dyn TypeResolver>>) -> Self {
-        TypeResolverManager {
-            resolvers: resolvers
-                .into_iter()
-                .map(|resolver| (resolver.name(), resolver))
-                .collect(),
-        }
-    }
-
-    pub fn get_resolver(&self, name: &str) -> Option<&dyn TypeResolver> {
-        self.resolvers.get(name).map(|boxed| boxed.as_ref())
     }
 }

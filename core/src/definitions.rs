@@ -83,3 +83,13 @@ pub struct ForeignKeyDefinition {
     /// list of (column_name, referenced_columns)
     pub column_map: Vec<(String, String)>,
 }
+
+pub struct FieldDefinition {
+    pub name: String,
+    pub field_name: String,
+    pub type_resolver_name: String,
+    pub field_type: String,
+    pub nullable: bool,
+    pub columns: Vec<String>,
+    pub tables: Vec<String>,
+}
