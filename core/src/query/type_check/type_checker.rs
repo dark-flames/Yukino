@@ -1,17 +1,29 @@
-use crate::query::ast::error::SyntaxError;
+use crate::definitions::FieldDefinition;
+use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::type_check::TypeKind;
 use crate::types::{ExprWrapper, TypeResolver};
 use std::collections::HashMap;
 
-pub struct TypeChecker {
+pub struct TypeChecker<F>
+where
+    F: Fn(&str, &str) -> FieldDefinition,
+{
     external_value_assertion: HashMap<String, TypeKind>,
     resolvers: HashMap<String, Box<dyn TypeResolver>>,
     alias: HashMap<String, String>,
+    definition_getter: F,
 }
 
 #[allow(clippy::map_entry)]
-impl TypeChecker {
-    pub fn new(resolvers: Vec<Box<dyn TypeResolver>>, alias: HashMap<String, String>) -> Self {
+impl<F> TypeChecker<F>
+where
+    F: Fn(&str, &str) -> FieldDefinition,
+{
+    pub fn new(
+        resolvers: Vec<Box<dyn TypeResolver>>,
+        alias: HashMap<String, String>,
+        definition_getter: F,
+    ) -> Self {
         TypeChecker {
             external_value_assertion: Default::default(),
             resolvers: resolvers
@@ -19,6 +31,7 @@ impl TypeChecker {
                 .map(|resolver| (resolver.name(), resolver))
                 .collect(),
             alias,
+            definition_getter,
         }
     }
 
@@ -42,8 +55,14 @@ impl TypeChecker {
     pub fn get_table_name(&self, alias: &str) -> Option<&str> {
         self.alias.get(alias).map(|string| string.as_str())
     }
+
+    pub fn get_field_definition(&self, entity: &str, field: &str) -> FieldDefinition {
+        (self.definition_getter)(entity, field)
+    }
 }
 
 pub trait TypeCheck {
-    fn warp(&self, ty_checker: &mut TypeChecker) -> ExprWrapper;
+    fn warp<F>(&self, ty_checker: &mut TypeChecker<F>) -> Result<ExprWrapper, SyntaxErrorWithPos>
+    where
+        F: Fn(&str, &str) -> FieldDefinition;
 }

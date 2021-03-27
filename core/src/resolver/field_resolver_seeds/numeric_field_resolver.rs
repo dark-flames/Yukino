@@ -393,6 +393,10 @@ impl TypeResolver for NumericTypeResolver {
         "numeric".to_string()
     }
 
+    fn type_kind(&self) -> TypeKind {
+        TypeKind::Numeric
+    }
+
     fn wrap_lit(
         &self,
         lit: &Literal,
@@ -458,7 +462,7 @@ impl TypeResolver for NumericTypeResolver {
         let type_info = TypeInfo {
             field_type: field_definition.field_type.clone(),
             nullable: field_definition.nullable,
-            type_kind: TypeKind::Numeric,
+            type_kind: self.type_kind(),
         };
 
         Ok(ExprWrapper {

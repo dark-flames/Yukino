@@ -37,4 +37,8 @@ pub enum SyntaxError {
     UnimplementedOperationForType(String, String),
     #[error("Literal out of range for \"{0}\"")]
     LitOverflow(String),
+    #[error("Unknown alias \"{0}\"")]
+    UnknownAlias(String),
+    #[error("Unknown resolver name \"{0}\"")]
+    UnknownResolverName(String),
 }

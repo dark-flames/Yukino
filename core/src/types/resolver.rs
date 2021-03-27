@@ -52,6 +52,8 @@ pub trait TypeResolver {
 
     fn name(&self) -> String;
 
+    fn type_kind(&self) -> TypeKind;
+
     fn wrap_lit(
         &self,
         lit: &Literal,

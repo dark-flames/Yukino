@@ -16,6 +16,10 @@ impl TypeResolver for BoolTypeResolver {
         "bool".to_string()
     }
 
+    fn type_kind(&self) -> TypeKind {
+        TypeKind::Boolean
+    }
+
     fn wrap_lit(
         &self,
         lit: &Literal,
@@ -55,7 +59,7 @@ impl TypeResolver for BoolTypeResolver {
             let type_info = TypeInfo {
                 field_type: field_definition.field_type.clone(),
                 nullable: field_definition.nullable,
-                type_kind: TypeKind::Boolean,
+                type_kind: self.type_kind(),
             };
 
             Ok(ExprWrapper {
