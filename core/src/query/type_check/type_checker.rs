@@ -1,7 +1,8 @@
 use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::Locatable;
 use crate::query::type_check::TypeKind;
-use crate::types::{ExprWrapper, TypeResolver};
+use crate::types::{ExprWrapper, TypeInfo, TypeResolver};
 use std::collections::HashMap;
 
 pub struct TypeChecker<F>
@@ -61,8 +62,25 @@ where
     }
 }
 
-pub trait TypeCheck {
-    fn warp<F>(&self, ty_checker: &mut TypeChecker<F>) -> Result<ExprWrapper, SyntaxErrorWithPos>
+pub trait TypeCheck: Locatable {
+    fn try_wrap<F>(
+        &self,
+        ty_checker: &mut TypeChecker<F>,
+    ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
         F: Fn(&str, &str) -> FieldDefinition;
+
+    fn wrap_with_ty<F>(
+        &self,
+        ty_checker: &mut TypeChecker<F>,
+        type_info: TypeInfo,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos>
+    where
+        F: Fn(&str, &str) -> FieldDefinition,
+    {
+        self.try_wrap(ty_checker)?.ok_or_else(|| {
+            self.location()
+                .error(SyntaxError::CannotBeWrappedInto(type_info.field_type))
+        })
+    }
 }

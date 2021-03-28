@@ -41,4 +41,8 @@ pub enum SyntaxError {
     UnknownAlias(String),
     #[error("Unknown resolver name \"{0}\"")]
     UnknownResolverName(String),
+    #[error("Cannot be wrapped into \"{0}\"")]
+    CannotBeWrappedInto(String),
+    #[error("Unable to infer a suitable type")]
+    TypeInferError,
 }

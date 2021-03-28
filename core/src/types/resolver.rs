@@ -17,6 +17,7 @@ pub enum CompareOperator {
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct TypeInfo {
+    pub resolver_name: String,
     pub field_type: String,
     pub nullable: bool,
     pub type_kind: TypeKind,
@@ -34,7 +35,6 @@ impl Display for TypeInfo {
 
 pub struct ExprWrapper {
     pub exprs: Vec<Expr>,
-    pub resolver_name: String,
     pub type_info: TypeInfo,
     pub location: Location,
 }

@@ -28,13 +28,11 @@ impl TypeResolver for BoolTypeResolver {
         match lit {
             Literal::Boolean(_) => Ok(ExprWrapper {
                 exprs: vec![Expr::Literal(lit.clone())],
-                resolver_name: self.name(),
                 type_info,
                 location: lit.location(),
             }),
             Literal::Null(_) if type_info.nullable => Ok(ExprWrapper {
                 exprs: vec![Expr::Literal(lit.clone())],
-                resolver_name: self.name(),
                 type_info,
                 location: lit.location(),
             }),
@@ -59,12 +57,12 @@ impl TypeResolver for BoolTypeResolver {
             let type_info = TypeInfo {
                 field_type: field_definition.field_type.clone(),
                 nullable: field_definition.nullable,
+                resolver_name: self.name(),
                 type_kind: self.type_kind(),
             };
 
             Ok(ExprWrapper {
                 exprs: vec![Expr::ColumnIdent(ident.clone())],
-                resolver_name: self.name(),
                 type_info,
                 location: ident.location,
             })

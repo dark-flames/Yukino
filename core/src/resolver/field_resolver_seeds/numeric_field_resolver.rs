@@ -414,7 +414,6 @@ impl TypeResolver for NumericTypeResolver {
                 } else {
                     Ok(ExprWrapper {
                         exprs: vec![Expr::Literal(lit.clone())],
-                        resolver_name: self.name(),
                         type_info,
                         location: lit.location(),
                     })
@@ -428,7 +427,6 @@ impl TypeResolver for NumericTypeResolver {
                 } else {
                     Ok(ExprWrapper {
                         exprs: vec![Expr::Literal(lit.clone())],
-                        resolver_name: self.name(),
                         type_info,
                         location: lit.location(),
                     })
@@ -436,7 +434,6 @@ impl TypeResolver for NumericTypeResolver {
             }
             (Literal::Null(_), _) if type_info.nullable => Ok(ExprWrapper {
                 exprs: vec![Expr::Literal(lit.clone())],
-                resolver_name: self.name(),
                 type_info,
                 location: lit.location(),
             }),
@@ -463,11 +460,11 @@ impl TypeResolver for NumericTypeResolver {
             field_type: field_definition.field_type.clone(),
             nullable: field_definition.nullable,
             type_kind: self.type_kind(),
+            resolver_name: self.name(),
         };
 
         Ok(ExprWrapper {
             exprs: vec![Expr::ColumnIdent(ident.clone())],
-            resolver_name: self.name(),
             type_info,
             location: ident.location(),
         })
@@ -507,19 +504,18 @@ impl TypeResolver for NumericTypeResolver {
                 field_type: left.type_info.field_type.clone(),
                 nullable: left.type_info.nullable || right.type_info.nullable,
                 type_kind: left.type_info.type_kind,
+                resolver_name: self.name(),
             };
 
-            let (resolver_name, type_info) = if operator.is_cmp() {
-                (
-                    BoolTypeResolver::seed().name(),
-                    TypeInfo {
-                        field_type: "bool".to_string(),
-                        nullable: type_info.nullable,
-                        type_kind: type_info.type_kind,
-                    },
-                )
+            let type_info = if operator.is_cmp() {
+                TypeInfo {
+                    field_type: "bool".to_string(),
+                    nullable: type_info.nullable,
+                    type_kind: type_info.type_kind,
+                    resolver_name: BoolTypeResolver::seed().name(),
+                }
             } else {
-                (self.name(), type_info)
+                type_info
             };
 
             Ok(ExprWrapper {
@@ -529,7 +525,6 @@ impl TypeResolver for NumericTypeResolver {
                     right: Box::new(right.exprs.pop().unwrap()),
                     location,
                 })],
-                resolver_name,
                 type_info,
                 location,
             })
@@ -554,7 +549,6 @@ impl TypeResolver for NumericTypeResolver {
                     right: Box::new(item.exprs.pop().unwrap()),
                     location,
                 })],
-                resolver_name: self.name(),
                 type_info: item.type_info,
                 location,
             })
