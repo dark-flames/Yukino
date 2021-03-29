@@ -1,4 +1,4 @@
-use crate::definitions::TableDefinition;
+use crate::definitions::{FieldDefinition, TableDefinition};
 use crate::resolver::error::DataConvertError;
 use crate::transaction::Transaction;
 use crate::types::ValuePack;
@@ -16,6 +16,8 @@ where
     fn to_database_values(&self) -> Result<ValuePack, DataConvertError>;
 
     fn get_definitions() -> Vec<TableDefinition>;
+
+    fn get_field_definition(field_name: &str) -> Option<FieldDefinition>;
 
     fn primary_key_values(&self) -> Result<ValuePack, DataConvertError>;
 }

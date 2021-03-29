@@ -84,6 +84,8 @@ pub struct ForeignKeyDefinition {
     pub column_map: Vec<(String, String)>,
 }
 
+#[derive(ToTokens, Clone)]
+#[Iroha(mod_path = "yukino::definitions")]
 pub struct FieldDefinition {
     pub name: String,
     pub type_resolver_name: String,

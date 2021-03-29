@@ -1,6 +1,6 @@
 mod associated_entity;
 
-use crate::definitions::TableDefinition;
+use crate::definitions::{FieldDefinition, TableDefinition};
 use crate::resolver::error::DataConvertError;
 use crate::types::ValuePack;
 use crate::Entity;
@@ -22,6 +22,10 @@ impl Entity for FakeEntity {
     }
 
     fn get_definitions() -> Vec<TableDefinition> {
+        unreachable!()
+    }
+
+    fn get_field_definition(_field_name: &str) -> Option<FieldDefinition> {
         unreachable!()
     }
 

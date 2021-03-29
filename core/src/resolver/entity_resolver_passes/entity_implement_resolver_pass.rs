@@ -89,6 +89,18 @@ impl EntityResolverPass for EntityImplementResolverPass {
             )
         };
 
+        let field_definitions: Vec<_> = field_resolvers
+            .iter()
+            .map(|(_, resolver)| {
+                let definition = resolver.field_definition.clone();
+                let name = definition.name.as_str();
+
+                quote::quote! {
+                    #name => Some(#definition)
+                }
+            })
+            .collect();
+
         Some(Ok(quote! {
             impl yukino::Entity for #ident {
                 fn from_database_value(
@@ -120,6 +132,13 @@ impl EntityResolverPass for EntityImplementResolverPass {
                     vec![
                         #(#definitions),*
                     ]
+                }
+
+                fn get_field_definition(field_name: &str) -> Option<yukino::definitions::FieldDefinition> {
+                    match field_name {
+                        #(#field_definitions,)*
+                        _ => None
+                    }
                 }
 
                 fn primary_key_values(&self) -> Result<

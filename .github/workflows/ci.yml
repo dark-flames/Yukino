@@ -27,11 +27,16 @@ jobs:
         with:
           command: run
           args: --package yukino-test-entity --bin cli setup
-      - name: Run cargo check
+      - name: Run cargo check core
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --all-features
+      - name: Run cargo check test
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --package yukino-test-entity --all-features
       - name: Run test
         uses: actions-rs/cargo@v1
         with:
