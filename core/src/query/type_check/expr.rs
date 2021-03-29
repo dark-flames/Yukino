@@ -230,3 +230,61 @@ impl TypeCheck for Literal {
         resolver.wrap_lit(self, type_info)
     }
 }
+
+#[test]
+fn test_expr_type_check() {
+    use crate::query::ast::*;
+    use crate::query::grammar::*;
+    use crate::query::type_check::{TypeChecker, TypeKind};
+    use crate::resolver::field_resolver_seeds::NumericTypeResolver;
+    use crate::types::TypeResolver;
+    use pest::Parser;
+
+    let expr1 = Expr::from_pair(
+        Grammar::parse(Rule::expr, "t.a * 10 + 3 * t.b")
+            .unwrap()
+            .next()
+            .unwrap(),
+    )
+    .unwrap();
+
+    let mut type_checker = TypeChecker::new(
+        vec![NumericTypeResolver::seed()],
+        vec![("t".to_string(), "test".to_string())]
+            .into_iter()
+            .collect(),
+        |entity: &str, field: &str| match (entity, field) {
+            ("test", "a") => Some(FieldDefinition {
+                name: "a".to_string(),
+                type_resolver_name: "numeric".to_string(),
+                field_type: "u64".to_string(),
+                nullable: false,
+                columns: vec![],
+                tables: vec![],
+            }),
+            ("test", "b") => Some(FieldDefinition {
+                name: "b".to_string(),
+                type_resolver_name: "numeric".to_string(),
+                field_type: "u64".to_string(),
+                nullable: false,
+                columns: vec![],
+                tables: vec![],
+            }),
+            _ => None,
+        },
+    );
+
+    assert_eq!(
+        expr1
+            .try_wrap(&mut type_checker)
+            .unwrap()
+            .unwrap()
+            .type_info,
+        TypeInfo {
+            resolver_name: "numeric".to_string(),
+            field_type: "u64".to_string(),
+            nullable: false,
+            type_kind: TypeKind::Numeric
+        }
+    )
+}
