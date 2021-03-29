@@ -10,7 +10,7 @@ impl TypeCheck for Expr {
         ty_checker: &mut TypeChecker<F>,
     ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         match self {
             Expr::ColumnIdent(ident) => ident.try_wrap(ty_checker),
@@ -27,7 +27,7 @@ impl TypeCheck for Expr {
         type_info: TypeInfo,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         match self {
             Expr::ColumnIdent(ident) => ident.wrap_with_ty(ty_checker, type_info),
@@ -45,7 +45,7 @@ impl TypeCheck for Binary {
         ty_checker: &mut TypeChecker<F>,
     ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         match (
             self.left.try_wrap(ty_checker)?,
@@ -110,7 +110,7 @@ impl TypeCheck for Unary {
         ty_checker: &mut TypeChecker<F>,
     ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         if let Some(right) = self.right.try_wrap(ty_checker)? {
             let resolver_name = right.type_info.resolver_name.clone();
@@ -134,7 +134,7 @@ impl TypeCheck for Unary {
         type_info: TypeInfo,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         let right = self.right.wrap_with_ty(ty_checker, type_info)?;
 
@@ -155,21 +155,27 @@ impl TypeCheck for ColumnIdent {
         ty_checker: &mut TypeChecker<F>,
     ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         assert_eq!(self.segments.len(), 2); // todo: support auto join and auto alias
 
         let table_alias = self.segments.first().unwrap();
 
-        let definition = ty_checker.get_field_definition(
-            ty_checker
-                .get_table_name(self.segments.first().unwrap())
-                .ok_or_else(|| {
-                    self.location()
-                        .error(SyntaxError::UnknownAlias(table_alias.to_string()))
-                })?,
-            self.segments.last().unwrap(),
-        );
+        let entity_name = ty_checker
+            .get_table_name(self.segments.first().unwrap())
+            .ok_or_else(|| {
+                self.location()
+                    .error(SyntaxError::UnknownAlias(table_alias.to_string()))
+            })?;
+
+        let definition = ty_checker
+            .get_field_definition(entity_name, self.segments.last().unwrap())
+            .ok_or_else(|| {
+                self.location().error(SyntaxError::UnknownField(
+                    entity_name.to_string(),
+                    self.segments.last().unwrap().to_string(),
+                ))
+            })?;
 
         let resolver = ty_checker
             .get_resolver(&definition.type_resolver_name)
@@ -200,7 +206,7 @@ impl TypeCheck for Literal {
         _ty_checker: &mut TypeChecker<F>,
     ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         Ok(None)
     }
@@ -211,7 +217,7 @@ impl TypeCheck for Literal {
         type_info: TypeInfo,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         let resolver = ty_checker
             .get_resolver(&type_info.resolver_name)

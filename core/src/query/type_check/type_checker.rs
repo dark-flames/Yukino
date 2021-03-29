@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 pub struct TypeChecker<F>
 where
-    F: Fn(&str, &str) -> FieldDefinition,
+    F: Fn(&str, &str) -> Option<FieldDefinition>,
 {
     external_value_assertion: HashMap<String, TypeKind>,
     resolvers: HashMap<String, Box<dyn TypeResolver>>,
@@ -18,7 +18,7 @@ where
 #[allow(clippy::map_entry)]
 impl<F> TypeChecker<F>
 where
-    F: Fn(&str, &str) -> FieldDefinition,
+    F: Fn(&str, &str) -> Option<FieldDefinition>,
 {
     pub fn new(
         resolvers: Vec<Box<dyn TypeResolver>>,
@@ -57,7 +57,7 @@ where
         self.alias.get(alias).map(|string| string.as_str())
     }
 
-    pub fn get_field_definition(&self, entity: &str, field: &str) -> FieldDefinition {
+    pub fn get_field_definition(&self, entity: &str, field: &str) -> Option<FieldDefinition> {
         (self.definition_getter)(entity, field)
     }
 }
@@ -68,7 +68,7 @@ pub trait TypeCheck: Locatable {
         ty_checker: &mut TypeChecker<F>,
     ) -> Result<Option<ExprWrapper>, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition;
+        F: Fn(&str, &str) -> Option<FieldDefinition>;
 
     fn wrap_with_ty<F>(
         &self,
@@ -76,7 +76,7 @@ pub trait TypeCheck: Locatable {
         type_info: TypeInfo,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos>
     where
-        F: Fn(&str, &str) -> FieldDefinition,
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
         self.try_wrap(ty_checker)?.ok_or_else(|| {
             self.location()

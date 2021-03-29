@@ -39,6 +39,8 @@ pub enum SyntaxError {
     LitOverflow(String),
     #[error("Unknown alias \"{0}\"")]
     UnknownAlias(String),
+    #[error("Unknown field \"{1}\" in \"{0}\"")]
+    UnknownField(String, String),
     #[error("Unknown resolver name \"{0}\"")]
     UnknownResolverName(String),
     #[error("Cannot be wrapped into \"{0}\"")]
