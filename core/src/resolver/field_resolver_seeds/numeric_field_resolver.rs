@@ -378,6 +378,14 @@ impl FieldResolver for NumericFieldResolver {
             field_setter_ident: setter_name,
             field_setter_token_stream,
             field_type: field_type.clone(),
+            field_definition: FieldDefinition {
+                name: self.field_path.1.clone(),
+                type_resolver_name: NumericTypeResolver::seed().name(),
+                field_type: self.ty.to_string(),
+                nullable: self.nullable,
+                columns: vec![self.definition.name.clone()],
+                tables: vec![]
+            }
         })
     }
 }

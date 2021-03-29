@@ -1,5 +1,5 @@
 use crate::annotations::FieldAnnotation;
-use crate::definitions::{ColumnDefinition, ColumnType};
+use crate::definitions::{ColumnDefinition, ColumnType, FieldDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
@@ -209,6 +209,14 @@ impl FieldResolver for CollectionFieldResolver {
             field_setter_ident: setter_name,
             field_setter_token_stream,
             field_type: Type::Path(field_type.clone()),
+            field_definition: FieldDefinition {
+                name: self.field_path.1.clone(),
+                type_resolver_name: "".to_string(), // todo: impl type resolver for collection
+                field_type: self.field_type.to_token_stream().to_string(),
+                nullable: false,
+                columns: vec![self.definition.name.clone()],
+                tables: vec![]
+            }
         })
     }
 }

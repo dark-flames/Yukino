@@ -1,7 +1,5 @@
 use crate::annotations::{Field, FieldAnnotation};
-use crate::definitions::{
-    ColumnDefinition, ForeignKeyDefinition, IndexDefinition, TableDefinition,
-};
+use crate::definitions::{ColumnDefinition, ForeignKeyDefinition, IndexDefinition, TableDefinition, FieldDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::{EntityName, EntityResolver, FieldPath, TypePathResolver};
 use crate::types::ValuePack;
@@ -186,6 +184,7 @@ pub struct AchievedFieldResolver {
     pub field_setter_ident: Ident,
     pub field_setter_token_stream: TokenStream,
     pub field_type: Type,
+    pub field_definition: FieldDefinition
 }
 
 impl AchievedFieldResolver {

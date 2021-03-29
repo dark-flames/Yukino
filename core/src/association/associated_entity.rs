@@ -1,6 +1,6 @@
 use crate::annotations::{Association, FieldAnnotation, IndexMethod};
 use crate::association::FakeEntity;
-use crate::definitions::{ColumnDefinition, ColumnType, ForeignKeyDefinition, IndexDefinition};
+use crate::definitions::{ColumnDefinition, ColumnType, ForeignKeyDefinition, IndexDefinition, FieldDefinition};
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::FieldResolverStatus::WaitingAssemble;
 use crate::resolver::{
@@ -589,6 +589,16 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 field_setter_ident: setter_name,
                 field_setter_token_stream,
                 field_type: self.field_type.clone(),
+                field_definition: FieldDefinition {
+                    name: self.field_path.1.clone(),
+                    type_resolver_name: "".to_string(), //todo: impl association type resolver
+                    field_type: self.proxy_type.to_token_stream().to_string(),
+                    nullable: self.nullable,
+                    columns: self.columns.iter().map(
+                        |column_definition| column_definition.name.clone()
+                    ).collect(),
+                    tables: vec![]
+                }
             })
         } else {
             Err(ResolveError::UnexpectedFieldResolverStatus(

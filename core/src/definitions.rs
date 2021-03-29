@@ -86,7 +86,6 @@ pub struct ForeignKeyDefinition {
 
 pub struct FieldDefinition {
     pub name: String,
-    pub field_name: String,
     pub type_resolver_name: String,
     pub field_type: String,
     pub nullable: bool,

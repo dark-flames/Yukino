@@ -171,6 +171,14 @@ impl FieldResolver for StringFieldResolver {
             field_setter_ident: setter_name,
             field_setter_token_stream,
             field_type: self.field_type.clone(),
+            field_definition: FieldDefinition {
+                name: self.definition.name.clone(),
+                type_resolver_name: StringTypeResolver::seed().name(),
+                field_type: "string".to_string(),
+                nullable: self.nullable,
+                columns: vec![self.definition.name.clone()],
+                tables: vec![]
+            }
         })
     }
 }
