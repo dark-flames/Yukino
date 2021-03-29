@@ -215,8 +215,8 @@ impl FieldResolver for CollectionFieldResolver {
                 field_type: self.field_type.to_token_stream().to_string(),
                 nullable: false,
                 columns: vec![self.definition.name.clone()],
-                tables: vec![]
-            }
+                tables: vec![],
+            },
         })
     }
 }

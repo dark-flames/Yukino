@@ -177,8 +177,8 @@ impl FieldResolver for StringFieldResolver {
                 field_type: "string".to_string(),
                 nullable: self.nullable,
                 columns: vec![self.definition.name.clone()],
-                tables: vec![]
-            }
+                tables: vec![],
+            },
         })
     }
 }

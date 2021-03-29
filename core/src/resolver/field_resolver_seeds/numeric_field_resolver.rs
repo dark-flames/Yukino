@@ -384,8 +384,8 @@ impl FieldResolver for NumericFieldResolver {
                 field_type: self.ty.to_string(),
                 nullable: self.nullable,
                 columns: vec![self.definition.name.clone()],
-                tables: vec![]
-            }
+                tables: vec![],
+            },
         })
     }
 }
