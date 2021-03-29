@@ -1,5 +1,5 @@
 mod database_types;
-mod resolver;
+mod field_type;
 
 pub use database_types::*;
-pub use resolver::*;
+pub use field_type::*;
