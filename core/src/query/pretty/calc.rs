@@ -94,12 +94,10 @@ impl Calc for Binary {
                         })))
                     }
                     op => {
-                        return Err(location.error(
-                            SyntaxError::UnimplementedOperationForType(
-                                format!("{:?}", op),
-                                "integer".to_string(),
-                            ),
-                        ))
+                        return Err(location.error(SyntaxError::UnimplementedOperationForType(
+                            format!("{:?}", op),
+                            "integer".to_string(),
+                        )))
                     }
                 };
 
@@ -159,12 +157,10 @@ impl Calc for Binary {
                         })))
                     }
                     op => {
-                        return Err(location.error(
-                            SyntaxError::UnimplementedOperationForType(
-                                format!("{:?}", op),
-                                "float".to_string(),
-                            ),
-                        ))
+                        return Err(location.error(SyntaxError::UnimplementedOperationForType(
+                            format!("{:?}", op),
+                            "float".to_string(),
+                        )))
                     }
                 };
 
@@ -185,28 +181,23 @@ impl Calc for Binary {
                         BinaryOperator::Xor => left.value ^ right.value,
                         BinaryOperator::Or => left.value || right.value,
                         operator => {
-                            return Err(location.error(
-                                SyntaxError::UnimplementedOperationForType(
-                                    format!("{:?}", operator),
-                                    "Bool".to_string(),
-                                ),
-                            ))
+                            return Err(location.error(SyntaxError::UnimplementedOperationForType(
+                                format!("{:?}", operator),
+                                "Bool".to_string(),
+                            )))
                         }
                     },
                     location,
                 })))
             }
             (Some(Literal::Null(_)), _) | (_, Some(Literal::Null(_))) => {
-                Ok(Some(Literal::Null(Null {
-                    location
-                })))
+                Ok(Some(Literal::Null(Null { location })))
             }
             (Some(Literal::String(_)), Some(Literal::String(_))) => {
-                Err(location
-                    .error(SyntaxError::UnimplementedOperationForType(
-                        format!("{:?}", self_operator),
-                        "fstring".to_string(),
-                    )))
+                Err(location.error(SyntaxError::UnimplementedOperationForType(
+                    format!("{:?}", self_operator),
+                    "fstring".to_string(),
+                )))
             }
             (Some(left), Some(right)) => Err(right.location().error(SyntaxError::TypeError(
                 TypeKind::from(&left).to_string(),
