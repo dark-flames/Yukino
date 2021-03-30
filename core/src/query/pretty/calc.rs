@@ -241,24 +241,32 @@ fn test_calc() {
             .unwrap()
             .next()
             .unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
     let location = Location::pos(0);
 
-    assert_eq!(expr1.calc().unwrap(), Some(Literal::Boolean(Boolean {
-        value: true,
-        location
-    })));
+    assert_eq!(
+        expr1.calc().unwrap(),
+        Some(Literal::Boolean(Boolean {
+            value: true,
+            location
+        }))
+    );
 
     let expr2 = Expr::from_pair(
         Grammar::parse(Rule::expr, "(15 + 10) / 5")
             .unwrap()
             .next()
             .unwrap(),
-    ).unwrap();
+    )
+    .unwrap();
 
-    assert_eq!(expr2.calc().unwrap(), Some(Literal::Float(Float {
-        value: "5".to_string(),
-        location
-    })));
+    assert_eq!(
+        expr2.calc().unwrap(),
+        Some(Literal::Float(Float {
+            value: "5".to_string(),
+            location
+        }))
+    );
 }
