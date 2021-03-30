@@ -18,6 +18,7 @@ use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
 use quote::ToTokens;
 use quote::{format_ident, quote};
+use std::cmp::max;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::str::FromStr;
@@ -32,6 +33,19 @@ pub enum NumericType {
 }
 
 impl NumericType {
+    pub fn concrete(&self, others: &NumericType) -> Option<NumericType> {
+        match (self, others) {
+            (NumericType::Integer(a), NumericType::Integer(b)) => {
+                Some(NumericType::Integer(max(*a, *b)))
+            }
+            (NumericType::Float(a), NumericType::Float(b)) => Some(NumericType::Float(max(*a, *b))),
+            (NumericType::UnsignedInteger(a), NumericType::UnsignedInteger(b)) => {
+                Some(NumericType::UnsignedInteger(max(*a, *b)))
+            }
+            _ => None,
+        }
+    }
+
     pub fn from_ident(ident: &Ident) -> Option<Self> {
         let ident_string = ident.to_string();
 
@@ -405,6 +419,13 @@ impl TypeResolver for NumericTypeResolver {
         TypeKind::Numeric
     }
 
+    fn cmp_type_info(&self, a: &TypeInfo, b: &TypeInfo) -> bool {
+        let numeric_type_a = NumericType::from_str(a.field_type.as_str()).unwrap();
+        let numeric_type_b = NumericType::from_str(b.field_type.as_str()).unwrap();
+
+        numeric_type_a.concrete(&numeric_type_b).is_some() && a.nullable == b.nullable
+    }
+
     fn wrap_lit(
         &self,
         lit: &Literal,
@@ -485,9 +506,16 @@ impl TypeResolver for NumericTypeResolver {
         location: Location,
         operator: BinaryOperator,
     ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
-        assert_eq!(left.type_info.field_type, right.type_info.field_type);
-
-        let numeric_ty = NumericType::from_str(left.type_info.field_type.as_str()).unwrap();
+        let right_numeric_ty = NumericType::from_str(right.type_info.field_type.as_str()).unwrap();
+        let numeric_ty = NumericType::from_str(left.type_info.field_type.as_str())
+            .unwrap()
+            .concrete(&right_numeric_ty)
+            .ok_or_else(|| {
+                right.location().error(SyntaxError::TypeError(
+                    left.type_info.field_type.clone(),
+                    right.type_info.field_type.clone(),
+                ))
+            })?;
 
         if (matches!(
             operator,
@@ -508,22 +536,26 @@ impl TypeResolver for NumericTypeResolver {
                 left.type_info.to_string(),
             )))
         } else {
-            let type_info = TypeInfo {
-                field_type: left.type_info.field_type.clone(),
-                nullable: left.type_info.nullable || right.type_info.nullable,
-                type_kind: left.type_info.type_kind,
-                resolver_name: self.name(),
-            };
-
-            let type_info = if operator.is_cmp() {
-                TypeInfo {
+            let nullable = left.type_info.nullable || right.type_info.nullable;
+            let type_info = match (operator, &numeric_ty) {
+                (BinaryOperator::Div, NumericType::Integer(size)) => TypeInfo {
+                    field_type: NumericType::Float(max(32, *size)).to_string(),
+                    nullable,
+                    type_kind: self.type_kind(),
+                    resolver_name: self.name(),
+                },
+                (operator, _) if operator.is_cmp() => TypeInfo {
                     field_type: "bool".to_string(),
-                    nullable: type_info.nullable,
-                    type_kind: type_info.type_kind,
+                    nullable,
+                    type_kind: left.type_info.type_kind,
                     resolver_name: BoolTypeResolver::seed().name(),
-                }
-            } else {
-                type_info
+                },
+                _ => TypeInfo {
+                    field_type: numeric_ty.to_string(),
+                    nullable,
+                    type_kind: left.type_info.type_kind,
+                    resolver_name: self.name(),
+                },
             };
 
             Ok(ExprWrapper {

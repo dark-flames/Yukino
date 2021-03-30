@@ -53,13 +53,12 @@ impl TypeCheck for Binary {
         ) {
             (None, None) => Err(self.location().error(SyntaxError::TypeInferError)),
             (Some(left), Some(right)) => {
-                if left.type_info == right.type_info {
-                    let resolver_name = left.type_info.resolver_name.clone();
-                    let resolver = ty_checker.get_resolver(&resolver_name).ok_or_else(|| {
-                        self.location()
-                            .error(SyntaxError::UnknownResolverName(resolver_name))
-                    })?;
-
+                let resolver_name = left.type_info.resolver_name.clone();
+                let resolver = ty_checker.get_resolver(&resolver_name).ok_or_else(|| {
+                    self.location()
+                        .error(SyntaxError::UnknownResolverName(resolver_name))
+                })?;
+                if resolver.cmp_type_info(&left.type_info, &right.type_info) {
                     resolver
                         .handle_binary(left, right, self.location, self.operator)
                         .map(Some)

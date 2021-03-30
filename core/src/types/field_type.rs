@@ -54,6 +54,10 @@ pub trait TypeResolver {
 
     fn type_kind(&self) -> TypeKind;
 
+    fn cmp_type_info(&self, a: &TypeInfo, b: &TypeInfo) -> bool {
+        a == b
+    }
+
     fn wrap_lit(
         &self,
         lit: &Literal,
