@@ -7,13 +7,13 @@ use crate::query::type_check::TypeKind;
 use std::cmp::Ordering;
 
 pub trait Calc: Locatable {
-    fn calc(&self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
+    fn calc(&mut self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
         Ok(None)
     }
 }
 
 impl Calc for Expr {
-    fn calc(&self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
+    fn calc(&mut self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
         match self {
             Expr::Literal(lit) => lit.calc(),
             Expr::ColumnIdent(ident) => ident.calc(),
@@ -25,7 +25,7 @@ impl Calc for Expr {
 }
 
 impl Calc for Literal {
-    fn calc(&self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
+    fn calc(&mut self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
         if let Literal::External(_) = self {
             Ok(None)
         } else {
@@ -37,8 +37,21 @@ impl Calc for Literal {
 impl Calc for ColumnIdent {}
 
 impl Calc for Binary {
-    fn calc(&self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
-        match (self.left.calc()?, self.right.calc()?) {
+    fn calc(&mut self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
+        let location = self.location();
+        let self_operator = self.operator;
+
+        let left_result = self.left.calc()?;
+        let right_result = self.right.calc()?;
+
+        if let Some(left) = &left_result {
+            self.left = Box::new(Expr::Literal(left.clone()));
+        }
+        if let Some(right) = &right_result {
+            self.right = Box::new(Expr::Literal(right.clone()));
+        }
+
+        match (left_result, right_result) {
             (Some(Literal::Integer(left)), Some(Literal::Integer(right))) => {
                 let left_value: i128 = left.value.parse().map_err(|_| {
                     left.location()
@@ -50,13 +63,13 @@ impl Calc for Binary {
                         .location()
                         .error(SyntaxError::CannotParseIntoInteger(right.value.clone()))
                 })?;
-                let result_value = match self.operator {
+                let result_value = match self_operator {
                     BinaryOperator::BitXor => left_value ^ right_value,
                     BinaryOperator::Multi => left_value * right_value,
                     BinaryOperator::Div => {
                         return Ok(Some(Literal::Float(Float {
                             value: (left_value as f64 / right_value as f64).to_string(),
-                            location: self.location(),
+                            location,
                         })))
                     }
                     BinaryOperator::Mod => left_value % right_value,
@@ -77,11 +90,11 @@ impl Calc for Binary {
                                 BinaryOperator::Eq => left_value == right_value,
                                 _ => unreachable!(),
                             },
-                            location: self.location(),
+                            location,
                         })))
                     }
                     op => {
-                        return Err(self.location().error(
+                        return Err(location.error(
                             SyntaxError::UnimplementedOperationForType(
                                 format!("{:?}", op),
                                 "integer".to_string(),
@@ -92,7 +105,7 @@ impl Calc for Binary {
 
                 Ok(Some(Literal::Integer(Integer {
                     value: result_value.to_string(),
-                    location: self.location(),
+                    location,
                 })))
             }
             (Some(Literal::Float(left)), Some(Literal::Float(right))) => {
@@ -107,7 +120,7 @@ impl Calc for Binary {
                         .error(SyntaxError::CannotParseIntoInteger(right.value.clone()))
                 })?;
 
-                let result_value = match self.operator {
+                let result_value = match self_operator {
                     BinaryOperator::Multi => left_value * right_value,
                     BinaryOperator::Div => left_value / right_value,
                     BinaryOperator::Mod => left_value % right_value,
@@ -142,11 +155,11 @@ impl Calc for Binary {
                                 ),
                                 _ => unreachable!(),
                             },
-                            location: self.location(),
+                            location,
                         })))
                     }
                     op => {
-                        return Err(self.location().error(
+                        return Err(location.error(
                             SyntaxError::UnimplementedOperationForType(
                                 format!("{:?}", op),
                                 "float".to_string(),
@@ -157,12 +170,12 @@ impl Calc for Binary {
 
                 Ok(Some(Literal::Float(Float {
                     value: result_value.to_string(),
-                    location: self.location(),
+                    location,
                 })))
             }
             (Some(Literal::Boolean(left)), Some(Literal::Boolean(right))) => {
                 Ok(Some(Literal::Boolean(Boolean {
-                    value: match self.operator {
+                    value: match self_operator {
                         BinaryOperator::BitAnd => left.value & right.value,
                         BinaryOperator::BitOr => left.value | right.value,
                         BinaryOperator::BitXor => left.value ^ right.value,
@@ -172,7 +185,7 @@ impl Calc for Binary {
                         BinaryOperator::Xor => left.value ^ right.value,
                         BinaryOperator::Or => left.value || right.value,
                         operator => {
-                            return Err(self.location().error(
+                            return Err(location.error(
                                 SyntaxError::UnimplementedOperationForType(
                                     format!("{:?}", operator),
                                     "Bool".to_string(),
@@ -180,19 +193,18 @@ impl Calc for Binary {
                             ))
                         }
                     },
-                    location: self.location,
+                    location,
                 })))
             }
             (Some(Literal::Null(_)), _) | (_, Some(Literal::Null(_))) => {
                 Ok(Some(Literal::Null(Null {
-                    location: self.location(),
+                    location
                 })))
             }
             (Some(Literal::String(_)), Some(Literal::String(_))) => {
-                Err(self
-                    .location()
+                Err(location
                     .error(SyntaxError::UnimplementedOperationForType(
-                        format!("{:?}", self.operator),
+                        format!("{:?}", self_operator),
                         "fstring".to_string(),
                     )))
             }
@@ -206,8 +218,9 @@ impl Calc for Binary {
 }
 
 impl Calc for Unary {
-    fn calc(&self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
-        if let Some(right) = self.right.calc()? {
+    fn calc(&mut self) -> Result<Option<Literal>, SyntaxErrorWithPos> {
+        let right_result = self.right.calc()?;
+        if let Some(right) = right_result {
             match right {
                 Literal::Integer(_) => Ok(None),
                 Literal::Boolean(boolean) => Ok(Some(Literal::Boolean(Boolean {
@@ -236,7 +249,7 @@ fn test_calc() {
     use crate::query::grammar::*;
     use pest::Parser;
 
-    let expr1 = Expr::from_pair(
+    let mut expr1 = Expr::from_pair(
         Grammar::parse(Rule::expr, "9 + 10 * 5 = 59")
             .unwrap()
             .next()
@@ -254,7 +267,7 @@ fn test_calc() {
         }))
     );
 
-    let expr2 = Expr::from_pair(
+    let mut expr2 = Expr::from_pair(
         Grammar::parse(Rule::expr, "(15 + 10) / 5")
             .unwrap()
             .next()
