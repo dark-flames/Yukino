@@ -1,6 +1,7 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
-    Binary, BinaryOperator, Boolean, ColumnIdent, Expr, Float, Integer, Literal, Locatable, Null,
+    Binary, BinaryOperator, Boolean, ColumnIdent, Expr, Float, FromClause, GroupByClause, Integer,
+    JoinClause, JoinOn, Literal, Locatable, Null, OrderByClause, Query, SelectClause, SelectQuery,
     Unary,
 };
 use crate::query::type_check::TypeKind;
@@ -231,6 +232,111 @@ impl Calc for Unary {
         } else {
             Ok(None)
         }
+    }
+}
+
+pub trait CalcExpr {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos>;
+}
+
+impl CalcExpr for Query {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        match self {
+            Query::Select(select) => select.calc_expr(),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+impl CalcExpr for SelectQuery {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        self.select_clause.calc_expr()?;
+        self.from.calc_expr()?;
+        if let Some(where_clause) = &mut self.where_clause {
+            if let Some(result) = where_clause.calc()? {
+                self.where_clause = Some(Expr::Literal(result));
+            }
+        }
+
+        if let Some(group_clause) = &mut self.group_by_clause {
+            group_clause.calc_expr()?;
+        }
+
+        if let Some(order_by_clause) = &mut self.order_by_clause {
+            order_by_clause.calc_expr()?;
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for SelectClause {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        for (expr, _) in self.items.iter_mut() {
+            if let Some(new_expr) = expr.calc()? {
+                *expr = Expr::Literal(new_expr)
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for FromClause {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        for join in self.join.iter_mut() {
+            join.calc_expr()?;
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for JoinClause {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        if let JoinClause::JoinOn(join_on) = self {
+            join_on.calc_expr()
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl CalcExpr for JoinOn {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        if let Some(result) = self.on.calc()? {
+            self.on = Expr::Literal(result);
+        };
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for GroupByClause {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        if let Some(result) = self.by.calc()? {
+            self.by = Expr::Literal(result);
+        };
+
+        if let Some(having_clause) = &mut self.having {
+            if let Some(result) = having_clause.calc()? {
+                self.having = Some(Expr::Literal(result));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for OrderByClause {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        for (expr, _) in self.items.iter_mut() {
+            if let Some(result) = expr.calc()? {
+                *expr = Expr::Literal(result);
+            };
+        }
+
+        Ok(())
     }
 }
 
