@@ -1,8 +1,8 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
-    Binary, BinaryOperator, Boolean, ColumnIdent, Expr, Float, FromClause, GroupByClause, Integer,
-    JoinClause, JoinOn, Literal, Locatable, Null, OrderByClause, Query, SelectClause, SelectQuery,
-    Unary,
+    Binary, BinaryOperator, Boolean, ColumnIdent, DeleteQuery, Expr, Float, FromClause,
+    GroupByClause, InsertQuery, Integer, JoinClause, JoinOn, Literal, Locatable, Null,
+    OrderByClause, Query, SelectClause, SelectQuery, SetClause, Unary, UpdateQuery, ValueItem,
 };
 use crate::query::type_check::TypeKind;
 use std::cmp::Ordering;
@@ -243,7 +243,9 @@ impl CalcExpr for Query {
     fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
         match self {
             Query::Select(select) => select.calc_expr(),
-            _ => unimplemented!(),
+            Query::Delete(delete) => delete.calc_expr(),
+            Query::Update(update) => update.calc_expr(),
+            Query::Insert(insert) => insert.calc_expr(),
         }
     }
 }
@@ -334,6 +336,65 @@ impl CalcExpr for OrderByClause {
             if let Some(result) = expr.calc()? {
                 *expr = Expr::Literal(result);
             };
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for DeleteQuery {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        self.from.calc_expr()?;
+        if let Some(where_clause) = &mut self.where_clause {
+            if let Some(result) = where_clause.calc()? {
+                self.where_clause = Some(Expr::Literal(result));
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for UpdateQuery {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        if let Some(where_clause) = &mut self.where_clause {
+            if let Some(result) = where_clause.calc()? {
+                self.where_clause = Some(Expr::Literal(result));
+            }
+        }
+
+        self.set_clause.calc_expr()
+    }
+}
+
+impl CalcExpr for SetClause {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        for (_, value) in self.items.iter_mut() {
+            value.calc_expr()?;
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for ValueItem {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        if let ValueItem::Expr(expr) = self {
+            if let Some(result) = expr.calc()? {
+                *expr = Expr::Literal(result);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl CalcExpr for InsertQuery {
+    fn calc_expr(&mut self) -> Result<(), SyntaxErrorWithPos> {
+        for expr in self.values.iter_mut() {
+            if let Some(new_expr) = expr.calc()? {
+                *expr = Expr::Literal(new_expr)
+            }
         }
 
         Ok(())

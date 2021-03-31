@@ -18,6 +18,7 @@ pub use delete::*;
 pub use expr::*;
 pub use func::*;
 pub use ident::*;
+pub use insert::*;
 pub use literal::*;
 pub use location::*;
 pub use query::*;
