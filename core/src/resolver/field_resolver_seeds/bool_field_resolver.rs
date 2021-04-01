@@ -1,6 +1,8 @@
 use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{ColumnIdent, Expr};
+use crate::query::ast::{
+    Binary, BinaryOperator, ColumnIdent, Expr, Location, Unary, UnaryOperator,
+};
 use crate::query::ast::{Literal, Locatable};
 use crate::query::type_check::TypeKind;
 use crate::types::{ExprWrapper, TypeInfo, TypeResolver};
@@ -67,5 +69,60 @@ impl TypeResolver for BoolTypeResolver {
                 location: ident.location,
             })
         }
+    }
+
+    fn handle_binary(
+        &self,
+        mut left: ExprWrapper,
+        mut right: ExprWrapper,
+        location: Location,
+        operator: BinaryOperator,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        let type_info = left.type_info.clone();
+
+        if matches!(
+            operator,
+            BinaryOperator::BitXor
+                | BinaryOperator::BitOr
+                | BinaryOperator::BitAnd
+                | BinaryOperator::Eq
+                | BinaryOperator::Neq
+                | BinaryOperator::And
+                | BinaryOperator::Or
+                | BinaryOperator::Xor
+        ) {
+            Ok(ExprWrapper {
+                exprs: vec![Expr::Binary(Binary {
+                    operator,
+                    left: Box::new(left.exprs.pop().unwrap()),
+                    right: Box::new(right.exprs.pop().unwrap()),
+                    location,
+                })],
+                type_info,
+                location,
+            })
+        } else {
+            Err(location.error(SyntaxError::UnimplementedOperationForType(
+                format!("{:?}", operator),
+                left.type_info.to_string(),
+            )))
+        }
+    }
+
+    fn handle_unary(
+        &self,
+        mut item: ExprWrapper,
+        location: Location,
+        operator: UnaryOperator,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        Ok(ExprWrapper {
+            exprs: vec![Expr::Unary(Unary {
+                operator,
+                right: Box::new(item.exprs.pop().unwrap()),
+                location,
+            })],
+            type_info: item.type_info,
+            location,
+        })
     }
 }
