@@ -29,6 +29,8 @@ pub enum SyntaxError {
     UnexpectedExpr,
     #[error("Conflict alias \"{0}\"")]
     ConflictAlias(String),
+    #[error("Expect an alias on \"{0}\"")]
+    ExpectAlias(String),
     #[error("Mismatched type: expected \"{0}\", found \"{1}\"")]
     TypeError(String, String),
     #[error("Conflict external value type assertion for \"#{0}\"")]
