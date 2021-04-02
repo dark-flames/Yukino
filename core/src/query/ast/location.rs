@@ -2,6 +2,7 @@ use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::grammar::Rule;
 use pest::error::InputLocation;
 use pest::{iterators::Pair, Position, Span};
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
 #[derive(Debug, Copy, Clone)]
 pub enum Location {
@@ -64,5 +65,14 @@ impl<'a> From<Span<'a>> for Location {
 impl<'a> From<&Pair<'a, Rule>> for Location {
     fn from(pair: &Pair<'a, Rule>) -> Location {
         Location::from(pair.as_span())
+    }
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Location::Pos(pos) => write!(f, "{}", pos),
+            Location::Span(s, e) => write!(f, "{}_{}", s, e),
+        }
     }
 }

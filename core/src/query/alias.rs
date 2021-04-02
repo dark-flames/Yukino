@@ -1,45 +1,69 @@
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{DeleteQuery, Expr, FromClause, JoinClause, Locatable, Location, Query, SelectClause, SelectQuery, TableReference, UpdateQuery, GroupByClause, OrderByClause};
+use crate::query::ast::{
+    ColumnIdent, DeleteQuery, Expr, FromClause, GroupByClause, JoinClause, Locatable, Location,
+    OrderByClause, Query, SelectClause, SelectQuery, SetClause, TableReference, UpdateQuery,
+    ValueItem,
+};
 use std::collections::{HashMap, HashSet};
 
-pub const GLOBAL: &str = "#global_alias";
-
+pub type TableAliasCollection = (HashMap<String, String>, HashMap<String, String>);
 pub trait CollectTableAlias {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos>;
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos>;
 }
 
 pub trait CollectExprAlias {
     fn collect_expr_alias(&self) -> Result<HashMap<String, Expr>, SyntaxErrorWithPos>;
 }
 
-#[allow(clippy::map_entry)]
-fn merge_hash_map(
-    a: Result<HashMap<String, String>, SyntaxErrorWithPos>,
-    b: Result<HashMap<String, String>, SyntaxErrorWithPos>,
+fn merge_result(
+    a: Result<TableAliasCollection, SyntaxErrorWithPos>,
+    b: Result<TableAliasCollection, SyntaxErrorWithPos>,
     location: Location,
-) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
-    let mut result = a?;
-    for (alias, table) in b? {
-        if result.contains_key(&alias) {
-            return Err(location.error(SyntaxError::ConflictAlias(alias)));
+) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
+    let (mut alias, mut generated_alias) = a?;
+    let (b_alias, b_generated_alias) = b?;
+
+    for (alias_name, entity) in b_alias {
+        if alias.contains_key(&alias_name) || generated_alias.contains_key(&entity) {
+            return Err(location.error(SyntaxError::ConflictAlias(alias_name)));
         } else {
-            result.insert(alias, table);
-        }
+            alias.insert(alias_name, entity)
+        };
     }
 
-    Ok(result)
+    for (alias_name, entity) in b_generated_alias {
+        if alias.contains_key(&alias_name) || generated_alias.contains_key(&entity) {
+            return Err(location.error(SyntaxError::ConflictAlias(alias_name)));
+        } else {
+            generated_alias.insert(alias_name, entity)
+        };
+    }
+
+    Ok((alias, generated_alias))
 }
 
 impl CollectTableAlias for TableReference {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
-        let alias = self.alias.clone().unwrap_or_else(|| GLOBAL.to_string());
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
+        if let Some(alias) = self.alias.as_ref() {
+            Ok((
+                vec![(alias.clone(), self.name.clone())]
+                    .into_iter()
+                    .collect(),
+                HashMap::new(),
+            ))
+        } else {
+            let alias = format!("__{}_{}", self.name, self.location());
 
-        Ok(vec![(alias, self.name.clone())].into_iter().collect())
+            Ok((
+                HashMap::new(),
+                vec![(alias, self.name.clone())].into_iter().collect(),
+            ))
+        }
     }
 }
 
 impl CollectTableAlias for JoinClause {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
         match self {
             JoinClause::NaturalJoin(nature_join) => nature_join.table.collect_table_alias(),
             JoinClause::JoinOn(join_on) => join_on.table.collect_table_alias(),
@@ -49,36 +73,34 @@ impl CollectTableAlias for JoinClause {
 }
 
 impl CollectTableAlias for FromClause {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
-        let result = self.table.collect_table_alias();
-
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
         self.join
             .iter()
-            .map(|j| (j.collect_table_alias(), j.location()))
-            .fold(result, |carry, (result, location)| {
-                merge_hash_map(carry, result, location)
+            .map(|join| join.collect_table_alias())
+            .fold(self.table.collect_table_alias(), |carry, item| {
+                merge_result(carry, item, self.location())
             })
     }
 }
 
 impl CollectTableAlias for SelectQuery {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
         self.from.collect_table_alias()
     }
 }
 
 impl CollectTableAlias for DeleteQuery {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
         self.from.collect_table_alias()
     }
 }
 
 impl CollectTableAlias for UpdateQuery {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
         let result = self.update_table.collect_table_alias();
 
         if let Some(from) = self.from_table.as_ref() {
-            merge_hash_map(result, from.collect_table_alias(), from.location)
+            merge_result(result, from.collect_table_alias(), from.location)
         } else {
             result
         }
@@ -86,12 +108,12 @@ impl CollectTableAlias for UpdateQuery {
 }
 
 impl CollectTableAlias for Query {
-    fn collect_table_alias(&self) -> Result<HashMap<String, String>, SyntaxErrorWithPos> {
+    fn collect_table_alias(&self) -> Result<TableAliasCollection, SyntaxErrorWithPos> {
         match self {
             Query::Select(select) => select.collect_table_alias(),
             Query::Delete(delete) => delete.collect_table_alias(),
             Query::Update(update) => update.collect_table_alias(),
-            Query::Insert(_) => Ok(HashMap::new()),
+            Query::Insert(_) => Ok((HashMap::new(), HashMap::new())),
         }
     }
 }
@@ -136,8 +158,54 @@ pub trait ReplaceIdent {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos>;
+}
+
+impl ReplaceIdent for ColumnIdent {
+    fn replace(
+        &mut self,
+        generated_alias: &HashMap<String, String>,
+        table_alias: &HashMap<String, String>,
+        field_map: &HashMap<String, HashSet<String>>,
+    ) -> Result<(), SyntaxErrorWithPos> {
+        let first_segment = self.segments.first().unwrap();
+
+        if !table_alias.contains_key(first_segment) {
+            let mut entities: Vec<_> = field_map
+                .iter()
+                .filter_map(|(entity_name, field_map)| {
+                    if field_map.contains(first_segment) {
+                        Some(entity_name.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            let alias = if entities.len() == 1 {
+                let entity_name = entities.pop().unwrap();
+
+                generated_alias
+                    .get(&entity_name)
+                    .ok_or_else(|| {
+                        self.location().error(SyntaxError::UnknownField(
+                            "*".to_string(),
+                            first_segment.clone(),
+                        ))
+                    })?
+                    .clone()
+            } else {
+                return Err(self
+                    .location()
+                    .error(SyntaxError::ConflictAlias(first_segment.clone())));
+            };
+
+            self.segments.insert(0, alias);
+        };
+
+        Ok(())
+    }
 }
 
 impl ReplaceIdent for Expr {
@@ -145,49 +213,20 @@ impl ReplaceIdent for Expr {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos> {
         match self {
-            Expr::ColumnIdent(ident) => {
-                let first_segment = ident.segments.first().unwrap();
-
-                if !table_alias.contains_key(first_segment) {
-                    let mut entities: Vec<_> = field_map.iter().filter_map(
-                        |(entity_name, field_map)| {
-                            if field_map.contains(first_segment) {
-                                Some(entity_name.clone())
-                            } else {
-                                None
-                            }
-                        }
-                    ).collect();
-
-                    let alias = if entities.len() == 1 {
-                        let entity_name = entities.pop().unwrap();
-
-                        generated_alias.get(&entity_name).ok_or_else(
-                            || ident.location().error(SyntaxError::UnknownField(
-                                "*".to_string(),
-                                first_segment.clone()
-                            ))
-                        )?.clone()
-                    } else {
-                        return Err(ident.location().error(SyntaxError::ConflictAlias(first_segment.clone())))
-                    };
-
-                    ident.segments.insert(0, alias);
-                };
-
-                Ok(())
-            },
+            Expr::ColumnIdent(ident) => ident.replace(generated_alias, table_alias, field_map),
             Expr::Binary(binary) => {
-                binary.left.replace(generated_alias, table_alias, field_map)?;
-                binary.right.replace(generated_alias, table_alias, field_map)
-            },
-            Expr::Unary(unary) => {
-                unary.right.replace(generated_alias, table_alias, field_map)
-            },
-            _ => Ok(())
+                binary
+                    .left
+                    .replace(generated_alias, table_alias, field_map)?;
+                binary
+                    .right
+                    .replace(generated_alias, table_alias, field_map)
+            }
+            Expr::Unary(unary) => unary.right.replace(generated_alias, table_alias, field_map),
+            _ => Ok(()),
         }
     }
 }
@@ -197,7 +236,7 @@ impl ReplaceIdent for SelectClause {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos> {
         for (expr, _) in self.items.iter_mut() {
             expr.replace(generated_alias, table_alias, field_map)?;
@@ -212,11 +251,13 @@ impl ReplaceIdent for FromClause {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos> {
         for join in self.join.iter_mut() {
             if let JoinClause::JoinOn(join_on) = join {
-                join_on.on.replace(generated_alias, table_alias, field_map)?;
+                join_on
+                    .on
+                    .replace(generated_alias, table_alias, field_map)?;
             };
         }
         Ok(())
@@ -228,7 +269,7 @@ impl ReplaceIdent for GroupByClause {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos> {
         self.by.replace(generated_alias, table_alias, field_map)?;
 
@@ -245,7 +286,7 @@ impl ReplaceIdent for OrderByClause {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos> {
         for (expr, _) in self.items.iter_mut() {
             expr.replace(generated_alias, table_alias, field_map)?;
@@ -260,9 +301,10 @@ impl ReplaceIdent for SelectQuery {
         &mut self,
         generated_alias: &HashMap<String, String>,
         table_alias: &HashMap<String, String>,
-        field_map: &HashMap<String, HashSet<String>>
+        field_map: &HashMap<String, HashSet<String>>,
     ) -> Result<(), SyntaxErrorWithPos> {
-        self.select_clause.replace(generated_alias, table_alias, field_map)?;
+        self.select_clause
+            .replace(generated_alias, table_alias, field_map)?;
         self.from.replace(generated_alias, table_alias, field_map)?;
 
         if let Some(where_clause) = &mut self.where_clause {
@@ -278,5 +320,75 @@ impl ReplaceIdent for SelectQuery {
         }
 
         Ok(())
+    }
+}
+
+impl ReplaceIdent for SetClause {
+    fn replace(
+        &mut self,
+        generated_alias: &HashMap<String, String>,
+        table_alias: &HashMap<String, String>,
+        field_map: &HashMap<String, HashSet<String>>,
+    ) -> Result<(), SyntaxErrorWithPos> {
+        for (ident, value) in self.items.iter_mut() {
+            ident.replace(generated_alias, table_alias, field_map)?;
+
+            if let ValueItem::Expr(expr) = value {
+                expr.replace(generated_alias, table_alias, field_map)?;
+            };
+        }
+
+        Ok(())
+    }
+}
+
+impl ReplaceIdent for UpdateQuery {
+    fn replace(
+        &mut self,
+        generated_alias: &HashMap<String, String>,
+        table_alias: &HashMap<String, String>,
+        field_map: &HashMap<String, HashSet<String>>,
+    ) -> Result<(), SyntaxErrorWithPos> {
+        self.set_clause
+            .replace(generated_alias, table_alias, field_map)?;
+
+        if let Some(where_clause) = &mut self.where_clause {
+            where_clause.replace(generated_alias, table_alias, field_map)?;
+        };
+
+        Ok(())
+    }
+}
+
+impl ReplaceIdent for DeleteQuery {
+    fn replace(
+        &mut self,
+        generated_alias: &HashMap<String, String>,
+        table_alias: &HashMap<String, String>,
+        field_map: &HashMap<String, HashSet<String>>,
+    ) -> Result<(), SyntaxErrorWithPos> {
+        self.from.replace(generated_alias, table_alias, field_map)?;
+
+        if let Some(where_clause) = &mut self.where_clause {
+            where_clause.replace(generated_alias, table_alias, field_map)?;
+        };
+
+        Ok(())
+    }
+}
+
+impl ReplaceIdent for Query {
+    fn replace(
+        &mut self,
+        generated_alias: &HashMap<String, String>,
+        table_alias: &HashMap<String, String>,
+        field_map: &HashMap<String, HashSet<String>>,
+    ) -> Result<(), SyntaxErrorWithPos> {
+        match self {
+            Query::Select(select) => select.replace(generated_alias, table_alias, field_map),
+            Query::Update(update) => update.replace(generated_alias, table_alias, field_map),
+            Query::Delete(delete) => delete.replace(generated_alias, table_alias, field_map),
+            _ => Ok(()),
+        }
     }
 }
