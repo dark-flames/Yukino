@@ -1,10 +1,10 @@
 use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{Binary, ColumnIdent, Expr, Literal, Locatable, Unary};
-use crate::query::type_check::{TypeCheck, TypeChecker};
+use crate::query::type_check::{TypeChecker, TypeInfer};
 use crate::types::{ExprWrapper, TypeInfo};
 
-impl TypeCheck for Expr {
+impl TypeInfer for Expr {
     fn try_wrap<F>(
         &self,
         ty_checker: &mut TypeChecker<F>,
@@ -39,7 +39,7 @@ impl TypeCheck for Expr {
     }
 }
 
-impl TypeCheck for Binary {
+impl TypeInfer for Binary {
     fn try_wrap<F>(
         &self,
         ty_checker: &mut TypeChecker<F>,
@@ -103,7 +103,7 @@ impl TypeCheck for Binary {
     }
 }
 
-impl TypeCheck for Unary {
+impl TypeInfer for Unary {
     fn try_wrap<F>(
         &self,
         ty_checker: &mut TypeChecker<F>,
@@ -148,7 +148,7 @@ impl TypeCheck for Unary {
     }
 }
 
-impl TypeCheck for ColumnIdent {
+impl TypeInfer for ColumnIdent {
     fn try_wrap<F>(
         &self,
         ty_checker: &mut TypeChecker<F>,
@@ -199,7 +199,7 @@ impl TypeCheck for ColumnIdent {
     }
 }
 
-impl TypeCheck for Literal {
+impl TypeInfer for Literal {
     fn try_wrap<F>(
         &self,
         _ty_checker: &mut TypeChecker<F>,

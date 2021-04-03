@@ -1,6 +1,5 @@
 pub use query_builder::*;
 
-mod alias;
 pub mod ast;
 mod grammar;
 mod pretty;

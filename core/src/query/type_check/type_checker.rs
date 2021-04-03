@@ -62,7 +62,7 @@ where
     }
 }
 
-pub trait TypeCheck: Locatable {
+pub trait TypeInfer: Locatable {
     fn try_wrap<F>(
         &self,
         ty_checker: &mut TypeChecker<F>,
@@ -83,4 +83,10 @@ pub trait TypeCheck: Locatable {
                 .error(SyntaxError::CannotBeWrappedInto(type_info.field_type))
         })
     }
+}
+
+pub trait TypeCheck: Locatable {
+    fn check_type<F>(&mut self, ty_checker: &mut TypeChecker<F>) -> Result<(), SyntaxErrorWithPos>
+    where
+        F: Fn(&str, &str) -> Option<FieldDefinition>;
 }

@@ -94,4 +94,8 @@ pub trait TypeResolver {
             item.type_info.to_string(),
         )))
     }
+
+    fn unwrap_expr(&self, mut wrapper: ExprWrapper) -> Result<Expr, SyntaxErrorWithPos> {
+        Ok(wrapper.exprs.pop().unwrap())
+    }
 }

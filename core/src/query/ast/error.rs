@@ -33,6 +33,8 @@ pub enum SyntaxError {
     ExpectAlias(String),
     #[error("Mismatched type: expected \"{0}\", found \"{1}\"")]
     TypeError(String, String),
+    #[error("Cannot infer a suitable type")]
+    CannotInferType,
     #[error("Conflict external value type assertion for \"#{0}\"")]
     ConflictValueAssertion(String),
     #[error("Unimplemented operation \"{0}\" for type \"{1}\"")]

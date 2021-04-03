@@ -1,4 +1,5 @@
 mod expr;
+mod query;
 mod type_checker;
 mod type_kind;
 
