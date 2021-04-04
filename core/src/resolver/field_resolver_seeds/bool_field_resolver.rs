@@ -1,11 +1,267 @@
-use crate::definitions::FieldDefinition;
+use crate::annotations::FieldAnnotation;
+use crate::definitions::{ColumnDefinition, ColumnType, FieldDefinition};
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
     Binary, BinaryOperator, ColumnIdent, Expr, Location, Unary, UnaryOperator,
 };
 use crate::query::ast::{Literal, Locatable};
 use crate::query::type_check::TypeKind;
-use crate::types::{ExprWrapper, TypeInfo, TypeResolver};
+use crate::resolver::error::{DataConvertError, ResolveError};
+use crate::resolver::{
+    AchievedFieldResolver, EntityName, EntityResolver, FieldName, FieldPath, FieldResolver,
+    FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
+    TypePathResolver, ValueConverter,
+};
+use crate::types::{DatabaseType, DatabaseValue, ExprWrapper, TypeInfo, TypeResolver, ValuePack};
+use heck::SnakeCase;
+use iroha::ToTokens;
+use proc_macro2::Ident;
+use quote::{format_ident, quote};
+use std::collections::HashMap;
+use syn::Type;
+
+pub struct BoolFieldResolverSeed;
+
+impl FieldResolverSeed for BoolFieldResolverSeed {
+    fn new() -> Self
+    where
+        Self: Sized,
+    {
+        BoolFieldResolverSeed
+    }
+
+    fn boxed(&self) -> FieldResolverSeedBox {
+        Box::new(BoolFieldResolverSeed)
+    }
+
+    fn try_breed(
+        &self,
+        entity_name: EntityName,
+        ident: &Ident,
+        annotations: &[FieldAnnotation],
+        field_type: &Type,
+        type_path_resolver: &TypePathResolver,
+    ) -> Option<Result<FieldResolverBox, ResolveError>> {
+        let (nullable, nested_type) = match Self::unwrap_option(
+            field_type,
+            (entity_name.clone(), ident.to_string()),
+            type_path_resolver,
+        ) {
+            Ok(r) => r,
+            Err(e) => return Some(Err(e)),
+        };
+        if let Type::Path(type_path) = nested_type {
+            if let Some(first_segment) = type_path.path.segments.first() {
+                if first_segment.ident == *"bool" {
+                    let field = Self::default_annotations(annotations);
+
+                    if field.auto_increase || Self::is_primary_key(annotations) {
+                        Some(Err(ResolveError::Others(format!(
+                            "PrimaryKey or AutoIncrease is not supported on bool field({0} in {1})",
+                            ident, entity_name
+                        ))))
+                    } else {
+                        Some(Ok(Box::new(BoolFieldResolver {
+                            field_path: (entity_name.clone(), ident.to_string()),
+                            definition: ColumnDefinition {
+                                name: field
+                                    .name
+                                    .unwrap_or_else(|| ident.to_string().to_snake_case()),
+                                ty: ColumnType::NormalColumn(entity_name),
+                                data_type: DatabaseType::Bool,
+                                unique: field.unique,
+                                auto_increase: false,
+                                primary_key: false,
+                                nullable,
+                            },
+                            field_type: type_path_resolver.get_full_type(field_type.clone()),
+                            nullable,
+                        })))
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+}
+
+pub struct BoolFieldResolver {
+    field_path: FieldPath,
+    definition: ColumnDefinition,
+    field_type: Type,
+    nullable: bool,
+}
+
+impl FieldResolver for BoolFieldResolver {
+    fn status(&self) -> FieldResolverStatus {
+        FieldResolverStatus::WaitingAssemble
+    }
+
+    fn field_path(&self) -> (EntityName, FieldName) {
+        self.field_path.clone()
+    }
+
+    fn resolve_by_waiting_entity(
+        &mut self,
+        _resolver: &EntityResolver,
+    ) -> Result<FieldResolverStatus, ResolveError> {
+        unreachable!()
+    }
+
+    fn resolve_by_waiting_fields(
+        &mut self,
+        _resolvers: Vec<&AchievedFieldResolver>,
+    ) -> Result<FieldResolverStatus, ResolveError> {
+        unreachable!()
+    }
+
+    fn assemble(
+        &mut self,
+        _entity_resolver: &EntityResolver,
+    ) -> Result<AchievedFieldResolver, ResolveError> {
+        let method_name = self.converter_getter_ident();
+
+        let (entity_name, field_name) = self.field_path();
+
+        let converter = BoolValueConverter {
+            is_primary_key: self.definition.primary_key,
+            entity_name,
+            field_name: field_name.clone(),
+            column_name: self.definition.name.clone(),
+        };
+
+        let data_converter_token_stream = quote! {
+            pub fn #method_name() -> yukino::resolver::field_resolver_seeds::BoolValueConverter {
+                #converter
+            }
+        };
+
+        let getter_name = self.getter_ident();
+        let setter_name = self.setter_ident();
+        let field_ident = format_ident!("{}", field_name);
+        let field_ty = &self.field_type;
+
+        let field_getter_token_stream = quote! {
+            pub fn #getter_name(&self) -> &#field_ty{
+                let inner = self.get_inner();
+                &inner.#field_ident
+            }
+        };
+        let field_setter_token_stream = if self.nullable {
+            quote! {
+                pub fn #setter_name(&mut self, value: bool) -> &mut Self {
+                    let inner = self.get_inner_mut();
+                    inner.#field_ident= Some(value);
+                    self
+                }
+            }
+        } else {
+            quote! {
+                pub fn #setter_name(&mut self, value: bool) -> &mut Self {
+                    let inner = self.get_inner_mut();
+                    inner.#field_ident= value;
+                    self
+                }
+            }
+        };
+
+        Ok(AchievedFieldResolver {
+            field_path: self.field_path(),
+            indexes: vec![],
+            columns: vec![self.definition.clone()],
+            joined_table: vec![],
+            foreign_keys: vec![],
+            data_converter_token_stream,
+            converter_getter_ident: method_name,
+            field_getter_ident: getter_name,
+            field_getter_token_stream,
+            field_setter_ident: setter_name,
+            field_setter_token_stream,
+            field_type: self.field_type.clone(),
+            field_definition: FieldDefinition {
+                name: self.definition.name.clone(),
+                type_resolver_name: BoolTypeResolver::seed().name(),
+                field_type: "string".to_string(),
+                nullable: self.nullable,
+                columns: vec![self.definition.name.clone()],
+                tables: vec![],
+            },
+        })
+    }
+}
+
+#[derive(ToTokens)]
+#[Iroha(mod_path = "yukino::resolver::field_resolver_seeds")]
+pub struct BoolValueConverter {
+    is_primary_key: bool,
+    entity_name: String,
+    field_name: String,
+    column_name: String,
+}
+
+impl ValueConverter<bool> for BoolValueConverter {
+    fn to_field_value(&self, values: &ValuePack) -> Result<bool, DataConvertError> {
+        match values.get(&self.column_name) {
+            Some(DatabaseValue::Bool(value)) => Ok(*value),
+            _ => Err(DataConvertError::UnexpectedDatabaseValueType(
+                self.entity_name.clone(),
+                self.field_name.clone(),
+            )),
+        }
+    }
+
+    fn to_database_values_by_ref(&self, value: &bool) -> Result<ValuePack, DataConvertError> {
+        let mut map = HashMap::new();
+        map.insert(self.column_name.clone(), DatabaseValue::Bool(*value));
+
+        Ok(map)
+    }
+
+    fn primary_column_values_by_ref(&self, _value: &bool) -> Result<ValuePack, DataConvertError> {
+        Ok(HashMap::new())
+    }
+}
+
+impl ValueConverter<Option<bool>> for BoolValueConverter {
+    fn to_field_value(&self, values: &ValuePack) -> Result<Option<bool>, DataConvertError> {
+        match values.get(&self.column_name) {
+            Some(DatabaseValue::Bool(value)) => Ok(Some(*value)),
+            Some(DatabaseValue::Null(DatabaseType::Bool)) => Ok(None),
+            _ => Err(DataConvertError::UnexpectedDatabaseValueType(
+                self.entity_name.clone(),
+                self.field_name.clone(),
+            )),
+        }
+    }
+
+    fn to_database_values_by_ref(
+        &self,
+        value: &Option<bool>,
+    ) -> Result<ValuePack, DataConvertError> {
+        let mut map = HashMap::new();
+        map.insert(
+            self.column_name.clone(),
+            match value {
+                Some(v) => DatabaseValue::Bool(*v),
+                None => DatabaseValue::Null(DatabaseType::String),
+            },
+        );
+
+        Ok(map)
+    }
+
+    fn primary_column_values_by_ref(
+        &self,
+        _value: &Option<bool>,
+    ) -> Result<ValuePack, DataConvertError> {
+        Ok(HashMap::new())
+    }
+}
 
 pub struct BoolTypeResolver;
 

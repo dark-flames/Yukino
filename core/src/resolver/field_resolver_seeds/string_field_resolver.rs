@@ -50,22 +50,30 @@ impl FieldResolverSeed for StringFieldResolverSeed {
             if let Some(first_segment) = type_path.path.segments.first() {
                 if first_segment.ident == *"String" {
                     let field = Self::default_annotations(annotations);
-                    Some(Ok(Box::new(StringFieldResolver {
-                        field_path: (entity_name.clone(), ident.to_string()),
-                        definition: ColumnDefinition {
-                            name: field
-                                .name
-                                .unwrap_or_else(|| ident.to_string().to_snake_case()),
-                            ty: ColumnType::NormalColumn(entity_name),
-                            data_type: DatabaseType::String,
-                            unique: field.unique,
-                            auto_increase: field.auto_increase,
-                            primary_key: Self::is_primary_key(annotations),
+
+                    if field.auto_increase {
+                        Some(Err(ResolveError::Others(format!(
+                            "AutoIncrease is not supported on string field({0} in {1})",
+                            ident, entity_name
+                        ))))
+                    } else {
+                        Some(Ok(Box::new(StringFieldResolver {
+                            field_path: (entity_name.clone(), ident.to_string()),
+                            definition: ColumnDefinition {
+                                name: field
+                                    .name
+                                    .unwrap_or_else(|| ident.to_string().to_snake_case()),
+                                ty: ColumnType::NormalColumn(entity_name),
+                                data_type: DatabaseType::String,
+                                unique: field.unique,
+                                auto_increase: field.auto_increase,
+                                primary_key: Self::is_primary_key(annotations),
+                                nullable,
+                            },
+                            field_type: type_path_resolver.get_full_type(field_type.clone()),
                             nullable,
-                        },
-                        field_type: type_path_resolver.get_full_type(field_type.clone()),
-                        nullable,
-                    })))
+                        })))
+                    }
                 } else {
                     None
                 }

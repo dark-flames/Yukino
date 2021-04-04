@@ -4,7 +4,8 @@ use crate::resolver::entity_resolver_passes::{
 };
 use crate::resolver::error::ResolveError;
 use crate::resolver::field_resolver_seeds::{
-    CollectionFieldResolverSeed, NumericFieldResolverSeed, StringFieldResolverSeed,
+    BoolFieldResolverSeed, CollectionFieldResolverSeed, NumericFieldResolverSeed,
+    StringFieldResolverSeed,
 };
 use crate::resolver::{
     EntityResolverPass, EntityResolverPassBox, FieldResolverSeed, FieldResolverSeedBox,
@@ -34,6 +35,7 @@ impl FileResolver {
             Box::new(NumericFieldResolverSeed::new()),
             Box::new(CollectionFieldResolverSeed::new()),
             Box::new(StringFieldResolverSeed::new()),
+            Box::new(BoolFieldResolverSeed::new()),
             Box::new(AssociatedEntityFieldResolverSeed::new()),
         ];
 
