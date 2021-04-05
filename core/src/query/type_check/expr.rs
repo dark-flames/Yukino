@@ -184,18 +184,7 @@ impl TypeInfer for ColumnIdent {
                 ))
             })?;
 
-        let type_info = TypeInfo {
-            field_type: definition.field_type,
-            nullable: definition.nullable,
-            type_kind: resolver.type_kind(),
-            resolver_name: definition.type_resolver_name.clone(),
-        };
-
-        Ok(Some(ExprWrapper {
-            exprs: vec![Expr::ColumnIdent(self.clone())],
-            type_info,
-            location: self.location(),
-        }))
+        resolver.wrap_ident(self, &definition).map(Some)
     }
 }
 

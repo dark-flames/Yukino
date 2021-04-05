@@ -1,6 +1,6 @@
 use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::Locatable;
+use crate::query::ast::{JoinClause, Locatable};
 use crate::query::type_check::TypeKind;
 use crate::types::{ExprWrapper, TypeInfo, TypeResolver};
 use std::collections::HashMap;
@@ -10,6 +10,7 @@ where
     F: Fn(&str, &str) -> Option<FieldDefinition>,
 {
     external_value_assertion: HashMap<String, TypeKind>,
+    generated_join: HashMap<String, JoinClause>,
     resolvers: HashMap<String, Box<dyn TypeResolver>>,
     alias: HashMap<String, String>,
     definition_getter: F,
@@ -27,6 +28,7 @@ where
     ) -> Self {
         TypeChecker {
             external_value_assertion: Default::default(),
+            generated_join: Default::default(),
             resolvers: resolvers
                 .into_iter()
                 .map(|resolver| (resolver.name(), resolver))
@@ -45,6 +47,22 @@ where
             Err(SyntaxError::ConflictValueAssertion(ident))
         } else {
             self.external_value_assertion.insert(ident, ty);
+            Ok(())
+        }
+    }
+
+    pub fn add_join_clause(&mut self, join: JoinClause) -> Result<(), SyntaxError> {
+        let alias = match &join {
+            JoinClause::JoinOn(join_on) => join_on.table.name.clone(),
+            JoinClause::NaturalJoin(natural_join) => natural_join.table.name.clone(),
+            JoinClause::CrossJoin(cross_join) => cross_join.table.name.clone(),
+        };
+
+        if self.generated_join.contains_key(&alias) {
+            Err(SyntaxError::ConflictAlias(alias))
+        } else {
+            self.generated_join.insert(alias, join);
+
             Ok(())
         }
     }
