@@ -3,6 +3,9 @@ use crate::association::FakeEntity;
 use crate::definitions::{
     ColumnDefinition, ColumnType, FieldDefinition, ForeignKeyDefinition, IndexDefinition,
 };
+use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
+use crate::query::ast::{ColumnIdent, Expr, Literal, Locatable};
+use crate::query::type_check::TypeKind;
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::FieldResolverStatus::WaitingAssemble;
 use crate::resolver::{
@@ -10,7 +13,7 @@ use crate::resolver::{
     FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
     TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ValuePack};
+use crate::types::{DatabaseType, DatabaseValue, ExprWrapper, TypeInfo, TypeResolver, ValuePack};
 use crate::Entity;
 use heck::SnakeCase;
 use iroha::ToTokens;
@@ -612,5 +615,60 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 self.status(),
             ))
         }
+    }
+}
+
+
+pub struct AssociatedEntityTypeResolver;
+
+impl TypeResolver for AssociatedEntityTypeResolver {
+    fn seed() -> Box<dyn TypeResolver>
+    where
+        Self: Sized,
+    {
+        Box::new(AssociatedEntityTypeResolver)
+    }
+
+    fn name(&self) -> String {
+        "associated_object".to_string()
+    }
+
+    fn type_kind(&self) -> TypeKind {
+        TypeKind::Others("AssociatedEntity".to_string())
+    }
+
+    fn wrap_lit(
+        &self,
+        lit: &Literal,
+        type_info: TypeInfo
+    ) -> Result<(ExprWrapper, Vec<(String, String)>), SyntaxErrorWithPos> {
+        match lit {
+            Literal::External(external) => {
+                Ok((ExprWrapper {
+                    exprs: vec![Expr::Literal(lit.clone())],
+                    type_info: type_info.clone(),
+                    location: lit.location(),
+                }, vec![
+                    (external.ident.clone(), type_info.field_type)
+                ]))
+            }
+            Literal::Null(_) if type_info.nullable => Ok((ExprWrapper {
+                exprs: vec![Expr::Literal(lit.clone())],
+                type_info,
+                location: lit.location(),
+            }, vec![])),
+            _ => Err(lit.location().error(SyntaxError::TypeError(
+                type_info.to_string(),
+                TypeKind::from(lit).to_string(),
+            ))),
+        }
+    }
+
+    fn wrap_ident(
+        &self,
+        _ident: &ColumnIdent,
+        _field_definition: &FieldDefinition,
+    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+        todo!()
     }
 }

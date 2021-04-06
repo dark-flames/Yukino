@@ -430,7 +430,7 @@ impl TypeResolver for NumericTypeResolver {
         &self,
         lit: &Literal,
         type_info: TypeInfo,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+    ) -> Result<(ExprWrapper, Vec<(String, String)>), SyntaxErrorWithPos> {
         let numeric_type = NumericType::from_str(type_info.field_type.as_str()).unwrap();
 
         match (lit, &numeric_type) {
@@ -441,11 +441,11 @@ impl TypeResolver for NumericTypeResolver {
                         .location()
                         .error(SyntaxError::LitOverflow(numeric_type.to_string())))
                 } else {
-                    Ok(ExprWrapper {
+                    Ok((ExprWrapper {
                         exprs: vec![Expr::Literal(lit.clone())],
                         type_info,
                         location: lit.location(),
-                    })
+                    }, vec![]))
                 }
             }
             (Literal::Float(number), NumericType::Float(_)) => {
@@ -454,18 +454,18 @@ impl TypeResolver for NumericTypeResolver {
                         .location()
                         .error(SyntaxError::LitOverflow(numeric_type.to_string())))
                 } else {
-                    Ok(ExprWrapper {
+                    Ok((ExprWrapper {
                         exprs: vec![Expr::Literal(lit.clone())],
                         type_info,
                         location: lit.location(),
-                    })
+                    }, vec![]))
                 }
             }
-            (Literal::Null(_), _) if type_info.nullable => Ok(ExprWrapper {
+            (Literal::Null(_), _) if type_info.nullable => Ok((ExprWrapper {
                 exprs: vec![Expr::Literal(lit.clone())],
                 type_info,
                 location: lit.location(),
-            }),
+            }, vec![])),
             _ => Err(lit.location().error(SyntaxError::TypeError(
                 type_info.to_string(),
                 TypeKind::from(lit).to_string(),

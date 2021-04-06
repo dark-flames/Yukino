@@ -62,7 +62,7 @@ pub trait TypeResolver {
         &self,
         lit: &Literal,
         type_info: TypeInfo,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos>;
+    ) -> Result<(ExprWrapper, Vec<(String, String)>), SyntaxErrorWithPos>;
 
     fn wrap_ident(
         &self,

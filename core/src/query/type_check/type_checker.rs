@@ -1,7 +1,6 @@
 use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{JoinClause, Locatable};
-use crate::query::type_check::TypeKind;
 use crate::types::{ExprWrapper, TypeInfo, TypeResolver};
 use std::collections::HashMap;
 
@@ -9,7 +8,7 @@ pub struct TypeChecker<F>
 where
     F: Fn(&str, &str) -> Option<FieldDefinition>,
 {
-    external_value_assertion: HashMap<String, TypeKind>,
+    external_value_assertion: HashMap<String, String>,
     generated_join: HashMap<String, JoinClause>,
     resolvers: HashMap<String, Box<dyn TypeResolver>>,
     alias: HashMap<String, String>,
@@ -41,7 +40,7 @@ where
     pub fn add_external_value_assertion(
         &mut self,
         ident: String,
-        ty: TypeKind,
+        ty: String,
     ) -> Result<(), SyntaxError> {
         if self.external_value_assertion.contains_key(&ident) {
             Err(SyntaxError::ConflictValueAssertion(ident))

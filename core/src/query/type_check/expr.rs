@@ -215,7 +215,15 @@ impl TypeInfer for Literal {
                 ))
             })?;
 
-        resolver.wrap_lit(self, type_info)
+        let (expr, assertions) = resolver.wrap_lit(self, type_info)?;
+
+        for (ident, ty) in assertions {
+            ty_checker.add_external_value_assertion(ident, ty).map_err(
+                |e| self.location().error(e)
+            )?;
+        }
+
+        Ok(expr)
     }
 }
 

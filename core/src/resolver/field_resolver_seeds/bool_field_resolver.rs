@@ -282,18 +282,18 @@ impl TypeResolver for BoolTypeResolver {
         &self,
         lit: &Literal,
         type_info: TypeInfo,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+    ) -> Result<(ExprWrapper, Vec<(String, String)>), SyntaxErrorWithPos> {
         match lit {
-            Literal::Boolean(_) => Ok(ExprWrapper {
+            Literal::Boolean(_) => Ok((ExprWrapper {
                 exprs: vec![Expr::Literal(lit.clone())],
                 type_info,
                 location: lit.location(),
-            }),
-            Literal::Null(_) if type_info.nullable => Ok(ExprWrapper {
+            }, vec![])),
+            Literal::Null(_) if type_info.nullable => Ok((ExprWrapper {
                 exprs: vec![Expr::Literal(lit.clone())],
                 type_info,
                 location: lit.location(),
-            }),
+            }, vec![])),
             _ => Err(lit.location().error(SyntaxError::TypeError(
                 type_info.to_string(),
                 TypeKind::from(lit).to_string(),
