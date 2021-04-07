@@ -210,12 +210,14 @@ impl FieldResolver for CollectionFieldResolver {
             field_setter_token_stream,
             field_type: Type::Path(field_type.clone()),
             field_definition: FieldDefinition {
+                entity: self.field_path.1.clone(),
                 name: self.field_path.1.clone(),
                 type_resolver_name: "".to_string(), // todo: impl type resolver for collection
                 field_type: self.field_type.to_token_stream().to_string(),
                 nullable: false,
                 columns: vec![self.definition.name.clone()],
                 tables: vec![],
+                association: None,
             },
         })
     }

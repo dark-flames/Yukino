@@ -186,12 +186,14 @@ impl FieldResolver for BoolFieldResolver {
             field_setter_token_stream,
             field_type: self.field_type.clone(),
             field_definition: FieldDefinition {
+                entity: self.field_path.1.clone(),
                 name: self.definition.name.clone(),
                 type_resolver_name: BoolTypeResolver::seed().name(),
                 field_type: "string".to_string(),
                 nullable: self.nullable,
                 columns: vec![self.definition.name.clone()],
                 tables: vec![],
+                association: None,
             },
         })
     }

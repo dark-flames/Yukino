@@ -86,11 +86,21 @@ pub struct ForeignKeyDefinition {
 
 #[derive(ToTokens, Clone)]
 #[Iroha(mod_path = "yukino::definitions")]
+pub struct AssociationDefinition {
+    pub referenced_entity: String,
+    pub is_list: bool,
+    pub column_map: Vec<(String, String)>,
+}
+
+#[derive(ToTokens, Clone)]
+#[Iroha(mod_path = "yukino::definitions")]
 pub struct FieldDefinition {
+    pub entity: String,
     pub name: String,
     pub type_resolver_name: String,
     pub field_type: String,
     pub nullable: bool,
     pub columns: Vec<String>,
     pub tables: Vec<String>,
+    pub association: Option<AssociationDefinition>,
 }

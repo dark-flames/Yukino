@@ -1,10 +1,14 @@
 use crate::annotations::{Association, FieldAnnotation, IndexMethod};
 use crate::association::FakeEntity;
 use crate::definitions::{
-    ColumnDefinition, ColumnType, FieldDefinition, ForeignKeyDefinition, IndexDefinition,
+    AssociationDefinition, ColumnDefinition, ColumnType, FieldDefinition, ForeignKeyDefinition,
+    IndexDefinition,
 };
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
-use crate::query::ast::{ColumnIdent, Expr, JoinClause, Literal, Locatable};
+use crate::query::ast::{
+    Binary, BinaryOperator, ColumnIdent, Expr, JoinClause, JoinOn, JoinType, Literal, Locatable,
+    TableReference,
+};
 use crate::query::type_check::TypeKind;
 use crate::resolver::error::{DataConvertError, ResolveError};
 use crate::resolver::FieldResolverStatus::WaitingAssemble;
@@ -597,6 +601,7 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 field_setter_token_stream,
                 field_type: self.field_type.clone(),
                 field_definition: FieldDefinition {
+                    entity: self.field_path.1.clone(),
                     name: self.field_path.1.clone(),
                     type_resolver_name: "".to_string(), //todo: impl association type resolver
                     field_type: self.proxy_type.to_token_stream().to_string(),
@@ -607,6 +612,11 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                         .map(|column_definition| column_definition.name.clone())
                         .collect(),
                     tables: vec![],
+                    association: Some(AssociationDefinition {
+                        referenced_entity: self.proxy_type.to_token_stream().to_string(),
+                        is_list: false,
+                        column_map: self.column_map.clone(),
+                    }),
                 },
             })
         } else {
@@ -669,9 +679,85 @@ impl TypeResolver for AssociatedEntityTypeResolver {
 
     fn wrap_ident(
         &self,
-        _ident: &ColumnIdent,
-        _field_definition: &FieldDefinition,
+        ident: &ColumnIdent,
+        field_definition: &FieldDefinition,
     ) -> Result<(IdentResolveStatus, Vec<JoinClause>), SyntaxErrorWithPos> {
-        todo!()
+        let association = field_definition.association.as_ref().unwrap();
+        let location = ident.location();
+        let self_alias = ident.segments.first().unwrap();
+        let ref_alias = format!(
+            "__{}_{}_{}",
+            &field_definition.entity, &field_definition.name, &association.referenced_entity
+        );
+        let mut exprs: Vec<_> = association
+            .column_map
+            .iter()
+            .map(|(left_field, right_field)| {
+                Expr::Binary(Binary {
+                    operator: BinaryOperator::Eq,
+                    left: Box::new(Expr::ColumnIdent(ColumnIdent {
+                        segments: vec![self_alias.clone(), left_field.clone()],
+                        location,
+                    })),
+                    right: Box::new(Expr::ColumnIdent(ColumnIdent {
+                        segments: vec![ref_alias.clone(), right_field.clone()],
+                        location,
+                    })),
+                    location,
+                })
+            })
+            .collect();
+
+        let mut on = exprs.pop().unwrap();
+
+        for expr in exprs {
+            on = Expr::Binary(Binary {
+                operator: BinaryOperator::And,
+                left: Box::new(on),
+                right: Box::new(expr),
+                location,
+            })
+        }
+
+        let join = JoinClause::JoinOn(JoinOn {
+            ty: JoinType::Inner,
+            table: TableReference {
+                name: association.referenced_entity.clone(),
+                alias: Some(ref_alias.clone()),
+                location,
+            },
+            on,
+            location,
+        });
+
+        let mut segments = ident.segments.clone();
+
+        segments.pop();
+        segments[0] = ref_alias;
+
+        if segments.len() == 1 {
+            segments.push("*".to_string());
+        };
+
+        if segments.len() > 2 {
+            Ok((
+                IdentResolveStatus::Unresolved(ColumnIdent { segments, location }),
+                vec![join],
+            ))
+        } else {
+            Ok((
+                IdentResolveStatus::Resolved(ExprWrapper {
+                    exprs: vec![Expr::ColumnIdent(ColumnIdent { segments, location })],
+                    type_info: TypeInfo {
+                        resolver_name: self.name(),
+                        field_type: field_definition.field_type.clone(),
+                        nullable: field_definition.nullable,
+                        type_kind: self.type_kind(),
+                    },
+                    location,
+                }),
+                vec![join],
+            ))
+        }
     }
 }
