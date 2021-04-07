@@ -2,7 +2,7 @@ use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{Binary, ColumnIdent, Expr, Literal, Locatable, Unary};
 use crate::query::type_check::{TypeChecker, TypeInfer};
-use crate::types::{ExprWrapper, TypeInfo};
+use crate::types::{ExprWrapper, IdentResolveStatus, TypeInfo};
 
 impl TypeInfer for Expr {
     fn try_wrap<F>(
@@ -156,35 +156,48 @@ impl TypeInfer for ColumnIdent {
     where
         F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
-        assert_eq!(self.segments.len(), 2); // todo: support auto join and auto alias
+        let mut ident = self.clone();
 
-        let table_alias = self.segments.first().unwrap();
+        loop {
+            let table_alias = ident.segments.first().unwrap();
 
-        let entity_name = ty_checker
-            .get_table_name(self.segments.first().unwrap())
-            .ok_or_else(|| {
-                self.location()
-                    .error(SyntaxError::UnknownAlias(table_alias.to_string()))
-            })?;
+            let entity_name = ty_checker
+                .get_table_name(self.segments.first().unwrap())
+                .ok_or_else(|| {
+                    self.location()
+                        .error(SyntaxError::UnknownAlias(table_alias.to_string()))
+                })?;
 
-        let definition = ty_checker
-            .get_field_definition(entity_name, self.segments.last().unwrap())
-            .ok_or_else(|| {
-                self.location().error(SyntaxError::UnknownField(
-                    entity_name.to_string(),
-                    self.segments.last().unwrap().to_string(),
-                ))
-            })?;
+            let definition = ty_checker
+                .get_field_definition(entity_name, self.segments.last().unwrap())
+                .ok_or_else(|| {
+                    self.location().error(SyntaxError::UnknownField(
+                        entity_name.to_string(),
+                        self.segments.last().unwrap().to_string(),
+                    ))
+                })?;
 
-        let resolver = ty_checker
-            .get_resolver(&definition.type_resolver_name)
-            .ok_or_else(|| {
-                self.location().error(SyntaxError::UnknownResolverName(
-                    definition.type_resolver_name.clone(),
-                ))
-            })?;
+            let resolver = ty_checker
+                .get_resolver(&definition.type_resolver_name)
+                .ok_or_else(|| {
+                    self.location().error(SyntaxError::UnknownResolverName(
+                        definition.type_resolver_name.clone(),
+                    ))
+                })?;
 
-        resolver.wrap_ident(self, &definition).map(Some)
+            let (new_status, join_clauses) = resolver.wrap_ident(self, &definition)?;
+
+            for join in join_clauses {
+                ty_checker
+                    .add_join_clause(join)
+                    .map_err(|e| self.location().error(e))?;
+            }
+
+            match new_status {
+                IdentResolveStatus::Unresolved(new_ident) => ident = new_ident,
+                IdentResolveStatus::Resolved(wrapper) => break Ok(Some(wrapper)),
+            }
+        }
     }
 }
 
@@ -218,9 +231,9 @@ impl TypeInfer for Literal {
         let (expr, assertions) = resolver.wrap_lit(self, type_info)?;
 
         for (ident, ty) in assertions {
-            ty_checker.add_external_value_assertion(ident, ty).map_err(
-                |e| self.location().error(e)
-            )?;
+            ty_checker
+                .add_external_value_assertion(ident, ty)
+                .map_err(|e| self.location().error(e))?;
         }
 
         Ok(expr)

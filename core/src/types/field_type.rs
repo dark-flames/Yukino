@@ -1,18 +1,14 @@
 use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
-    BinaryOperator, ColumnIdent, Expr, Literal, Locatable, Location, UnaryOperator,
+    BinaryOperator, ColumnIdent, Expr, JoinClause, Literal, Locatable, Location, UnaryOperator,
 };
 use crate::query::type_check::TypeKind;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
-pub enum CompareOperator {
-    Bt,
-    Bte,
-    Lt,
-    Lte,
-    Neq,
-    Eq,
+pub enum IdentResolveStatus {
+    Unresolved(ColumnIdent),
+    Resolved(ExprWrapper),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -68,7 +64,7 @@ pub trait TypeResolver {
         &self,
         ident: &ColumnIdent,
         field_definition: &FieldDefinition,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos>;
+    ) -> Result<(IdentResolveStatus, Vec<JoinClause>), SyntaxErrorWithPos>;
 
     fn handle_binary(
         &self,

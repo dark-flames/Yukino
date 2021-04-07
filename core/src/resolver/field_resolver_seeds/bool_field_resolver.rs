@@ -2,7 +2,7 @@ use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType, FieldDefinition};
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
-    Binary, BinaryOperator, ColumnIdent, Expr, Location, Unary, UnaryOperator,
+    Binary, BinaryOperator, ColumnIdent, Expr, JoinClause, Location, Unary, UnaryOperator,
 };
 use crate::query::ast::{Literal, Locatable};
 use crate::query::type_check::TypeKind;
@@ -12,7 +12,9 @@ use crate::resolver::{
     FieldResolverBox, FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus,
     TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ExprWrapper, TypeInfo, TypeResolver, ValuePack};
+use crate::types::{
+    DatabaseType, DatabaseValue, ExprWrapper, IdentResolveStatus, TypeInfo, TypeResolver, ValuePack,
+};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::Ident;
@@ -284,16 +286,22 @@ impl TypeResolver for BoolTypeResolver {
         type_info: TypeInfo,
     ) -> Result<(ExprWrapper, Vec<(String, String)>), SyntaxErrorWithPos> {
         match lit {
-            Literal::Boolean(_) => Ok((ExprWrapper {
-                exprs: vec![Expr::Literal(lit.clone())],
-                type_info,
-                location: lit.location(),
-            }, vec![])),
-            Literal::Null(_) if type_info.nullable => Ok((ExprWrapper {
-                exprs: vec![Expr::Literal(lit.clone())],
-                type_info,
-                location: lit.location(),
-            }, vec![])),
+            Literal::Boolean(_) => Ok((
+                ExprWrapper {
+                    exprs: vec![Expr::Literal(lit.clone())],
+                    type_info,
+                    location: lit.location(),
+                },
+                vec![],
+            )),
+            Literal::Null(_) if type_info.nullable => Ok((
+                ExprWrapper {
+                    exprs: vec![Expr::Literal(lit.clone())],
+                    type_info,
+                    location: lit.location(),
+                },
+                vec![],
+            )),
             _ => Err(lit.location().error(SyntaxError::TypeError(
                 type_info.to_string(),
                 TypeKind::from(lit).to_string(),
@@ -305,7 +313,7 @@ impl TypeResolver for BoolTypeResolver {
         &self,
         ident: &ColumnIdent,
         field_definition: &FieldDefinition,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+    ) -> Result<(IdentResolveStatus, Vec<JoinClause>), SyntaxErrorWithPos> {
         if &field_definition.field_type != "bool" {
             Err(ident.location().error(SyntaxError::TypeError(
                 "bool".to_string(),
@@ -319,11 +327,14 @@ impl TypeResolver for BoolTypeResolver {
                 type_kind: self.type_kind(),
             };
 
-            Ok(ExprWrapper {
-                exprs: vec![Expr::ColumnIdent(ident.clone())],
-                type_info,
-                location: ident.location,
-            })
+            Ok((
+                IdentResolveStatus::Resolved(ExprWrapper {
+                    exprs: vec![Expr::ColumnIdent(ident.clone())],
+                    type_info,
+                    location: ident.location,
+                }),
+                vec![],
+            ))
         }
     }
 

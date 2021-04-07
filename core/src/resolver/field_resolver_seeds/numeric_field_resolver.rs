@@ -2,7 +2,7 @@ use crate::annotations::FieldAnnotation;
 use crate::definitions::{ColumnDefinition, ColumnType, FieldDefinition};
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
-    Binary, BinaryOperator, Literal, Locatable, Location, Unary, UnaryOperator,
+    Binary, BinaryOperator, JoinClause, Literal, Locatable, Location, Unary, UnaryOperator,
 };
 use crate::query::ast::{ColumnIdent, Expr};
 use crate::query::type_check::TypeKind;
@@ -12,7 +12,9 @@ use crate::resolver::{
     AchievedFieldResolver, EntityName, EntityResolver, FieldPath, FieldResolver, FieldResolverBox,
     FieldResolverSeed, FieldResolverSeedBox, FieldResolverStatus, TypePathResolver, ValueConverter,
 };
-use crate::types::{DatabaseType, DatabaseValue, ExprWrapper, TypeInfo, TypeResolver, ValuePack};
+use crate::types::{
+    DatabaseType, DatabaseValue, ExprWrapper, IdentResolveStatus, TypeInfo, TypeResolver, ValuePack,
+};
 use heck::SnakeCase;
 use iroha::ToTokens;
 use proc_macro2::{Ident, TokenStream};
@@ -441,11 +443,14 @@ impl TypeResolver for NumericTypeResolver {
                         .location()
                         .error(SyntaxError::LitOverflow(numeric_type.to_string())))
                 } else {
-                    Ok((ExprWrapper {
-                        exprs: vec![Expr::Literal(lit.clone())],
-                        type_info,
-                        location: lit.location(),
-                    }, vec![]))
+                    Ok((
+                        ExprWrapper {
+                            exprs: vec![Expr::Literal(lit.clone())],
+                            type_info,
+                            location: lit.location(),
+                        },
+                        vec![],
+                    ))
                 }
             }
             (Literal::Float(number), NumericType::Float(_)) => {
@@ -454,18 +459,24 @@ impl TypeResolver for NumericTypeResolver {
                         .location()
                         .error(SyntaxError::LitOverflow(numeric_type.to_string())))
                 } else {
-                    Ok((ExprWrapper {
-                        exprs: vec![Expr::Literal(lit.clone())],
-                        type_info,
-                        location: lit.location(),
-                    }, vec![]))
+                    Ok((
+                        ExprWrapper {
+                            exprs: vec![Expr::Literal(lit.clone())],
+                            type_info,
+                            location: lit.location(),
+                        },
+                        vec![],
+                    ))
                 }
             }
-            (Literal::Null(_), _) if type_info.nullable => Ok((ExprWrapper {
-                exprs: vec![Expr::Literal(lit.clone())],
-                type_info,
-                location: lit.location(),
-            }, vec![])),
+            (Literal::Null(_), _) if type_info.nullable => Ok((
+                ExprWrapper {
+                    exprs: vec![Expr::Literal(lit.clone())],
+                    type_info,
+                    location: lit.location(),
+                },
+                vec![],
+            )),
             _ => Err(lit.location().error(SyntaxError::TypeError(
                 type_info.to_string(),
                 TypeKind::from(lit).to_string(),
@@ -477,7 +488,7 @@ impl TypeResolver for NumericTypeResolver {
         &self,
         ident: &ColumnIdent,
         field_definition: &FieldDefinition,
-    ) -> Result<ExprWrapper, SyntaxErrorWithPos> {
+    ) -> Result<(IdentResolveStatus, Vec<JoinClause>), SyntaxErrorWithPos> {
         NumericType::from_str(field_definition.field_type.as_str()).map_err(|_| {
             ident.location().error(SyntaxError::TypeError(
                 "numeric".to_string(),
@@ -492,11 +503,14 @@ impl TypeResolver for NumericTypeResolver {
             resolver_name: self.name(),
         };
 
-        Ok(ExprWrapper {
-            exprs: vec![Expr::ColumnIdent(ident.clone())],
-            type_info,
-            location: ident.location(),
-        })
+        Ok((
+            IdentResolveStatus::Resolved(ExprWrapper {
+                exprs: vec![Expr::ColumnIdent(ident.clone())],
+                type_info,
+                location: ident.location(),
+            }),
+            vec![],
+        ))
     }
 
     fn handle_binary(
