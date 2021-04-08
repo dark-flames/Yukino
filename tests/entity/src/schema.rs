@@ -12,6 +12,60 @@ pub struct FooInner {
     bar: yukino::collection::AssociatedEntity<BarInner>,
 }
 impl FooInner {
+    pub fn get_integer_converter(
+    ) -> yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter {
+        yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter::new(
+            false,
+            "integer".to_string(),
+            "Foo".to_string(),
+            "integer".to_string(),
+            yukino::types::DatabaseType::UnsignedInteger,
+        )
+    }
+    pub fn get_option_string_converter(
+    ) -> yukino::resolver::field_resolver_seeds::StringValueConverter {
+        yukino::resolver::field_resolver_seeds::StringValueConverter::new(
+            false,
+            "Foo".to_string(),
+            "option_string".to_string(),
+            "option_string".to_string(),
+        )
+    }
+    pub fn get_int16_converter(
+    ) -> yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter {
+        yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter::new(
+            false,
+            "int16".to_string(),
+            "Foo".to_string(),
+            "int16".to_string(),
+            yukino::types::DatabaseType::SmallInteger,
+        )
+    }
+    pub fn get_boolean_converter() -> yukino::resolver::field_resolver_seeds::BoolValueConverter {
+        yukino::resolver::field_resolver_seeds::BoolValueConverter::new(
+            false,
+            "Foo".to_string(),
+            "boolean".to_string(),
+            "boolean".to_string(),
+        )
+    }
+    pub fn get_list_converter() -> yukino::resolver::field_resolver_seeds::ListValueConverter {
+        yukino::resolver::field_resolver_seeds::ListValueConverter::new(
+            "Foo".to_string(),
+            "list".to_string(),
+            "list".to_string(),
+        )
+    }
+    pub fn get_option_num_converter(
+    ) -> yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter {
+        yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter::new(
+            false,
+            "option_num".to_string(),
+            "Foo".to_string(),
+            "option_num".to_string(),
+            yukino::types::DatabaseType::UnsignedInteger,
+        )
+    }
     pub fn get_bar_converter(
     ) -> yukino::resolver::field_resolver_seeds::AssociatedEntityValueConverter<BarInner> {
         yukino::resolver::field_resolver_seeds::AssociatedEntityValueConverter::new(
@@ -37,66 +91,12 @@ impl FooInner {
             "map".to_string(),
         )
     }
-    pub fn get_integer_converter(
-    ) -> yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter {
-        yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter::new(
-            false,
-            "integer".to_string(),
-            "Foo".to_string(),
-            "integer".to_string(),
-            yukino::types::DatabaseType::UnsignedInteger,
-        )
-    }
-    pub fn get_int16_converter(
-    ) -> yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter {
-        yukino::resolver::field_resolver_seeds::SmallIntegerValueConverter::new(
-            false,
-            "int16".to_string(),
-            "Foo".to_string(),
-            "int16".to_string(),
-            yukino::types::DatabaseType::SmallInteger,
-        )
-    }
     pub fn get_string_converter() -> yukino::resolver::field_resolver_seeds::StringValueConverter {
         yukino::resolver::field_resolver_seeds::StringValueConverter::new(
             false,
             "Foo".to_string(),
             "string".to_string(),
             "string".to_string(),
-        )
-    }
-    pub fn get_list_converter() -> yukino::resolver::field_resolver_seeds::ListValueConverter {
-        yukino::resolver::field_resolver_seeds::ListValueConverter::new(
-            "Foo".to_string(),
-            "list".to_string(),
-            "list".to_string(),
-        )
-    }
-    pub fn get_option_num_converter(
-    ) -> yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter {
-        yukino::resolver::field_resolver_seeds::UnsignedIntegerValueConverter::new(
-            false,
-            "option_num".to_string(),
-            "Foo".to_string(),
-            "option_num".to_string(),
-            yukino::types::DatabaseType::UnsignedInteger,
-        )
-    }
-    pub fn get_boolean_converter() -> yukino::resolver::field_resolver_seeds::BoolValueConverter {
-        yukino::resolver::field_resolver_seeds::BoolValueConverter::new(
-            false,
-            "Foo".to_string(),
-            "boolean".to_string(),
-            "boolean".to_string(),
-        )
-    }
-    pub fn get_option_string_converter(
-    ) -> yukino::resolver::field_resolver_seeds::StringValueConverter {
-        yukino::resolver::field_resolver_seeds::StringValueConverter::new(
-            false,
-            "Foo".to_string(),
-            "option_string".to_string(),
-            "option_string".to_string(),
         )
     }
 }
@@ -108,25 +108,25 @@ impl yukino::Entity for FooInner {
         Self: Sized,
     {
         use yukino::resolver::ValueConverter;
-        let bar = Self::get_bar_converter().to_field_value(result)?;
-        let map = Self::get_map_converter().to_field_value(result)?;
         let integer = Self::get_integer_converter().to_field_value(result)?;
+        let option_string = Self::get_option_string_converter().to_field_value(result)?;
         let int16 = Self::get_int16_converter().to_field_value(result)?;
-        let string = Self::get_string_converter().to_field_value(result)?;
+        let boolean = Self::get_boolean_converter().to_field_value(result)?;
         let list = Self::get_list_converter().to_field_value(result)?;
         let option_num = Self::get_option_num_converter().to_field_value(result)?;
-        let boolean = Self::get_boolean_converter().to_field_value(result)?;
-        let option_string = Self::get_option_string_converter().to_field_value(result)?;
+        let bar = Self::get_bar_converter().to_field_value(result)?;
+        let map = Self::get_map_converter().to_field_value(result)?;
+        let string = Self::get_string_converter().to_field_value(result)?;
         Ok(FooInner {
-            bar,
-            map,
             integer,
+            option_string,
             int16,
-            string,
+            boolean,
             list,
             option_num,
-            boolean,
-            option_string,
+            bar,
+            map,
+            string,
         })
     }
     fn to_database_values(
@@ -137,17 +137,17 @@ impl yukino::Entity for FooInner {
     > {
         let mut map = std::collections::HashMap::new();
         use yukino::resolver::ValueConverter;
-        map.extend(Self::get_bar_converter().to_database_values_by_ref(&self.bar)?);
-        map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
         map.extend(Self::get_integer_converter().to_database_values_by_ref(&self.integer)?);
-        map.extend(Self::get_int16_converter().to_database_values_by_ref(&self.int16)?);
-        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
-        map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
-        map.extend(Self::get_option_num_converter().to_database_values_by_ref(&self.option_num)?);
-        map.extend(Self::get_boolean_converter().to_database_values_by_ref(&self.boolean)?);
         map.extend(
             Self::get_option_string_converter().to_database_values_by_ref(&self.option_string)?,
         );
+        map.extend(Self::get_int16_converter().to_database_values_by_ref(&self.int16)?);
+        map.extend(Self::get_boolean_converter().to_database_values_by_ref(&self.boolean)?);
+        map.extend(Self::get_list_converter().to_database_values_by_ref(&self.list)?);
+        map.extend(Self::get_option_num_converter().to_database_values_by_ref(&self.option_num)?);
+        map.extend(Self::get_bar_converter().to_database_values_by_ref(&self.bar)?);
+        map.extend(Self::get_map_converter().to_database_values_by_ref(&self.map)?);
+        map.extend(Self::get_string_converter().to_database_values_by_ref(&self.string)?);
         Ok(map)
     }
     fn get_definitions() -> Vec<yukino::definitions::TableDefinition> {
@@ -156,24 +156,6 @@ impl yukino::Entity for FooInner {
             yukino::definitions::TableType::NormalEntityTable("Foo".to_string()),
             vec![
                 yukino::definitions::ColumnDefinition::new(
-                    "bar_id".to_string(),
-                    yukino::definitions::ColumnType::VisualColumn,
-                    yukino::types::DatabaseType::UnsignedBigInteger,
-                    true,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::definitions::ColumnDefinition::new(
-                    "map".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
-                    yukino::types::DatabaseType::Json,
-                    false,
-                    false,
-                    false,
-                    false,
-                ),
-                yukino::definitions::ColumnDefinition::new(
                     "integer".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("integer".to_string()),
                     yukino::types::DatabaseType::UnsignedInteger,
@@ -181,6 +163,15 @@ impl yukino::Entity for FooInner {
                     false,
                     false,
                     false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
+                    "option_string".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
+                    yukino::types::DatabaseType::String,
+                    false,
+                    false,
+                    false,
+                    true,
                 ),
                 yukino::definitions::ColumnDefinition::new(
                     "int16".to_string(),
@@ -192,9 +183,9 @@ impl yukino::Entity for FooInner {
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "string".to_string(),
+                    "boolean".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
-                    yukino::types::DatabaseType::String,
+                    yukino::types::DatabaseType::Bool,
                     false,
                     false,
                     false,
@@ -219,22 +210,31 @@ impl yukino::Entity for FooInner {
                     true,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "boolean".to_string(),
-                    yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
-                    yukino::types::DatabaseType::Bool,
+                    "bar_id".to_string(),
+                    yukino::definitions::ColumnType::VisualColumn,
+                    yukino::types::DatabaseType::UnsignedBigInteger,
+                    true,
+                    false,
+                    false,
+                    false,
+                ),
+                yukino::definitions::ColumnDefinition::new(
+                    "map".to_string(),
+                    yukino::definitions::ColumnType::NormalColumn("map".to_string()),
+                    yukino::types::DatabaseType::Json,
                     false,
                     false,
                     false,
                     false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
-                    "option_string".to_string(),
+                    "string".to_string(),
                     yukino::definitions::ColumnType::NormalColumn("Foo".to_string()),
                     yukino::types::DatabaseType::String,
                     false,
                     false,
                     false,
-                    true,
+                    false,
                 ),
                 yukino::definitions::ColumnDefinition::new(
                     "__foo_id".to_string(),
@@ -256,77 +256,99 @@ impl yukino::Entity for FooInner {
     }
     fn get_field_definition(field_name: &str) -> Option<yukino::definitions::FieldDefinition> {
         match field_name {
-            "bar" => Some(yukino::definitions::FieldDefinition::new(
-                "bar".to_string(),
-                "".to_string(),
-                "Bar".to_string(),
-                false,
-                vec!["bar_id".to_string()],
-                vec![],
-            )),
-            "map" => Some(yukino::definitions::FieldDefinition::new(
-                "map".to_string(),
-                "".to_string(),
-                "std :: collections :: HashMap < String , String >".to_string(),
-                false,
-                vec!["map".to_string()],
-                vec![],
-            )),
             "integer" => Some(yukino::definitions::FieldDefinition::new(
+                "integer".to_string(),
                 "integer".to_string(),
                 "numeric".to_string(),
                 "u32".to_string(),
                 false,
                 vec!["integer".to_string()],
                 vec![],
-            )),
-            "int16" => Some(yukino::definitions::FieldDefinition::new(
-                "int16".to_string(),
-                "numeric".to_string(),
-                "i16".to_string(),
-                false,
-                vec!["int16".to_string()],
-                vec![],
-            )),
-            "string" => Some(yukino::definitions::FieldDefinition::new(
-                "string".to_string(),
-                "string".to_string(),
-                "string".to_string(),
-                false,
-                vec!["string".to_string()],
-                vec![],
-            )),
-            "list" => Some(yukino::definitions::FieldDefinition::new(
-                "list".to_string(),
-                "".to_string(),
-                "Vec < String >".to_string(),
-                false,
-                vec!["list".to_string()],
-                vec![],
-            )),
-            "option_num" => Some(yukino::definitions::FieldDefinition::new(
-                "option_num".to_string(),
-                "numeric".to_string(),
-                "u32".to_string(),
-                true,
-                vec!["option_num".to_string()],
-                vec![],
-            )),
-            "boolean" => Some(yukino::definitions::FieldDefinition::new(
-                "boolean".to_string(),
-                "bool".to_string(),
-                "string".to_string(),
-                false,
-                vec!["boolean".to_string()],
-                vec![],
+                None,
             )),
             "option_string" => Some(yukino::definitions::FieldDefinition::new(
+                "option_string".to_string(),
                 "option_string".to_string(),
                 "string".to_string(),
                 "string".to_string(),
                 true,
                 vec!["option_string".to_string()],
                 vec![],
+                None,
+            )),
+            "int16" => Some(yukino::definitions::FieldDefinition::new(
+                "int16".to_string(),
+                "int16".to_string(),
+                "numeric".to_string(),
+                "i16".to_string(),
+                false,
+                vec!["int16".to_string()],
+                vec![],
+                None,
+            )),
+            "boolean" => Some(yukino::definitions::FieldDefinition::new(
+                "boolean".to_string(),
+                "boolean".to_string(),
+                "bool".to_string(),
+                "string".to_string(),
+                false,
+                vec!["boolean".to_string()],
+                vec![],
+                None,
+            )),
+            "list" => Some(yukino::definitions::FieldDefinition::new(
+                "list".to_string(),
+                "list".to_string(),
+                "".to_string(),
+                "Vec < String >".to_string(),
+                false,
+                vec!["list".to_string()],
+                vec![],
+                None,
+            )),
+            "option_num" => Some(yukino::definitions::FieldDefinition::new(
+                "option_num".to_string(),
+                "option_num".to_string(),
+                "numeric".to_string(),
+                "u32".to_string(),
+                true,
+                vec!["option_num".to_string()],
+                vec![],
+                None,
+            )),
+            "bar" => Some(yukino::definitions::FieldDefinition::new(
+                "bar".to_string(),
+                "bar".to_string(),
+                "".to_string(),
+                "Bar".to_string(),
+                false,
+                vec!["bar_id".to_string()],
+                vec![],
+                Some(yukino::definitions::AssociationDefinition::new(
+                    "Bar".to_string(),
+                    false,
+                    vec![("bar_id".to_string(), "id".to_string())],
+                )),
+            )),
+            "map" => Some(yukino::definitions::FieldDefinition::new(
+                "map".to_string(),
+                "map".to_string(),
+                "".to_string(),
+                "std :: collections :: HashMap < String , String >".to_string(),
+                false,
+                vec!["map".to_string()],
+                vec![],
+                None,
+            )),
+            "string" => Some(yukino::definitions::FieldDefinition::new(
+                "string".to_string(),
+                "string".to_string(),
+                "string".to_string(),
+                "string".to_string(),
+                false,
+                vec!["string".to_string()],
+                vec![],
+                None,
             )),
             _ => None,
         }
@@ -374,6 +396,60 @@ impl<'t> yukino::EntityProxy<'t, FooInner> for Foo<'t> {
     }
 }
 impl<'t> Foo<'t> {
+    pub fn get_integer(&self) -> u32 {
+        let inner = self.get_inner();
+        inner.integer
+    }
+    pub fn set_integer(&mut self, value: u32) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.integer = value;
+        self
+    }
+    pub fn get_option_string(&self) -> &Option<String> {
+        let inner = self.get_inner();
+        &inner.option_string
+    }
+    pub fn set_option_string(&mut self, value: String) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.option_string = Some(value);
+        self
+    }
+    pub fn get_int16(&self) -> i16 {
+        let inner = self.get_inner();
+        inner.int16
+    }
+    pub fn set_int16(&mut self, value: i16) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.int16 = value;
+        self
+    }
+    pub fn get_boolean(&self) -> &bool {
+        let inner = self.get_inner();
+        &inner.boolean
+    }
+    pub fn set_boolean(&mut self, value: bool) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.boolean = value;
+        self
+    }
+    pub fn get_list(&self) -> &Vec<String> {
+        let inner = self.get_inner();
+        &inner.list
+    }
+    pub fn set_list(&mut self, value: Vec<String>) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.list = value;
+        self
+    }
+    pub fn get_option_num(&self) -> Option<u32> {
+        let inner = self.get_inner();
+        inner.option_num
+    }
+    pub fn set_option_num(&mut self, value: u32) -> &mut Self {
+        let inner = self.get_inner_mut();
+        inner.option_num = Some(value);
+        self
+    }
     pub fn get_bar(&self) -> Bar {
         use yukino::EntityProxy;
         let inner = self.get_inner();
@@ -404,24 +480,6 @@ impl<'t> Foo<'t> {
         inner.map = value;
         self
     }
-    pub fn get_integer(&self) -> u32 {
-        let inner = self.get_inner();
-        inner.integer
-    }
-    pub fn set_integer(&mut self, value: u32) -> &mut Self {
-        let inner = self.get_inner_mut();
-        inner.integer = value;
-        self
-    }
-    pub fn get_int16(&self) -> i16 {
-        let inner = self.get_inner();
-        inner.int16
-    }
-    pub fn set_int16(&mut self, value: i16) -> &mut Self {
-        let inner = self.get_inner_mut();
-        inner.int16 = value;
-        self
-    }
     pub fn get_string(&self) -> &String {
         let inner = self.get_inner();
         &inner.string
@@ -431,63 +489,27 @@ impl<'t> Foo<'t> {
         inner.string = value;
         self
     }
-    pub fn get_list(&self) -> &Vec<String> {
-        let inner = self.get_inner();
-        &inner.list
-    }
-    pub fn set_list(&mut self, value: Vec<String>) -> &mut Self {
-        let inner = self.get_inner_mut();
-        inner.list = value;
-        self
-    }
-    pub fn get_option_num(&self) -> Option<u32> {
-        let inner = self.get_inner();
-        inner.option_num
-    }
-    pub fn set_option_num(&mut self, value: u32) -> &mut Self {
-        let inner = self.get_inner_mut();
-        inner.option_num = Some(value);
-        self
-    }
-    pub fn get_boolean(&self) -> &bool {
-        let inner = self.get_inner();
-        &inner.boolean
-    }
-    pub fn set_boolean(&mut self, value: bool) -> &mut Self {
-        let inner = self.get_inner_mut();
-        inner.boolean = value;
-        self
-    }
-    pub fn get_option_string(&self) -> &Option<String> {
-        let inner = self.get_inner();
-        &inner.option_string
-    }
-    pub fn set_option_string(&mut self, value: String) -> &mut Self {
-        let inner = self.get_inner_mut();
-        inner.option_string = Some(value);
-        self
-    }
     pub fn with_value(
-        bar: yukino::collection::AssociatedEntity<BarInner>,
-        map: std::collections::HashMap<String, String>,
         integer: u32,
+        option_string: Option<String>,
         int16: i16,
-        string: String,
+        boolean: bool,
         list: Vec<String>,
         option_num: Option<u32>,
-        boolean: bool,
-        option_string: Option<String>,
+        bar: yukino::collection::AssociatedEntity<BarInner>,
+        map: std::collections::HashMap<String, String>,
+        string: String,
     ) -> impl FnOnce() -> FooInner {
         move || FooInner {
-            bar,
-            map,
             integer,
+            option_string,
             int16,
-            string,
+            boolean,
             list,
             option_num,
-            boolean,
-            option_string,
+            bar,
+            map,
+            string,
         }
     }
     fn get_inner(&self) -> &FooInner {
@@ -562,11 +584,13 @@ impl yukino::Entity for BarInner {
         match field_name {
             "id" => Some(yukino::definitions::FieldDefinition::new(
                 "id".to_string(),
+                "id".to_string(),
                 "numeric".to_string(),
                 "u64".to_string(),
                 false,
                 vec!["id".to_string()],
                 vec![],
+                None,
             )),
             _ => None,
         }
