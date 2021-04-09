@@ -264,20 +264,24 @@ fn test_expr_type_check() {
             .collect(),
         |entity: &str, field: &str| match (entity, field) {
             ("test", "a") => Some(FieldDefinition {
+                entity: "test".to_string(),
                 name: "a".to_string(),
                 type_resolver_name: "numeric".to_string(),
                 field_type: "u64".to_string(),
                 nullable: false,
                 columns: vec![],
                 tables: vec![],
+                association: None
             }),
             ("test", "b") => Some(FieldDefinition {
+                entity: "test".to_string(),
                 name: "b".to_string(),
                 type_resolver_name: "numeric".to_string(),
                 field_type: "u64".to_string(),
                 nullable: false,
                 columns: vec![],
                 tables: vec![],
+                association: None
             }),
             _ => None,
         },
