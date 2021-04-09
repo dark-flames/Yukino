@@ -271,7 +271,7 @@ fn test_expr_type_check() {
                 nullable: false,
                 columns: vec![],
                 tables: vec![],
-                association: None
+                association: None,
             }),
             ("test", "b") => Some(FieldDefinition {
                 entity: "test".to_string(),
@@ -281,7 +281,7 @@ fn test_expr_type_check() {
                 nullable: false,
                 columns: vec![],
                 tables: vec![],
-                association: None
+                association: None,
             }),
             _ => None,
         },
