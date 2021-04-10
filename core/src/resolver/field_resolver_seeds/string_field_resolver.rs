@@ -288,10 +288,6 @@ impl TypeResolver for StringTypeResolver {
         "string".to_string()
     }
 
-    fn type_kind(&self) -> TypeKind {
-        TypeKind::String
-    }
-
     fn wrap_lit(
         &self,
         lit: &Literal,
@@ -343,7 +339,7 @@ impl TypeResolver for StringTypeResolver {
                 field_type: field_definition.field_type.clone(),
                 nullable: field_definition.nullable,
                 resolver_name: self.name(),
-                type_kind: self.type_kind(),
+                type_kind: TypeKind::String,
             };
             Ok((
                 IdentResolveStatus::Resolved(ExprWrapper {

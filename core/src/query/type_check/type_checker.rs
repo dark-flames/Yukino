@@ -9,6 +9,7 @@ where
     F: Fn(&str, &str) -> Option<FieldDefinition>,
 {
     external_value_assertion: HashMap<String, String>,
+    result_type: HashMap<String, String>,
     generated_join: HashMap<String, JoinClause>,
     resolvers: HashMap<String, Box<dyn TypeResolver>>,
     alias: HashMap<String, String>,
@@ -27,6 +28,7 @@ where
     ) -> Self {
         TypeChecker {
             external_value_assertion: Default::default(),
+            result_type: Default::default(),
             generated_join: Default::default(),
             resolvers: resolvers
                 .into_iter()
@@ -61,6 +63,16 @@ where
             Err(SyntaxError::ConflictAlias(alias))
         } else {
             self.generated_join.insert(alias, join);
+
+            Ok(())
+        }
+    }
+
+    pub fn add_result_ty(&mut self, index: String, ty: String) -> Result<(), SyntaxError> {
+        if self.generated_join.contains_key(&index) {
+            Err(SyntaxError::ConflictResultIndex(index))
+        } else {
+            self.result_type.insert(index, ty);
 
             Ok(())
         }

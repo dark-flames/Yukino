@@ -419,10 +419,6 @@ impl TypeResolver for NumericTypeResolver {
         "numeric".to_string()
     }
 
-    fn type_kind(&self) -> TypeKind {
-        TypeKind::Numeric
-    }
-
     fn cmp_type_info(&self, a: &TypeInfo, b: &TypeInfo) -> bool {
         let numeric_type_a = NumericType::from_str(a.field_type.as_str()).unwrap();
         let numeric_type_b = NumericType::from_str(b.field_type.as_str()).unwrap();
@@ -501,7 +497,7 @@ impl TypeResolver for NumericTypeResolver {
         let type_info = TypeInfo {
             field_type: field_definition.field_type.clone(),
             nullable: field_definition.nullable,
-            type_kind: self.type_kind(),
+            type_kind: TypeKind::Numeric,
             resolver_name: self.name(),
         };
 
@@ -557,7 +553,7 @@ impl TypeResolver for NumericTypeResolver {
                 (BinaryOperator::Div, NumericType::Integer(size)) => TypeInfo {
                     field_type: NumericType::Float(max(32, *size)).to_string(),
                     nullable,
-                    type_kind: self.type_kind(),
+                    type_kind: TypeKind::Numeric,
                     resolver_name: self.name(),
                 },
                 (operator, _) if operator.is_cmp() => TypeInfo {

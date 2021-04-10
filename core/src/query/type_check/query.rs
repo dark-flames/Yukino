@@ -2,9 +2,10 @@ use crate::definitions::FieldDefinition;
 use crate::query::ast::error::{SyntaxError, SyntaxErrorWithPos};
 use crate::query::ast::{
     DeleteQuery, Expr, FromClause, GroupByClause, InsertQuery, JoinClause, Locatable,
-    OrderByClause, Query, SelectQuery, UpdateQuery, ValueItem,
+    OrderByClause, Query, SelectClause, SelectQuery, UpdateQuery, ValueItem,
 };
 use crate::query::type_check::{TypeCheck, TypeChecker, TypeInfer, TypeKind};
+use crate::types::TypeInfo;
 
 impl TypeCheck for Query {
     fn check_type<F>(&mut self, ty_checker: &mut TypeChecker<F>) -> Result<(), SyntaxErrorWithPos>
@@ -25,6 +26,7 @@ impl TypeCheck for SelectQuery {
     where
         F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
+        self.select_clause.check_type(ty_checker)?;
         self.from.check_type(ty_checker)?;
 
         if let Some(expr) = &mut self.where_clause {
@@ -90,6 +92,30 @@ impl TypeCheck for InsertQuery {
     }
 }
 
+impl TypeCheck for SelectClause {
+    fn check_type<F>(&mut self, ty_checker: &mut TypeChecker<F>) -> Result<(), SyntaxErrorWithPos>
+    where
+        F: Fn(&str, &str) -> Option<FieldDefinition>,
+    {
+        let mut count: usize = 0;
+        let location = self.location();
+        for (expr, alias) in self.items.iter_mut() {
+            let type_info = expr.check_type(ty_checker, None)?;
+
+            if alias.is_none() {
+                *alias = Some(format!("__{}", count));
+                count += 1;
+            };
+
+            ty_checker
+                .add_result_ty(alias.as_ref().cloned().unwrap(), type_info.field_type)
+                .map_err(|e| location.error(e))?;
+        }
+
+        Ok(())
+    }
+}
+
 impl TypeCheck for FromClause {
     fn check_type<F>(&mut self, ty_checker: &mut TypeChecker<F>) -> Result<(), SyntaxErrorWithPos>
     where
@@ -138,7 +164,7 @@ impl Expr {
         &mut self,
         ty_checker: &mut TypeChecker<F>,
         type_kind: Option<TypeKind>,
-    ) -> Result<(), SyntaxErrorWithPos>
+    ) -> Result<TypeInfo, SyntaxErrorWithPos>
     where
         F: Fn(&str, &str) -> Option<FieldDefinition>,
     {
@@ -155,6 +181,8 @@ impl Expr {
             }
         }
 
+        let type_info = wrapper.type_info.clone();
+
         *self = ty_checker
             .get_resolver(&wrapper.type_info.resolver_name)
             .ok_or_else(|| {
@@ -164,6 +192,6 @@ impl Expr {
             })?
             .unwrap_expr(wrapper)?;
 
-        Ok(())
+        Ok(type_info)
     }
 }

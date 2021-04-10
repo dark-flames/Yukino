@@ -644,10 +644,6 @@ impl TypeResolver for AssociatedEntityTypeResolver {
         "associated_object".to_string()
     }
 
-    fn type_kind(&self) -> TypeKind {
-        TypeKind::Others("AssociatedEntity".to_string())
-    }
-
     fn wrap_lit(
         &self,
         lit: &Literal,
@@ -735,24 +731,22 @@ impl TypeResolver for AssociatedEntityTypeResolver {
         segments.pop();
         segments[0] = ref_alias;
 
-        if segments.len() == 1 {
-            segments.push("*".to_string());
-        };
-
-        if segments.len() > 2 {
+        if segments.len() > 2
+            || (segments.len() == 2 && segments.get(1).map(|s| s.as_str()) != Some("*"))
+        {
             Ok((
                 IdentResolveStatus::Unresolved(ColumnIdent { segments, location }),
                 vec![join],
             ))
         } else {
             Ok((
-                IdentResolveStatus::Resolved (ExprWrapper {
+                IdentResolveStatus::Resolved(ExprWrapper {
                     exprs: vec![Expr::ColumnIdent(ColumnIdent { segments, location })],
                     type_info: TypeInfo {
                         resolver_name: self.name(),
                         field_type: field_definition.field_type.clone(),
                         nullable: field_definition.nullable,
-                        type_kind: self.type_kind(),
+                        type_kind: TypeKind::Object(association.referenced_entity.clone()),
                     },
                     location,
                 }),

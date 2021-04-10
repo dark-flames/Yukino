@@ -278,10 +278,6 @@ impl TypeResolver for BoolTypeResolver {
         "bool".to_string()
     }
 
-    fn type_kind(&self) -> TypeKind {
-        TypeKind::Boolean
-    }
-
     fn wrap_lit(
         &self,
         lit: &Literal,
@@ -326,17 +322,15 @@ impl TypeResolver for BoolTypeResolver {
                 field_type: field_definition.field_type.clone(),
                 nullable: field_definition.nullable,
                 resolver_name: self.name(),
-                type_kind: self.type_kind(),
+                type_kind: TypeKind::Boolean,
             };
 
             Ok((
-                IdentResolveStatus::Resolved (
-                    ExprWrapper {
-                        exprs: vec![Expr::ColumnIdent(ident.clone())],
-                        type_info,
-                        location: ident.location,
-                    }
-                ),
+                IdentResolveStatus::Resolved(ExprWrapper {
+                    exprs: vec![Expr::ColumnIdent(ident.clone())],
+                    type_info,
+                    location: ident.location,
+                }),
                 vec![],
             ))
         }

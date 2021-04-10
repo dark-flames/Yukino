@@ -8,7 +8,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub enum IdentResolveStatus {
     Unresolved(ColumnIdent),
-    Resolved (ExprWrapper),
+    Resolved(ExprWrapper),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -47,8 +47,6 @@ pub trait TypeResolver {
         Self: Sized;
 
     fn name(&self) -> String;
-
-    fn type_kind(&self) -> TypeKind;
 
     fn cmp_type_info(&self, a: &TypeInfo, b: &TypeInfo) -> bool {
         a == b
