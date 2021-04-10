@@ -8,6 +8,7 @@ pub enum TypeKind {
     Numeric,
     String,
     Boolean,
+    Object(String),
     Others(String),
 }
 
@@ -20,6 +21,7 @@ impl Display for TypeKind {
                 TypeKind::Numeric => "Numeric",
                 TypeKind::String => "String",
                 TypeKind::Boolean => "Boolean",
+                TypeKind::Object(name) => return write!(f, "Object({})", name),
                 TypeKind::Others(s) => s,
             }
         )

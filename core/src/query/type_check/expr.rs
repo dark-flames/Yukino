@@ -160,6 +160,7 @@ impl TypeInfer for ColumnIdent {
 
         loop {
             let table_alias = ident.segments.first().unwrap();
+            let field_name = ident.segments.get(1).unwrap();
 
             let entity_name = ty_checker
                 .get_table_name(self.segments.first().unwrap())
@@ -169,11 +170,11 @@ impl TypeInfer for ColumnIdent {
                 })?;
 
             let definition = ty_checker
-                .get_field_definition(entity_name, self.segments.last().unwrap())
+                .get_field_definition(entity_name, field_name)
                 .ok_or_else(|| {
                     self.location().error(SyntaxError::UnknownField(
                         entity_name.to_string(),
-                        self.segments.last().unwrap().to_string(),
+                        field_name.to_string(),
                     ))
                 })?;
 

@@ -330,11 +330,13 @@ impl TypeResolver for BoolTypeResolver {
             };
 
             Ok((
-                IdentResolveStatus::Resolved(ExprWrapper {
-                    exprs: vec![Expr::ColumnIdent(ident.clone())],
-                    type_info,
-                    location: ident.location,
-                }),
+                IdentResolveStatus::Resolved (
+                    ExprWrapper {
+                        exprs: vec![Expr::ColumnIdent(ident.clone())],
+                        type_info,
+                        location: ident.location,
+                    }
+                ),
                 vec![],
             ))
         }

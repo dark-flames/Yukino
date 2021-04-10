@@ -8,7 +8,7 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 
 pub enum IdentResolveStatus {
     Unresolved(ColumnIdent),
-    Resolved(ExprWrapper),
+    Resolved (ExprWrapper),
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]

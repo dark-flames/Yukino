@@ -603,7 +603,7 @@ impl FieldResolver for AssociatedEntityFieldResolver {
                 field_definition: FieldDefinition {
                     entity: self.field_path.1.clone(),
                     name: self.field_path.1.clone(),
-                    type_resolver_name: "".to_string(), //todo: impl association type resolver
+                    type_resolver_name: AssociatedEntityTypeResolver::seed().name(),
                     field_type: self.proxy_type.to_token_stream().to_string(),
                     nullable: self.nullable,
                     columns: self
@@ -746,7 +746,7 @@ impl TypeResolver for AssociatedEntityTypeResolver {
             ))
         } else {
             Ok((
-                IdentResolveStatus::Resolved(ExprWrapper {
+                IdentResolveStatus::Resolved (ExprWrapper {
                     exprs: vec![Expr::ColumnIdent(ColumnIdent { segments, location })],
                     type_info: TypeInfo {
                         resolver_name: self.name(),
